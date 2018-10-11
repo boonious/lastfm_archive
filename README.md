@@ -1,4 +1,4 @@
-# Last.fm Archive
+# Last.fm Archive [![Build Status](https://travis-ci.org/boonious/lastfm_archive.svg?branch=master)](https://travis-ci.org/boonious/lastfm_archive) [![Coverage Status](https://coveralls.io/repos/github/boonious/lastfm_archive/badge.svg?branch=master)](https://coveralls.io/github/boonious/lastfm_archive?branch=master)
 
 A tool for creating local Last.fm scrobble data archive and analytics.
 
