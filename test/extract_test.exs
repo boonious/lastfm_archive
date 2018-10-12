@@ -1,5 +1,5 @@
 defmodule ExtractTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   import TestHelpers
 
   doctest LastfmArchive
@@ -10,11 +10,15 @@ defmodule ExtractTest do
 
   # testing with Bypass default
   setup do
+    lastfm_ws = Application.get_env :elixirfm, :lastfm_ws
     bypass = Bypass.open
+    on_exit fn ->
+      Application.put_env :elixirfm, :lastfm_ws, lastfm_ws
+    end
     [bypass: bypass]
   end
 
-  test "extract/0 request params for the configured user", context do
+  test "extract/0 requests params for the configured user", context do
     test_conn_params(context.bypass, @lastfm_api_params)
     LastfmArchive.extract
   end
