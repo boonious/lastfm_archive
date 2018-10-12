@@ -38,7 +38,7 @@ defmodule LastfmArchive.MixProject do
   defp deps do
     [
       {:bypass, "~> 0.8.1", only: :test},
-      {:elixirfm, "~> 0.1.3"},
+      {:elixirfm, git: "https://github.com/boonious/Elixirfm.git"},
       {:excoveralls, "~> 0.10", only: :test},
       {:ex_doc, "~> 0.19", only: :dev, runtime: false}
     ]
