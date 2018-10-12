@@ -7,6 +7,7 @@ config :lastfm_archive,
 # API key required to extract Lastfm data
 # see: https://www.last.fm/api
 config :elixirfm,
+  lastfm_ws: "http://ws.audioscrobbler.com/",
   api_key: "",
   secret_key: ""
 
