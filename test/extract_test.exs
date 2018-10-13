@@ -8,18 +8,18 @@ defmodule ExtractTest do
                        "api_key" => Application.get_env(:elixirfm, :api_key), 
                        "user" => Application.get_env(:lastfm_archive, :user)}
 
-  @default_file_dir "./lastfm_archive/"
+  @default_data_dir "./lastfm_data/"
 
   # testing with Bypass
   setup do
     lastfm_ws = Application.get_env :elixirfm, :lastfm_ws
-    configured_dir = Application.get_env :lastfm_archive, :file_dir
+    configured_dir = Application.get_env :lastfm_archive, :data_dir
 
     bypass = Bypass.open
 
     on_exit fn ->
       Application.put_env :elixirfm, :lastfm_ws, lastfm_ws
-      Application.put_env :lastfm_archive, :file_dir, configured_dir
+      Application.put_env :lastfm_archive, :data_dir, configured_dir
     end
 
     [bypass: bypass]
@@ -37,9 +37,9 @@ defmodule ExtractTest do
 
   test "write/2 compressed data to the default file location" do
     user = Application.get_env(:lastfm_archive, :user) || ""
-    Application.put_env :lastfm_archive, :file_dir, @default_file_dir
+    Application.put_env :lastfm_archive, :data_dir, @default_data_dir
 
-    file_path = "#{@default_file_dir}/#{user}/1.gz"
+    file_path = Path.join ["#{@default_data_dir}", "#{user}", "1.gz"]
     on_exit fn -> File.rm file_path end
 
     # use mocked data when available
@@ -50,9 +50,9 @@ defmodule ExtractTest do
 
   test "write/2 compressed data to the configured file location" do
     user = Application.get_env(:lastfm_archive, :user) || ""
-    file_dir = Application.get_env(:lastfm_archive, :file_dir) || @default_file_dir
+    data_dir = Application.get_env(:lastfm_archive, :data_dir) || @default_data_dir
 
-    file_path = "#{file_dir}/#{user}/1.gz"
+    file_path = Path.join ["#{data_dir}", "#{user}", "1.gz"]
     on_exit fn -> File.rm file_path end
 
     # use mocked data when available

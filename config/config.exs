@@ -2,7 +2,8 @@ use Mix.Config
 
 # Lastfm user for the archive
 config :lastfm_archive, 
-  user: ""
+  user: "",
+  data_dir: "./lastfm_data/"
 
 # API key required to extract Lastfm data
 # see: https://www.last.fm/api
