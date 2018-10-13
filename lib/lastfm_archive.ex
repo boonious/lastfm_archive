@@ -31,4 +31,15 @@ defmodule LastfmArchive do
     File.write file_path, data, [:compressed]
   end
 
+  # find out more about the user (playcount, earliest scrobbles)
+  # to determine data extraction strategy
+  def info(user) do
+    {_status, resp} = get_info(user)
+
+    playcount = resp["user"]["playcount"]
+    registered = resp["user"]["registered"]["unixtime"]
+
+    {playcount, registered}
+  end
+
 end

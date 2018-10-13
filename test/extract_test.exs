@@ -4,7 +4,11 @@ defmodule ExtractTest do
 
   doctest LastfmArchive
 
-  @lastfm_api_params %{"method" => "user.getrecenttracks", 
+  @lastfm_tracks_api_params %{"method" => "user.getrecenttracks", 
+                       "api_key" => Application.get_env(:elixirfm, :api_key), 
+                       "user" => Application.get_env(:lastfm_archive, :user)}
+
+  @lastfm_info_api_params %{"method" => "user.getinfo",
                        "api_key" => Application.get_env(:elixirfm, :api_key), 
                        "user" => Application.get_env(:lastfm_archive, :user)}
 
@@ -26,12 +30,12 @@ defmodule ExtractTest do
   end
 
   test "extract/0 requests params for the configured user", context do
-    test_conn_params(context.bypass, @lastfm_api_params)
+    test_conn_params(context.bypass, @lastfm_tracks_api_params)
     LastfmArchive.extract
   end
 
   test "extract/1 requests params for a specific user", context do
-    test_conn_params(context.bypass, %{@lastfm_api_params | "user" => "a_lastfm_user"})
+    test_conn_params(context.bypass, %{@lastfm_tracks_api_params | "user" => "a_lastfm_user"})
     LastfmArchive.extract("a_lastfm_user")
   end
 
@@ -59,6 +63,11 @@ defmodule ExtractTest do
     LastfmArchive.write("test")
     assert File.exists? file_path
     assert "test" == File.read!(file_path) |> :zlib.gunzip
+  end
+
+  test "info/1 obtaining playcount and registered date for user", context do
+    test_conn_params(context.bypass, @lastfm_info_api_params)
+    LastfmArchive.info(Application.get_env(:lastfm_archive, :user))
   end
 
 end
