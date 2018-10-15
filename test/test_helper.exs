@@ -28,4 +28,10 @@ defmodule TestHelpers do
     assert info["total"] > 0
     assert info["user"] == Application.get_env(:lastfm_archive, :user)
   end
+
+  def check_resp({playcount, registered}) do
+    assert playcount > 0
+    assert registered > 0
+  end
+
 end

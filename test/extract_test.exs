@@ -80,6 +80,9 @@ defmodule ExtractTest do
     if(bypass) do
       test_conn_params(bypass, @lastfm_info_api_params)
       LastfmArchive.info(Application.get_env(:lastfm_archive, :user))
+    else
+      # integration test
+      check_resp(LastfmArchive.info(Application.get_env(:lastfm_archive, :user)))
     end
   end
 
