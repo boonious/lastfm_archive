@@ -19,4 +19,13 @@ defmodule TestHelpers do
     end
   end
 
+  def check_resp({_status, %{"error" => _, "links" => _, "message" => message}}) do
+    assert message != "User not found"
+  end
+
+  def check_resp({:ok, %{"recenttracks" => %{"@attr" => info, "track" => tracks} }}) do
+    assert length(tracks) > 0
+    assert info["total"] > 0
+    assert info["user"] == Application.get_env(:lastfm_archive, :user)
+  end
 end

@@ -19,7 +19,9 @@ defmodule ExtractTest do
     lastfm_ws = Application.get_env :elixirfm, :lastfm_ws
     configured_dir = Application.get_env :lastfm_archive, :data_dir
 
-    bypass = Bypass.open
+    # true if mix test --include integration 
+    is_integration = :integration in ExUnit.configuration[:include]
+    bypass = unless is_integration, do: Bypass.open, else: nil
 
     on_exit fn ->
       Application.put_env :elixirfm, :lastfm_ws, lastfm_ws
@@ -30,13 +32,22 @@ defmodule ExtractTest do
   end
 
   test "extract/0 requests params for the configured user", %{bypass: bypass} do
-    test_conn_params(bypass, @lastfm_tracks_api_params)
-    LastfmArchive.extract
+    if(bypass) do
+      test_conn_params(bypass, @lastfm_tracks_api_params)
+      LastfmArchive.extract
+    else
+      # if 'bypass' is nil, then integration testing with live Lastfm endpoint
+      # required a valid Lastfm user in configuration 
+      check_resp(LastfmArchive.extract)
+    end
   end
 
   test "extract/1 requests params for a specific user", %{bypass: bypass} do
-    test_conn_params(bypass, %{@lastfm_tracks_api_params | "user" => "a_lastfm_user"})
-    LastfmArchive.extract("a_lastfm_user")
+    # Bypass test only
+    if(bypass) do
+      test_conn_params(bypass, %{@lastfm_tracks_api_params | "user" => "a_lastfm_user"})
+      LastfmArchive.extract("a_lastfm_user")
+    end
   end
 
   test "write/2 compressed data to the default file location" do
@@ -66,8 +77,10 @@ defmodule ExtractTest do
   end
 
   test "info/1 obtaining playcount and registered date for user", %{bypass: bypass} do
-    test_conn_params(bypass, @lastfm_info_api_params)
-    LastfmArchive.info(Application.get_env(:lastfm_archive, :user))
+    if(bypass) do
+      test_conn_params(bypass, @lastfm_info_api_params)
+      LastfmArchive.info(Application.get_env(:lastfm_archive, :user))
+    end
   end
 
 end
