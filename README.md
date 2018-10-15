@@ -2,6 +2,8 @@
 
 A tool for creating local Last.fm scrobble data archive and analytics.
 
+**Note**: the software is currently in preliminary development and not well-formed enough for use yet.
+
 ## Installation
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
