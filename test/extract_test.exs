@@ -6,7 +6,7 @@ defmodule ExtractTest do
 
   @lastfm_tracks_api_params %{"method" => "user.getrecenttracks", 
                        "api_key" => Application.get_env(:elixirfm, :api_key), 
-                       "user" => Application.get_env(:lastfm_archive, :user)}
+                       "user" => Application.get_env(:lastfm_archive, :user), "limit" => "1", "extended" => "1", "page" => "1"}
 
   @lastfm_info_api_params %{"method" => "user.getinfo",
                        "api_key" => Application.get_env(:elixirfm, :api_key), 
