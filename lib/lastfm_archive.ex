@@ -14,8 +14,9 @@ defmodule LastfmArchive do
 
   @doc """
   """
-  @spec extract(binary) :: Elixirfm.response
-  def extract(user), do: get_recent_tracks(user)
+  @spec extract(binary, Keyword.t) :: Elixirfm.response
+  def extract(user, opts \\ [limit: 2, page: 1])
+  def extract(user, opts), do: get_recent_tracks(user, limit: opts[:limit], page: opts[:page], extended_info: 1)
 
   @spec write(binary, binary) :: :ok | {:error, :file.posix}
   def write(data, type \\ "file")
