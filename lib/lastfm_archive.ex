@@ -7,7 +7,6 @@ defmodule LastfmArchive do
 
   @default_data_dir "./lastfm_data/"
 
-
   @doc """
   """
   @spec extract :: Elixirfm.response
@@ -19,17 +18,17 @@ defmodule LastfmArchive do
   def extract(user, page \\ 1, limit \\ 1)
   def extract(user, page, limit), do: get_recent_tracks(user, limit: limit, page: page, extended_info: 1)
 
-  @spec write(binary, binary) :: :ok | {:error, :file.posix}
-  def write(data, type \\ "file")
-  def write(data, type) when is_binary(data), do: _write(data, type)
+  @spec write(binary, binary, binary) :: :ok | {:error, :file.posix}
+  def write(data, filename \\ "1", type \\ "file")
+  def write(data, filename, type) when is_binary(data), do: _write(data, filename, type)
 
-  defp _write(data, "file") do
+  defp _write(data, filename, "file") do
     data_dir = Application.get_env(:lastfm_archive, :data_dir) || @default_data_dir
     user = Application.get_env(:lastfm_archive, :user) || ""
     user_data_dir = Path.join "#{data_dir}", "#{user}"
     unless File.exists?(user_data_dir), do: File.mkdir_p user_data_dir
 
-    file_path = "#{user_data_dir}/1.gz"
+    file_path = Path.join("#{user_data_dir}", "#{filename}.gz")
     File.write file_path, data, [:compressed]
   end
 
