@@ -43,4 +43,20 @@ defmodule LastfmArchive do
     {playcount, registered}
   end
 
+  # provide a year range in Unix time for a particular year
+  def data_year_range(year) when is_binary(year) do
+    {_, d0, _} = "#{year}-01-01T00:00:00Z" |> DateTime.from_iso8601
+    {_, d1, _} = "#{year}-12-31T23:59:59Z" |> DateTime.from_iso8601
+    {d0 |> DateTime.to_unix, d1 |> DateTime.to_unix}
+  end
+
+  # provides a list of year ranges in Unix time, starting from the user registration date
+  def data_year_range(registered, now \\ DateTime.utc_now) when is_integer(registered) do
+    d0 = DateTime.from_unix!(registered)
+    y0 = d0.year
+
+    this_year = now.year
+    for year <- y0..this_year, do: data_year_range(year |> to_string)
+  end
+
 end
