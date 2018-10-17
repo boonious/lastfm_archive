@@ -29,6 +29,9 @@ defmodule LastfmArchive do
     unless File.exists?(user_data_dir), do: File.mkdir_p user_data_dir
 
     file_path = Path.join("#{user_data_dir}", "#{filename}.gz")
+    file_dir = Path.dirname file_path
+    unless File.exists?(file_dir), do: File.mkdir_p file_dir
+
     File.write file_path, data, [:compressed]
   end
 
