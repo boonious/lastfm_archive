@@ -43,6 +43,12 @@ defmodule LastfmArchive do
     {playcount, registered}
   end
 
+  # get playcount for a particular year for a user
+  def info(user, {from, to}) do
+    {_status, resp} = get_recent_tracks(user, limit: 1, page: 1, from: from, to: to)
+    resp["recenttracks"]["@attr"]["total"]
+  end
+
   # provide a year range in Unix time for a particular year
   def data_year_range(year) when is_binary(year) do
     {_, d0, _} = "#{year}-01-01T00:00:00Z" |> DateTime.from_iso8601

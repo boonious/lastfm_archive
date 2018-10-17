@@ -76,13 +76,27 @@ defmodule ExtractTest do
     assert "test" == File.read!(file_path) |> :zlib.gunzip
   end
 
-  test "info/1 obtaining playcount and registered date for user", %{bypass: bypass} do
+  test "info/1 playcount and registered date for a user", %{bypass: bypass} do
     if(bypass) do
       test_conn_params(bypass, @lastfm_info_api_params)
       LastfmArchive.info(Application.get_env(:lastfm_archive, :user))
     else
       # integration test
       check_resp(LastfmArchive.info(Application.get_env(:lastfm_archive, :user)))
+    end
+  end
+
+  test "info/2 playcount in a particular year for a user", %{bypass: bypass} do
+    if(bypass) do
+     test_year_range = {1167609600, 1199145599} #2007
+     expected_params = %{"method" => "user.getrecenttracks",
+                         "api_key" => Application.get_env(:elixirfm, :api_key),
+                         "user" => Application.get_env(:lastfm_archive, :user),
+                         "limit" => "1", "page" => "1",
+                         "from" => "1167609600", "to" => "1199145599"}
+
+      test_conn_params(bypass, expected_params)
+      LastfmArchive.info(Application.get_env(:lastfm_archive, :user), test_year_range)
     end
   end
 
