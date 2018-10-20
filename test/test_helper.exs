@@ -3,7 +3,7 @@ ExUnit.start()
 defmodule TestHelpers do
   import ExUnit.Assertions
 
-  def test_conn_params(bypass, expected_params) do
+  def test_conn_params(bypass, expected_params, prebaked_resp \\ "{}") do
     test_ws = "http://localhost:#{bypass.port}/"
     Application.put_env :elixirfm, :lastfm_ws, test_ws
 
@@ -15,7 +15,7 @@ defmodule TestHelpers do
         assert v == params[k]
       end
 
-      Plug.Conn.resp(conn, 200, "{}")
+      Plug.Conn.resp(conn, 200, prebaked_resp)
     end
   end
 
