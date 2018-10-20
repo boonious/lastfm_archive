@@ -6,7 +6,8 @@ defmodule LastfmArchive do
   import Elixirfm.User
 
   @default_data_dir "./lastfm_data/"
-  @req_interval Application.get_env(:lastfm_archive, :req_interval)
+  @per_page Application.get_env(:lastfm_archive, :per_page) || 200 # max fetch allowed by Lastfm
+  @req_interval Application.get_env(:lastfm_archive, :req_interval) || 500
 
   def archive(user, interval \\ @req_interval) when is_binary(user) do
     {playcount, registered} = info(user)
@@ -18,11 +19,21 @@ defmodule LastfmArchive do
       to_s = to |> DateTime.from_unix! |> DateTime.to_date |> Date.to_string
 
       IO.puts "\nyear: #{from_s} - #{to_s}"
+      _archive(user, {from, to})
       :timer.sleep(interval) # prevent request rate limit (max 5 per sec) from being reached
     end
     :ok
   end
 
+  defp _archive(user, {from, to}) do
+    playcount = info(user, {from, to}) |> String.to_integer
+    total_pages = playcount / @per_page |> :math.ceil |> round
+
+    IO.puts "#{playcount} total scrobbles \n#{total_pages} pages - #{@per_page} scrobbles each"
+    for page <- 1..total_pages do
+      IO.puts "... page #{page}"
+    end
+  end
   @doc """
   """
   @spec extract :: Elixirfm.response

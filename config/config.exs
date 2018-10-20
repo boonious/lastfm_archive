@@ -4,6 +4,7 @@ use Mix.Config
 config :lastfm_archive, 
   user: "",
   data_dir: "./lastfm_data/",
+  per_page: 200, # 200 is max permissable number of results per call
   req_interval: 500 # milliseconds between requests cf. Lastfm permissable max 5 reqs/s rate
 
 # API key required to extract Lastfm data

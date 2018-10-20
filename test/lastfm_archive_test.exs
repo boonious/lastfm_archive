@@ -1,7 +1,6 @@
 defmodule LastfmArchiveTest do
   use ExUnit.Case
   import ExUnit.CaptureIO
-  import TestHelpers
 
   doctest LastfmArchive
 
@@ -24,19 +23,34 @@ defmodule LastfmArchiveTest do
     if(bypass) do
       user = Application.get_env(:lastfm_archive, :user)
       api_key = Application.get_env(:elixirfm, :api_key)
-      prebaked_resp = File.read!("./test/data/test_user.json")
+      prebaked_resp_get_info = File.read!("./test/data/test_user.json")
+      prebaked_resp_get_recenttraacks = File.read!("./test/data/test_recenttracks.json")
 
-      test_conn_params(bypass,  %{"method" => "user.getinfo","api_key" => api_key, "user" => user}, prebaked_resp)
-      assert capture_io(fn -> LastfmArchive.archive(user,0) end)
-        ==  """
-            Archiving 123456 scrobbles for #{user}
+      test_ws = "http://localhost:#{bypass.port}/"
+      Application.put_env :elixirfm, :lastfm_ws, test_ws
 
-            year: 2016-01-01 - 2016-12-31
+      Bypass.expect bypass, fn conn ->
+        params = Plug.Conn.fetch_query_params(conn) |> Map.fetch!(:query_params)
+        param_keys = params |> Map.keys
+        expected_params = if String.match?(conn.query_string, ~r/getrecenttracks/) do
+          %{"method" => "user.getrecenttracks", "api_key" => api_key, "user" => user, "to" => "\\\d*", "from" => "\\\d*"}
+        else
+          %{"method" => "user.getinfo", "api_key" => api_key, "user" => user}
+        end
 
-            year: 2017-01-01 - 2017-12-31
+        for {k,v} <- expected_params do
+          assert k in param_keys
+          assert String.match? params[k], Regex.compile!(v)
+        end
 
-            year: 2018-01-01 - 2018-12-31
-            """
+        if String.match?(conn.query_string, ~r/getrecenttracks/) do
+          Plug.Conn.resp(conn, 200, prebaked_resp_get_recenttraacks)
+        else
+          Plug.Conn.resp(conn, 200, prebaked_resp_get_info)
+        end
+      end
+
+      capture_io(fn -> LastfmArchive.archive(user,0) end)
     end
   end
 
