@@ -29,13 +29,13 @@ defmodule LastfmArchiveTest do
       test_conn_params(bypass,  %{"method" => "user.getinfo","api_key" => api_key, "user" => user}, prebaked_resp)
       assert capture_io(fn -> LastfmArchive.archive(user,0) end)
         ==  """
-            Archiving Lastfm scrobble data for #{user}
+            Archiving 123456 scrobbles for #{user}
 
-            Archiving year: 2016-01-01 - 2016-12-31
+            year: 2016-01-01 - 2016-12-31
 
-            Archiving year: 2017-01-01 - 2017-12-31
+            year: 2017-01-01 - 2017-12-31
 
-            Archiving year: 2018-01-01 - 2018-12-31
+            year: 2018-01-01 - 2018-12-31
             """
     end
   end

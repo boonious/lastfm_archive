@@ -9,15 +9,15 @@ defmodule LastfmArchive do
   @req_interval Application.get_env(:lastfm_archive, :req_interval)
 
   def archive(user, interval \\ @req_interval) when is_binary(user) do
-    {_playcount, registered} = info(user)
+    {playcount, registered} = info(user)
     batches = data_year_range(registered)
 
-    IO.puts "Archiving Lastfm scrobble data for #{user}"
+    IO.puts "Archiving #{playcount} scrobbles for #{user}"
     for {from, to} <- batches do
       from_s = from |> DateTime.from_unix! |> DateTime.to_date |> Date.to_string
       to_s = to |> DateTime.from_unix! |> DateTime.to_date |> Date.to_string
 
-      IO.puts "\nArchiving year: #{from_s} - #{to_s}"
+      IO.puts "\nyear: #{from_s} - #{to_s}"
       :timer.sleep(interval) # prevent request rate limit (max 5 per sec) from being reached
     end
     :ok
