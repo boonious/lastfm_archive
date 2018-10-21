@@ -46,9 +46,19 @@ defmodule LastfmArchive do
     year_s = d0.year |> to_string
     filename = year_s |> Path.join(Enum.join(["#{@per_page}", "_", page |> to_string]))
 
-    extract(user, page, @per_page, from, to) |> write(filename)
-    IO.write "."
-    :timer.sleep(interval)
+    unless file_exists?(filename) do
+      extract(user, page, @per_page, from, to) |> write(filename)
+      IO.write "."
+      :timer.sleep(interval)
+    end
+  end
+
+  defp file_exists?(filename) do
+    data_dir = Application.get_env(:lastfm_archive, :data_dir) || @default_data_dir
+    user = Application.get_env(:lastfm_archive, :user) || ""
+    user_data_dir = Path.join "#{data_dir}", "#{user}"
+    file_path = Path.join("#{user_data_dir}", "#{filename}.gz")
+    File.exists? file_path
   end
 
   @doc """
