@@ -81,7 +81,7 @@ defmodule ExtractTest do
     data_dir = Application.get_env(:lastfm_archive, :data_dir) || @default_data_dir
 
     file_path = Path.join ["#{data_dir}", "#{user}", "2007/02/1.gz"]
-    #on_exit fn -> File.rm file_path end
+    on_exit fn -> File.rm file_path end
 
     # use mocked data when available
     LastfmArchive.write("test", "2007/02/1")
