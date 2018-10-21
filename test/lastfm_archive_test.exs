@@ -4,9 +4,12 @@ defmodule LastfmArchiveTest do
 
   doctest LastfmArchive
 
+  @test_data_dir Path.join([".", "lastfm_data", "test"])
+
   # testing with Bypass
   setup do
     lastfm_ws = Application.get_env :elixirfm, :lastfm_ws
+    configured_dir = Application.get_env :lastfm_archive, :data_dir
 
     # true if mix test --include integration
     is_integration = :integration in ExUnit.configuration[:include]
@@ -14,6 +17,7 @@ defmodule LastfmArchiveTest do
 
     on_exit fn ->
       Application.put_env :elixirfm, :lastfm_ws, lastfm_ws
+      Application.put_env :lastfm_archive, :data_dir, configured_dir
     end
 
     [bypass: bypass]
@@ -28,6 +32,7 @@ defmodule LastfmArchiveTest do
 
       test_ws = "http://localhost:#{bypass.port}/"
       Application.put_env :elixirfm, :lastfm_ws, test_ws
+      Application.put_env :lastfm_archive, :data_dir, @test_data_dir
 
       Bypass.expect bypass, fn conn ->
         params = Plug.Conn.fetch_query_params(conn) |> Map.fetch!(:query_params)
