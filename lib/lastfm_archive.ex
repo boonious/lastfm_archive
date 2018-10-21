@@ -21,21 +21,36 @@ defmodule LastfmArchive do
       to_s = to |> DateTime.from_unix! |> DateTime.to_date |> Date.to_string
 
       IO.puts "\nyear: #{from_s} - #{to_s}"
-      _archive(user, {from, to})
+      _archive(user, {from, to}, interval)
+
+      IO.puts ""
       :timer.sleep(interval) # prevent request rate limit (max 5 per sec) from being reached
     end
     :ok
   end
 
-  defp _archive(user, {from, to}) do
+  defp _archive(user, {from, to}, interval) do
     playcount = info(user, {from, to}) |> String.to_integer
     total_pages = playcount / @per_page |> :math.ceil |> round
 
     IO.puts "#{playcount} total scrobbles \n#{total_pages} pages - #{@per_page} scrobbles each"
     for page <- 1..total_pages do
-      IO.puts "... page #{page}"
+      # starting from the last page - earliest scrobbles
+      fetch_page = total_pages - (page - 1)
+      _archive(user, {from, to}, fetch_page, interval)
     end
   end
+
+  defp _archive(user, {from, to}, page, interval) do
+    d0 = from |> DateTime.from_unix!
+    year_s = d0.year |> to_string
+    filename = year_s |> Path.join(Enum.join(["#{@per_page}", "_", page |> to_string]))
+
+    extract(user, page, @per_page, from, to) |> write(filename)
+    IO.write "."
+    :timer.sleep(interval)
+  end
+
   @doc """
   """
   @spec extract :: Elixirfm.response
