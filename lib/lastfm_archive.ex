@@ -5,6 +5,8 @@ defmodule LastfmArchive do
 
   import Elixirfm.User
 
+  @type lastfm_response :: {:ok, map} | {:error, binary, HTTPoison.Error.t}
+
   @default_data_dir "./lastfm_data/"
   @per_page Application.get_env(:lastfm_archive, :per_page) || 200 # max fetch allowed by Lastfm
   @req_interval Application.get_env(:lastfm_archive, :req_interval) || 500
@@ -45,8 +47,13 @@ defmodule LastfmArchive do
   def extract(user, page \\ 1, limit \\ 1, from \\ 0, to \\ 0)
   def extract(user, page, limit, from, to), do: get_recent_tracks(user, limit: limit, page: page, extended: 1, from: from, to: to)
 
-  @spec write(binary, binary, binary) :: :ok | {:error, :file.posix}
+  @spec write(binary | lastfm_response, binary, binary) :: :ok | {:error, :file.posix}
   def write(data, filename \\ "1", type \\ "file")
+  def write({:ok, data}, filename, type), do: write(data |> Poison.encode!, filename, type)
+  def write({:error, _message, %HTTPoison.Error{id: nil, reason: reason}}, filename, type) do
+    write("error", Path.join(["error", reason|>to_string, filename]), type)
+  end
+
   def write(data, filename, type) when is_binary(data), do: _write(data, filename, type)
 
   defp _write(data, filename, "file") do
