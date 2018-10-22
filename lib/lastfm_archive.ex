@@ -11,6 +11,45 @@ defmodule LastfmArchive do
   @per_page Application.get_env(:lastfm_archive, :per_page) || 200 # max fetch allowed by Lastfm
   @req_interval Application.get_env(:lastfm_archive, :req_interval) || 500
 
+  @doc """
+  Download all scrobbled tracks and create an archive on local filesystem for a user.
+
+  The data format is currently raw Lastfm JSON `recenttracks` responses, chunked into
+  200-track compressed (`gzip`) pages and stored within directories corresponding
+  to the years when tracks were scrobbled.
+
+  `interval` is the duration (in milliseconds) between successive requests
+  sent to Lastfm API.
+  It provides a control for the max rate of requests.
+  The default (500ms) ensures a safe rate that is
+  within Lastfm's term of service  - no more than 5 requests per second.
+
+  The data is written to a directory,
+  e.g. `./lastfm_data/lastfm_username/` as configured below - see
+  `config/config.exs`:
+
+  ```
+    config :lastfm_archive,
+      user: "lastfm_username",
+      data_dir: "./lastfm_data/"
+  ```
+
+  ### Example
+
+  ```
+    LastfmArchive.archive("lastfm_username")
+  ```
+
+  **Note**: Lastfm API calls can timed out occasionally. When this happen
+  the function will continue archiving and move on to the next data chunk (page).
+  It will log the missing page in an `error` directory. Re-run the function
+  to download any missing data chunks. The function will skip all existing
+  archived pages.
+
+  To create a fresh or refresh part of the archive: delete all or some
+  files in the archive and re-run the function.
+  """
+  @spec archive(binary, integer) :: :ok | {:error, :file.posix}
   def archive(user, interval \\ @req_interval) when is_binary(user) do
     {playcount, registered} = info(user)
     batches = data_year_range(registered)
@@ -62,11 +101,27 @@ defmodule LastfmArchive do
   end
 
   @doc """
+  Issues a request to Lastfm to extract scrobbled tracks for a user.
+
+  See Lastfm API [documentation](https://www.last.fm/api/show/user.getRecentTracks) for details on the use of parameters.
   """
-  @spec extract(binary, integer, integer, integer, integer) :: Elixirfm.response
+  @spec extract(binary, integer, integer, integer, integer) :: lastfm_response
   def extract(user, page \\ 1, limit \\ 1, from \\ 0, to \\ 0)
   def extract(user, page, limit, from, to), do: get_recent_tracks(user, limit: limit, page: page, extended: 1, from: from, to: to)
 
+  @doc """
+  Write binary data or Lastfm response to a configured directory on local filesystem.
+
+  The data is compressed, encoded and stored in a file of given `filename`
+  within the user data directory, e.g. `./lastfm_data/a_user/` as configured
+  below:
+
+  ```
+  config :lastfm_archive,
+    user: "a_user",
+    data_dir: "./lastfm_data/"
+  ```
+  """
   @spec write(binary | lastfm_response, binary) :: :ok | {:error, :file.posix}
   def write(data, filename \\ "1")
   def write({:ok, data}, filename), do: write(data |> Poison.encode!, filename)
@@ -91,6 +146,7 @@ defmodule LastfmArchive do
 
   # find out more about the user (playcount, earliest scrobbles)
   # to determine data extraction strategy
+  @doc false
   def info(user) do
     {_status, resp} = get_info(user)
 
@@ -101,12 +157,14 @@ defmodule LastfmArchive do
   end
 
   # get playcount for a particular year for a user
+  @doc false
   def info(user, {from, to}) do
     {_status, resp} = get_recent_tracks(user, limit: 1, page: 1, from: from, to: to)
     resp["recenttracks"]["@attr"]["total"]
   end
 
   # provide a year range in Unix time for a particular year
+  @doc false
   def data_year_range(year) when is_binary(year) do
     {_, d0, _} = "#{year}-01-01T00:00:00Z" |> DateTime.from_iso8601
     {_, d1, _} = "#{year}-12-31T23:59:59Z" |> DateTime.from_iso8601
@@ -114,6 +172,7 @@ defmodule LastfmArchive do
   end
 
   # provides a list of year ranges in Unix time, starting from the user registration date
+  @doc false
   def data_year_range(registered, now \\ DateTime.utc_now) when is_integer(registered) do
     d0 = DateTime.from_unix!(registered)
     y0 = d0.year
