@@ -7,7 +7,7 @@ defmodule LastfmArchive do
 
   Current usage:
   
-  - `archive/2`: download raw Lastfm scrobble data to local filesystem.
+  - `archive/1`: download raw Lastfm scrobble data to local filesystem.
 
   """
   # pending, with stop gap functions for `get_recent_tracks`, `get_info`
@@ -21,7 +21,8 @@ defmodule LastfmArchive do
   @req_interval Application.get_env(:lastfm_archive, :req_interval) || 500
 
   @doc """
-  Download all scrobbled tracks and create an archive on local filesystem for a user.
+  Download all scrobbled tracks and create an archive on local filesystem for a Lastfm user
+  specified in configuration.
 
   The data is currently in raw Lastfm `recenttracks` JSON format, chunked into
   200-track compressed (`gzip`) pages and stored within directories corresponding
@@ -34,19 +35,19 @@ defmodule LastfmArchive do
   within Lastfm's term of service  - no more than 5 requests per second.
 
   The data is written to a main directory,
-  e.g. `./lastfm_data/lastfm_username/` as configured below - see
+  e.g. `./lastfm_data/a_user/` as configured below - see
   `config/config.exs`:
 
   ```
     config :lastfm_archive,
-      user: "lastfm_username",
+      user: "a_user",
       data_dir: "./lastfm_data/"
   ```
 
   ### Example
 
   ```
-    LastfmArchive.archive("lastfm_username")
+    LastfmArchive.archive
   ```
 
   **Note**: Lastfm API calls can timed out occasionally. When this happen
@@ -58,8 +59,9 @@ defmodule LastfmArchive do
   To create a fresh or refresh part of the archive: delete all or some
   files in the archive and re-run the function.
   """
-  @spec archive(binary, integer) :: :ok | {:error, :file.posix}
-  def archive(user, interval \\ @req_interval) when is_binary(user) do
+  @spec archive(integer) :: :ok | {:error, :file.posix}
+  def archive(interval \\ @req_interval) do
+    user = Application.get_env(:lastfm_archive, :user) || raise "User not found in configuration"
     {playcount, registered} = info(user)
     batches = data_year_range(registered)
 
@@ -123,6 +125,8 @@ defmodule LastfmArchive do
   # below are stop gap functions for Lastfm API requests until the Elixirfm pull requests
   # are resolved. This is to enable `lastfm_archive` publication on hex
   def extract(user, page, limit, from, to), do: get_tracks(user, limit: limit, page: page, extended: 1, from: from, to: to)
+
+  @doc false
   def get_tracks(user, args \\ []) do
     ext_query_string = encode(args) |> Enum.join
     base_url = Application.get_env(:elixirfm, :lastfm_ws) || "http://ws.audioscrobbler.com/"

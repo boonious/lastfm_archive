@@ -1,4 +1,4 @@
-# Lastfm Archive [![Build Status](https://travis-ci.org/boonious/lastfm_archive.svg?branch=master)](https://travis-ci.org/boonious/lastfm_archive) [![Coverage Status](https://coveralls.io/repos/github/boonious/lastfm_archive/badge.svg?branch=master)](https://coveralls.io/github/boonious/lastfm_archive?branch=master)
+# Lastfm Archive [![Build Status](https://travis-ci.org/boonious/lastfm_archive.svg?branch=master)](https://travis-ci.org/boonious/lastfm_archive) [![Hex pm](http://img.shields.io/hexpm/v/lastfm_archive.svg?style=flat)](https://hex.pm/packages/lastfm_archive) [![Coverage Status](https://coveralls.io/repos/github/boonious/lastfm_archive/badge.svg?branch=master)](https://coveralls.io/github/boonious/lastfm_archive?branch=master)
 
 A tool for creating local Last.fm scrobble data archive and analytics.
 
@@ -7,12 +7,12 @@ eventually provide capability to perform ETL and analytic tasks on Lastfm scrobb
 
 ## Current Usage
 
-Download and create a file archive of Lastfm scrobble tracks via [Elixir](https://elixir-lang.org)
+Download and create a file archive of Lastfm scrobble tracks for a configured user via [Elixir](https://elixir-lang.org)
 applications or [interactive Elixir](https://elixir-lang.org/getting-started/introduction.html#interactive-mode)
 (invoking `iex -S mix` command line action while in software home directory).
  
 ```elixir
-  LastfmArchive.archive("lastfm_username")
+  LastfmArchive.archive
 ```
 
 The data is currently in raw Lastfm `recenttracks` JSON format,
@@ -44,15 +44,15 @@ Documentation can be found at [https://hexdocs.pm/lastfm_archive](https://hexdoc
 
 ## Configuration
 Add the following entries in your config - `config/config.exs`. For example,
-the following will create the file archive in `./lastfm_data/a_username/` within
-the software home directory.
+the following will create a file archive for `a_user`. The archive will be written to
+`./lastfm_data/a_user/` within the software home directory.
 
 An `api_key` must be configured to enable Lastfm API requests,
 see [https://www.last.fm/api](https://www.last.fm/api) ("Get an API account").
 
 ```elixir
   config :lastfm_archive, 
-    user: "a_username", # lastfm user name
+    user: "a_user", # lastfm user name
     data_dir: "./lastfm_data/", # main directory for the archive
     per_page: 200, # 200 is max no. of tracks per call permitted by Lastfm API 
     req_interval: 500 # milliseconds between requests cf. Lastfm's max 5 reqs/s rate

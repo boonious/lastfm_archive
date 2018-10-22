@@ -55,7 +55,7 @@ defmodule LastfmArchiveTest do
         end
       end
 
-      capture_io(fn -> LastfmArchive.archive(user,0) end)
+      capture_io(fn -> LastfmArchive.archive(0) end)
     end
   end
 
