@@ -1,6 +1,14 @@
 defmodule LastfmArchive do
   @moduledoc """
-  Documentation for LastfmArchive.
+  `lastfm_archive` is a tool for creating local Last.fm scrobble data archive and analytics.
+  
+  The software is currently experimental and in preliminary development. It should
+  eventually provide capability to perform ETL and analytic tasks on Lastfm scrobble data.
+
+  Current usage:
+  
+  - `archive/2`: download raw Lastfm scrobble data to local filesystem.
+
   """
 
   import Elixirfm.User
