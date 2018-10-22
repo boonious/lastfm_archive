@@ -22,7 +22,7 @@ defmodule LastfmArchive do
   @doc """
   Download all scrobbled tracks and create an archive on local filesystem for a user.
 
-  The data format is currently raw Lastfm JSON `recenttracks` responses, chunked into
+  The data is currently in raw Lastfm `recenttracks` JSON format, chunked into
   200-track compressed (`gzip`) pages and stored within directories corresponding
   to the years when tracks were scrobbled.
 
@@ -32,7 +32,7 @@ defmodule LastfmArchive do
   The default (500ms) ensures a safe rate that is
   within Lastfm's term of service  - no more than 5 requests per second.
 
-  The data is written to a directory,
+  The data is written to a main directory,
   e.g. `./lastfm_data/lastfm_username/` as configured below - see
   `config/config.exs`:
 
