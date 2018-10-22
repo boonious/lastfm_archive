@@ -31,17 +31,6 @@ defmodule ExtractTest do
     [bypass: bypass]
   end
 
-  test "extract/0 requests params for the configured user", %{bypass: bypass} do
-    if(bypass) do
-      test_conn_params(bypass, @lastfm_tracks_api_params)
-      LastfmArchive.extract
-    else
-      # if 'bypass' is nil, then integration testing with live Lastfm endpoint
-      # required a valid Lastfm user in configuration 
-      check_resp(LastfmArchive.extract)
-    end
-  end
-
   test "extract/1 requests params for a specific user", %{bypass: bypass} do
     # Bypass test only
     if(bypass) do

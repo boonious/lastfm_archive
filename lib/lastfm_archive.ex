@@ -63,11 +63,6 @@ defmodule LastfmArchive do
 
   @doc """
   """
-  @spec extract :: Elixirfm.response
-  def extract, do: extract(Application.get_env(:lastfm_archive, :user))
-
-  @doc """
-  """
   @spec extract(binary, integer, integer, integer, integer) :: Elixirfm.response
   def extract(user, page \\ 1, limit \\ 1, from \\ 0, to \\ 0)
   def extract(user, page, limit, from, to), do: get_recent_tracks(user, limit: limit, page: page, extended: 1, from: from, to: to)
