@@ -67,16 +67,16 @@ defmodule LastfmArchive do
   def extract(user, page \\ 1, limit \\ 1, from \\ 0, to \\ 0)
   def extract(user, page, limit, from, to), do: get_recent_tracks(user, limit: limit, page: page, extended: 1, from: from, to: to)
 
-  @spec write(binary | lastfm_response, binary, binary) :: :ok | {:error, :file.posix}
-  def write(data, filename \\ "1", type \\ "file")
-  def write({:ok, data}, filename, type), do: write(data |> Poison.encode!, filename, type)
-  def write({:error, _message, %HTTPoison.Error{id: nil, reason: reason}}, filename, type) do
-    write("error", Path.join(["error", reason|>to_string, filename]), type)
+  @spec write(binary | lastfm_response, binary) :: :ok | {:error, :file.posix}
+  def write(data, filename \\ "1")
+  def write({:ok, data}, filename), do: write(data |> Poison.encode!, filename)
+  def write({:error, _message, %HTTPoison.Error{id: nil, reason: reason}}, filename) do
+    write("error", Path.join(["error", reason|>to_string, filename]))
   end
 
-  def write(data, filename, type) when is_binary(data), do: _write(data, filename, type)
+  def write(data, filename) when is_binary(data), do: _write(data, filename)
 
-  defp _write(data, filename, "file") do
+  defp _write(data, filename) do
     data_dir = Application.get_env(:lastfm_archive, :data_dir) || @default_data_dir
     user = Application.get_env(:lastfm_archive, :user) || ""
     user_data_dir = Path.join "#{data_dir}", "#{user}"
