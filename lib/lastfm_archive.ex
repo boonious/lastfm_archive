@@ -18,7 +18,32 @@ defmodule LastfmArchive do
 
   @default_data_dir "./lastfm_data/"
   @per_page Application.get_env(:lastfm_archive, :per_page) || 200 # max fetch allowed by Lastfm
-  @req_interval Application.get_env(:lastfm_archive, :req_interval) || 500
+
+  @doc """
+  Download all scrobbled tracks and create an archive on local filesystem for the default user.
+
+  ### Example
+
+  ```
+    LastfmArchive.archive
+  ```
+  
+  The archive belongs to a default user specified in configuration, for example `user_a` (in
+  `config/config.exs`):
+
+  ```
+    config :lastfm_archive,
+      user: "user_a",
+      ...
+  ```
+
+  See `archive/2` for further details on archive format and file location.
+  """
+  @spec archive :: :ok | {:error, :file.posix}
+  def archive do
+    user = Application.get_env(:lastfm_archive, :user) || raise "User not found in configuration"
+    archive(user)
+  end
 
   @doc """
   Download all scrobbled tracks and create an archive on local filesystem for a Lastfm user.
@@ -26,7 +51,7 @@ defmodule LastfmArchive do
   ### Example
 
   ```
-    LastfmArchive.archive("a_username")
+    LastfmArchive.archive("a_lastfm_user")
   ```
 
   The data is currently in raw Lastfm `recenttracks` JSON format, chunked into
@@ -40,12 +65,12 @@ defmodule LastfmArchive do
   within Lastfm's term of service  - no more than 5 requests per second.
 
   The data is written to a main directory,
-  e.g. `./lastfm_data/a_username/` as configured below - see
+  e.g. `./lastfm_data/a_lastfm_user/` as configured in
   `config/config.exs`:
 
   ```
     config :lastfm_archive,
-      user: "a_username",
+      ...
       data_dir: "./lastfm_data/"
   ```
 
@@ -59,7 +84,7 @@ defmodule LastfmArchive do
   files in the archive and re-run the function.
   """
   @spec archive(binary, integer) :: :ok | {:error, :file.posix}
-  def archive(user, interval \\ @req_interval) do
+  def archive(user, interval \\ Application.get_env(:lastfm_archive, :req_interval) || 500) do
     {playcount, registered} = info(user)
     batches = data_year_range(registered)
 
@@ -140,15 +165,15 @@ defmodule LastfmArchive do
   # --- end temporary function
 
   @doc """
-  Write binary data or Lastfm response to a configured directory on local filesystem.
+  Write binary data or Lastfm response to a configured directory on local filesystem for a Lastfm user.
 
   The data is compressed, encoded and stored in a file of given `filename`
-  within the user data directory, e.g. `./lastfm_data/a_user/` as configured
+  within the data directory, e.g. `./lastfm_data/user/` as configured
   below:
 
   ```
   config :lastfm_archive,
-    user: "a_user",
+    ...
     data_dir: "./lastfm_data/"
   ```
   """
