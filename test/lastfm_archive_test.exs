@@ -1,6 +1,7 @@
 defmodule LastfmArchiveTest do
   use ExUnit.Case
   import ExUnit.CaptureIO
+  import TestHelpers
 
   doctest LastfmArchive
 
@@ -24,37 +25,10 @@ defmodule LastfmArchiveTest do
   end
 
   test "archive user", %{bypass: bypass} do
+    # Bypass test only
     if(bypass) do
       user = Application.get_env(:lastfm_archive, :user)
-      api_key = Application.get_env(:elixirfm, :api_key)
-      prebaked_resp_get_info = File.read!("./test/data/test_user.json")
-      prebaked_resp_get_recenttraacks = File.read!("./test/data/test_recenttracks.json")
-
-      test_ws = "http://localhost:#{bypass.port}/"
-      Application.put_env :elixirfm, :lastfm_ws, test_ws
-      Application.put_env :lastfm_archive, :data_dir, Path.join(@test_data_dir, "1")
-
-      Bypass.expect bypass, fn conn ->
-        params = Plug.Conn.fetch_query_params(conn) |> Map.fetch!(:query_params)
-        param_keys = params |> Map.keys
-        expected_params = if String.match?(conn.query_string, ~r/getrecenttracks/) do
-          %{"method" => "user.getrecenttracks", "api_key" => api_key, "user" => user, "to" => "\\\d*", "from" => "\\\d*"}
-        else
-          %{"method" => "user.getinfo", "api_key" => api_key, "user" => user}
-        end
-
-        for {k,v} <- expected_params do
-          assert k in param_keys
-          assert String.match? params[k], Regex.compile!(v)
-        end
-
-        if String.match?(conn.query_string, ~r/getrecenttracks/) do
-          Plug.Conn.resp(conn, 200, prebaked_resp_get_recenttraacks)
-        else
-          Plug.Conn.resp(conn, 200, prebaked_resp_get_info)
-        end
-      end
-
+      test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "1"), user)
       capture_io(fn -> LastfmArchive.archive(0) end)
     end
   after
