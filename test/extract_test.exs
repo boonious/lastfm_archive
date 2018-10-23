@@ -34,7 +34,7 @@ defmodule ExtractTest do
   test "extract/5 requests params for a specific user", %{bypass: bypass} do
     if(bypass) do
       # Bypass test
-      test_conn_params(bypass, %{@lastfm_tracks_api_params | "user" => "a_lastfm_user"})
+      test_bypass_conn_params(bypass, %{@lastfm_tracks_api_params | "user" => "a_lastfm_user"})
       LastfmArchive.extract("a_lastfm_user")
     else
       # integration test, require a user with 2012 scrobbles
@@ -101,7 +101,7 @@ defmodule ExtractTest do
 
   test "info/1 playcount and registered date for a user", %{bypass: bypass} do
     if(bypass) do
-      test_conn_params(bypass, @lastfm_info_api_params)
+      test_bypass_conn_params(bypass, @lastfm_info_api_params)
       LastfmArchive.info(Application.get_env(:lastfm_archive, :user))
     else
       # integration test
@@ -118,7 +118,7 @@ defmodule ExtractTest do
                          "limit" => "1", "page" => "1",
                          "from" => "1167609600", "to" => "1199145599"}
 
-      test_conn_params(bypass, expected_params)
+      test_bypass_conn_params(bypass, expected_params)
       LastfmArchive.info(Application.get_env(:lastfm_archive, :user), test_year_range)
     end
   end
