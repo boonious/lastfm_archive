@@ -7,7 +7,7 @@ defmodule LastfmArchive do
 
   Current usage:
   
-  - `archive/1`: download raw Lastfm scrobble data to local filesystem.
+  - `archive/2`: download raw Lastfm scrobble data to local filesystem.
 
   """
   # pending, with stop gap functions for `get_recent_tracks`, `get_info`
@@ -21,8 +21,13 @@ defmodule LastfmArchive do
   @req_interval Application.get_env(:lastfm_archive, :req_interval) || 500
 
   @doc """
-  Download all scrobbled tracks and create an archive on local filesystem for a Lastfm user
-  specified in configuration.
+  Download all scrobbled tracks and create an archive on local filesystem for a Lastfm user.
+
+  ### Example
+
+  ```
+    LastfmArchive.archive("a_username")
+  ```
 
   The data is currently in raw Lastfm `recenttracks` JSON format, chunked into
   200-track compressed (`gzip`) pages and stored within directories corresponding
@@ -30,27 +35,21 @@ defmodule LastfmArchive do
 
   `interval` is the duration (in milliseconds) between successive requests
   sent to Lastfm API.
-  It provides a control for the max rate of requests.
+  It provides a control of the max rate of requests.
   The default (500ms) ensures a safe rate that is
   within Lastfm's term of service  - no more than 5 requests per second.
 
   The data is written to a main directory,
-  e.g. `./lastfm_data/a_user/` as configured below - see
+  e.g. `./lastfm_data/a_username/` as configured below - see
   `config/config.exs`:
 
   ```
     config :lastfm_archive,
-      user: "a_user",
+      user: "a_username",
       data_dir: "./lastfm_data/"
   ```
 
-  ### Example
-
-  ```
-    LastfmArchive.archive
-  ```
-
-  **Note**: Lastfm API calls can timed out occasionally. When this happen
+  **Note**: Lastfm API calls could timed out occasionally. When this happen
   the function will continue archiving and move on to the next data chunk (page).
   It will log the missing page in an `error` directory. Re-run the function
   to download any missing data chunks. The function will skip all existing
@@ -59,9 +58,8 @@ defmodule LastfmArchive do
   To create a fresh or refresh part of the archive: delete all or some
   files in the archive and re-run the function.
   """
-  @spec archive(integer) :: :ok | {:error, :file.posix}
-  def archive(interval \\ @req_interval) do
-    user = Application.get_env(:lastfm_archive, :user) || raise "User not found in configuration"
+  @spec archive(binary, integer) :: :ok | {:error, :file.posix}
+  def archive(user, interval \\ @req_interval) do
     {playcount, registered} = info(user)
     batches = data_year_range(registered)
 
@@ -96,7 +94,7 @@ defmodule LastfmArchive do
     year_s = d0.year |> to_string
     filename = year_s |> Path.join(Enum.join(["#{@per_page}", "_", page |> to_string]))
 
-    unless file_exists?(filename) do
+    unless file_exists?(user, filename) do
       data = extract(user, page, @per_page, from, to)
       write(user, data, filename)
       IO.write "."
@@ -104,9 +102,8 @@ defmodule LastfmArchive do
     end
   end
 
-  defp file_exists?(filename) do
+  defp file_exists?(user, filename) do
     data_dir = Application.get_env(:lastfm_archive, :data_dir) || @default_data_dir
-    user = Application.get_env(:lastfm_archive, :user) || ""
     user_data_dir = Path.join "#{data_dir}", "#{user}"
     file_path = Path.join("#{user_data_dir}", "#{filename}.gz")
     File.exists? file_path

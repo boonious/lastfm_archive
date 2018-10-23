@@ -24,12 +24,12 @@ defmodule LastfmArchiveTest do
     [bypass: bypass]
   end
 
-  test "archive user", %{bypass: bypass} do
+  test "archive scrobbles of a specific user - archive/2", %{bypass: bypass} do
     # Bypass test only
     if(bypass) do
-      user = Application.get_env(:lastfm_archive, :user)
+      user = "a_lastfm_user"
       test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "1"), user)
-      capture_io(fn -> LastfmArchive.archive(0) end)
+      capture_io(fn -> LastfmArchive.archive(user, 0) end)
     end
   after
     File.rm_rf Path.join(@test_data_dir, "1")
