@@ -12,7 +12,7 @@ defmodule ExtractTest do
                        "api_key" => Application.get_env(:elixirfm, :api_key), 
                        "user" => Application.get_env(:lastfm_archive, :user)}
 
-  @test_data_dir Path.join([".", "lastfm_data", "test"])
+  @test_data_dir Path.join([".", "lastfm_data", "test", "extract"])
 
   # testing with Bypass
   setup do
@@ -31,7 +31,7 @@ defmodule ExtractTest do
     [bypass: bypass]
   end
 
-  test "extract/1 requests params for a specific user", %{bypass: bypass} do
+  test "extract/5 requests params for a specific user", %{bypass: bypass} do
     if(bypass) do
       # Bypass test
       test_conn_params(bypass, %{@lastfm_tracks_api_params | "user" => "a_lastfm_user"})

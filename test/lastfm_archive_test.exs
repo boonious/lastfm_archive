@@ -4,7 +4,7 @@ defmodule LastfmArchiveTest do
 
   doctest LastfmArchive
 
-  @test_data_dir Path.join([".", "lastfm_data", "test"])
+  @test_data_dir Path.join([".", "lastfm_data", "test", "archive"])
 
   # testing with Bypass
   setup do
@@ -32,7 +32,7 @@ defmodule LastfmArchiveTest do
 
       test_ws = "http://localhost:#{bypass.port}/"
       Application.put_env :elixirfm, :lastfm_ws, test_ws
-      Application.put_env :lastfm_archive, :data_dir, @test_data_dir
+      Application.put_env :lastfm_archive, :data_dir, Path.join(@test_data_dir, "1")
 
       Bypass.expect bypass, fn conn ->
         params = Plug.Conn.fetch_query_params(conn) |> Map.fetch!(:query_params)
@@ -57,6 +57,8 @@ defmodule LastfmArchiveTest do
 
       capture_io(fn -> LastfmArchive.archive(0) end)
     end
+  after
+    File.rm_rf Path.join(@test_data_dir, "1")
   end
 
 end
