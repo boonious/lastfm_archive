@@ -97,7 +97,8 @@ defmodule LastfmArchive do
     filename = year_s |> Path.join(Enum.join(["#{@per_page}", "_", page |> to_string]))
 
     unless file_exists?(filename) do
-      extract(user, page, @per_page, from, to) |> write(filename)
+      data = extract(user, page, @per_page, from, to)
+      write(user, data, filename)
       IO.write "."
       :timer.sleep(interval)
     end
@@ -154,13 +155,13 @@ defmodule LastfmArchive do
     data_dir: "./lastfm_data/"
   ```
   """
-  @spec write(binary | lastfm_response, binary) :: :ok | {:error, :file.posix}
-  def write(data, filename \\ "1")
+  @spec write(binary, binary | lastfm_response, binary) :: :ok | {:error, :file.posix}
+  def write(user, data, filename \\ "1")
   
   # stop gap implementation until until Elixirfm pull requests are resolved 
-  def write({:ok, %HTTPoison.Response{body: data, headers: _, request_url: _, status_code: _}}, filename), do: write(data, filename)
-  def write({:error, %HTTPoison.Error{id: nil, reason: reason}}, filename) do
-    write("error", Path.join(["error", reason|>to_string, filename]))
+  def write(user, {:ok, %HTTPoison.Response{body: data, headers: _, request_url: _, status_code: _}}, filename), do: write(user, data, filename)
+  def write(user, {:error, %HTTPoison.Error{id: nil, reason: reason}}, filename) do
+    write(user, "error", Path.join(["error", reason|>to_string, filename]))
   end
 
   # pending until Elixirfm pull requests are resolved
@@ -169,11 +170,10 @@ defmodule LastfmArchive do
     #write("error", Path.join(["error", reason|>to_string, filename]))
   #end
 
-  def write(data, filename) when is_binary(data), do: _write(data, filename)
+  def write(user, data, filename) when is_binary(data), do: _write(user, data, filename)
 
-  defp _write(data, filename) do
+  defp _write(user, data, filename) do
     data_dir = Application.get_env(:lastfm_archive, :data_dir) || @default_data_dir
-    user = Application.get_env(:lastfm_archive, :user) || ""
     user_data_dir = Path.join "#{data_dir}", "#{user}"
     unless File.exists?(user_data_dir), do: File.mkdir_p user_data_dir
 

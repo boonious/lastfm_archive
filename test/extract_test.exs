@@ -37,7 +37,7 @@ defmodule ExtractTest do
       test_conn_params(bypass, %{@lastfm_tracks_api_params | "user" => "a_lastfm_user"})
       LastfmArchive.extract("a_lastfm_user")
     else
-      # integration test
+      # integration test, require a user with 2012 scrobbles
       user = Application.get_env(:lastfm_archive, :user)
       api_key = Application.get_env(:elixirfm, :api_key)
       {_status, resp} = LastfmArchive.extract(user, 1, 5, 1325376000, 1356998399) # 2012 scrobbles
@@ -57,7 +57,7 @@ defmodule ExtractTest do
   describe "data output" do
     @describetag :disk_write
 
-    test "write/2 compressed data to the default file location" do
+    test "write/3 compressed data to the default file location" do
       user = Application.get_env(:lastfm_archive, :user) || ""
       Application.put_env :lastfm_archive, :data_dir, @test_data_dir
 
@@ -65,12 +65,12 @@ defmodule ExtractTest do
       on_exit fn -> File.rm file_path end
 
       # use mocked data when available
-      LastfmArchive.write("test")
+      LastfmArchive.write(user, "test")
       assert File.exists? file_path
       assert "test" == File.read!(file_path) |> :zlib.gunzip
     end
 
-    test "write/2 compressed data to the configured file location" do
+    test "write/3 compressed data to the configured file location" do
       user = Application.get_env(:lastfm_archive, :user) || ""
       Application.put_env :lastfm_archive, :data_dir, @test_data_dir
 
@@ -79,7 +79,7 @@ defmodule ExtractTest do
       on_exit fn -> File.rm file_path end
 
       # use mocked data when available
-      LastfmArchive.write("test")
+      LastfmArchive.write(user, "test")
       assert File.exists? file_path
       assert "test" == File.read!(file_path) |> :zlib.gunzip
     end
@@ -93,7 +93,7 @@ defmodule ExtractTest do
       on_exit fn -> File.rm file_path end
 
       # use mocked data when available
-      LastfmArchive.write("test", "2007/02/1")
+      LastfmArchive.write(user, "test", "2007/02/1")
       assert File.exists? file_path
       assert "test" == File.read!(file_path) |> :zlib.gunzip
     end
