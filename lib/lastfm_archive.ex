@@ -7,7 +7,7 @@ defmodule LastfmArchive do
 
   Current usage:
   
-  - `archive/2`: download raw Lastfm scrobble data to local filesystem.
+  - `archive/0`, `archive/2`: download raw Lastfm scrobble data to local filesystem.
 
   """
   # pending, with stop gap functions for `get_recent_tracks`, `get_info`

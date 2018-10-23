@@ -7,12 +7,17 @@ eventually provide capability to perform ETL and analytic tasks on Lastfm scrobb
 
 ## Current Usage
 
-Download and create a file archive of Lastfm scrobble tracks for a configured user via [Elixir](https://elixir-lang.org)
+Download and create a file archive of Lastfm scrobble tracks via [Elixir](https://elixir-lang.org)
 applications or [interactive Elixir](https://elixir-lang.org/getting-started/introduction.html#interactive-mode)
 (invoking `iex -S mix` command line action while in software home directory).
  
 ```elixir
+  # archive data of the default user as specified in configuration
   LastfmArchive.archive
+
+  # archive data of any Lastfm user
+  # the data is stored in directory named after the user
+  LastfmArchive.archive("a_lastfm_user")
 ```
 
 The data is currently in raw Lastfm `recenttracks` JSON format,
@@ -35,7 +40,7 @@ to your list of dependencies in `mix.exs`:
 ```elixir
   def deps do
     [
-      {:lastfm_archive, "~> 0.1.0"}
+      {:lastfm_archive, "~> 0.2.0"}
     ]
   end
 ```
@@ -44,16 +49,16 @@ Documentation can be found at [https://hexdocs.pm/lastfm_archive](https://hexdoc
 
 ## Configuration
 Add the following entries in your config - `config/config.exs`. For example,
-the following will create a file archive for `a_user`. The archive will be written to
-`./lastfm_data/a_user/` within the software home directory.
+the following specifies a `default_user` and a main file location for
+multiple user archives, `./lastfm_data/` relative to the software home directory.
 
 An `api_key` must be configured to enable Lastfm API requests,
 see [https://www.last.fm/api](https://www.last.fm/api) ("Get an API account").
 
 ```elixir
   config :lastfm_archive, 
-    user: "a_user", # lastfm user name
-    data_dir: "./lastfm_data/", # main directory for the archive
+    user: "default_user", # the default user
+    data_dir: "./lastfm_data/", # main directory for multiple archives
     per_page: 200, # 200 is max no. of tracks per call permitted by Lastfm API 
     req_interval: 500 # milliseconds between requests cf. Lastfm's max 5 reqs/s rate
 
