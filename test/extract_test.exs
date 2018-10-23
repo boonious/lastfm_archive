@@ -32,10 +32,25 @@ defmodule ExtractTest do
   end
 
   test "extract/1 requests params for a specific user", %{bypass: bypass} do
-    # Bypass test only
     if(bypass) do
+      # Bypass test
       test_conn_params(bypass, %{@lastfm_tracks_api_params | "user" => "a_lastfm_user"})
       LastfmArchive.extract("a_lastfm_user")
+    else
+      # integration test
+      user = Application.get_env(:lastfm_archive, :user)
+      api_key = Application.get_env(:elixirfm, :api_key)
+      {_status, resp} = LastfmArchive.extract(user, 1, 5, 1325376000, 1356998399) # 2012 scrobbles
+      resp_body = resp.body |> Poison.decode!
+
+      track = resp_body["recenttracks"]["track"] |> hd
+      track_date_uts = track["date"]["uts"] |> String.to_integer
+      track_date = DateTime.from_unix!(track_date_uts)
+
+      assert track_date.year == 2012
+      assert length(resp_body["recenttracks"]["track"]) == 5
+      assert String.match? resp.request_url, ~r/#{user}/
+      assert String.match? resp.request_url, ~r/#{api_key}/
     end
   end
 
