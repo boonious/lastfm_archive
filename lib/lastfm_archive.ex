@@ -87,7 +87,11 @@ defmodule LastfmArchive do
   @spec archive(binary, integer) :: :ok | {:error, :file.posix}
   def archive(user, interval \\ Application.get_env(:lastfm_archive, :req_interval) || 500) do
     {playcount, registered} = info(user)
-    batches = year_range(registered, DateTime.utc_now |> DateTime.to_unix)
+
+    now = DateTime.utc_now
+    last_year_s = (now.year - 1) |> to_string 
+    {_, last_year_dt, _} = last_year_s <> "-01-01T00:00:00Z" |> DateTime.from_iso8601
+    batches = year_range(registered, last_year_dt |> DateTime.to_unix)
 
     IO.puts "Archiving #{playcount} scrobbles for #{user}"
     for {from, to} <- batches do
