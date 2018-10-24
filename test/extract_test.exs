@@ -35,12 +35,12 @@ defmodule ExtractTest do
     if(bypass) do
       # Bypass test
       test_bypass_conn_params(bypass, %{@lastfm_tracks_api_params | "user" => "a_lastfm_user"})
-      LastfmArchive.extract("a_lastfm_user")
+      LastfmArchive.Extract.extract("a_lastfm_user")
     else
       # integration test, require a user with 2012 scrobbles
       user = Application.get_env(:lastfm_archive, :user)
       api_key = Application.get_env(:elixirfm, :api_key)
-      {_status, resp} = LastfmArchive.extract(user, 1, 5, 1325376000, 1356998399) # 2012 scrobbles
+      {_status, resp} = LastfmArchive.Extract.extract(user, 1, 5, 1325376000, 1356998399) # 2012 scrobbles
       resp_body = resp.body |> Poison.decode!
 
       track = resp_body["recenttracks"]["track"] |> hd
@@ -65,7 +65,7 @@ defmodule ExtractTest do
       on_exit fn -> File.rm file_path end
 
       # use mocked data when available
-      LastfmArchive.write(user, "test")
+      LastfmArchive.Extract.write(user, "test")
       assert File.exists? file_path
       assert "test" == File.read!(file_path) |> :zlib.gunzip
     end
@@ -79,7 +79,7 @@ defmodule ExtractTest do
       on_exit fn -> File.rm file_path end
 
       # use mocked data when available
-      LastfmArchive.write(user, "test")
+      LastfmArchive.Extract.write(user, "test")
       assert File.exists? file_path
       assert "test" == File.read!(file_path) |> :zlib.gunzip
     end
@@ -93,7 +93,7 @@ defmodule ExtractTest do
       on_exit fn -> File.rm file_path end
 
       # use mocked data when available
-      LastfmArchive.write(user, "test", "2007/02/1")
+      LastfmArchive.Extract.write(user, "test", "2007/02/1")
       assert File.exists? file_path
       assert "test" == File.read!(file_path) |> :zlib.gunzip
     end
@@ -102,10 +102,10 @@ defmodule ExtractTest do
   test "info/1 playcount and registered date for a user", %{bypass: bypass} do
     if(bypass) do
       test_bypass_conn_params(bypass, @lastfm_info_api_params)
-      LastfmArchive.info(Application.get_env(:lastfm_archive, :user))
+      LastfmArchive.Extract.info(Application.get_env(:lastfm_archive, :user))
     else
       # integration test
-      check_resp(LastfmArchive.info(Application.get_env(:lastfm_archive, :user)))
+      check_resp(LastfmArchive.Extract.info(Application.get_env(:lastfm_archive, :user)))
     end
   end
 
@@ -119,7 +119,7 @@ defmodule ExtractTest do
                          "from" => "1167609600", "to" => "1199145599"}
 
       test_bypass_conn_params(bypass, expected_params)
-      LastfmArchive.info(Application.get_env(:lastfm_archive, :user), test_year_range)
+      LastfmArchive.Extract.info(Application.get_env(:lastfm_archive, :user), test_year_range)
     end
   end
 
