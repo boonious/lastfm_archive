@@ -28,7 +28,7 @@ defmodule LastfmArchive do
   ```
     LastfmArchive.archive
   ```
-  
+
   The archive belongs to a default user specified in configuration, for example `user_a` (in
   `config/config.exs`):
 
@@ -91,8 +91,8 @@ defmodule LastfmArchive do
 
     IO.puts "Archiving #{playcount} scrobbles for #{user}"
     for {from, to} <- batches do
-      from_s = from |> DateTime.from_unix! |> DateTime.to_date |> Date.to_string
-      to_s = to |> DateTime.from_unix! |> DateTime.to_date |> Date.to_string
+      from_s = from |> date_string_from_unix!
+      to_s = to |> date_string_from_unix!
 
       IO.puts "\nyear: #{from_s} - #{to_s}"
       _archive(user, {from, to}, interval)
@@ -152,5 +152,7 @@ defmodule LastfmArchive do
     this_year = now.year
     for year <- y0..this_year, do: data_year_range(year |> to_string)
   end
+
+  defp date_string_from_unix!(dt), do: dt |> DateTime.from_unix! |> DateTime.to_date |> Date.to_string
 
 end
