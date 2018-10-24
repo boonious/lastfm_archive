@@ -125,8 +125,9 @@ defmodule ExtractTest do
 
   test "data_year_range/1 provide year ranges based on registered date" do
     {_, d0, _} = "2006-04-01T00:00:00Z" |> DateTime.from_iso8601
-    {_, now, _} = "2018-04-01T00:00:00Z" |> DateTime.from_iso8601
+    {_, d1, _} = "2018-04-01T00:00:00Z" |> DateTime.from_iso8601
     registered_date = d0 |> DateTime.to_unix
+    now = d1 |> DateTime.to_unix
     expected_year_range = [
      {1136073600, 1167609599},
      {1167609600, 1199145599},
@@ -142,17 +143,17 @@ defmodule ExtractTest do
      {1483228800, 1514764799},
      {1514764800, 1546300799}
     ]
-    assert LastfmArchive.data_year_range(registered_date, now) == expected_year_range
+    assert LastfmArchive.year_range(registered_date, now) == expected_year_range
   end
 
   test "data_year_range/1 provide year range for a particular year (YYYY)" do
     year = "2012"
     expected_year_range = {1325376000, 1356998399}
-    assert LastfmArchive.data_year_range(year) == expected_year_range
+    assert LastfmArchive.year_range(year) == expected_year_range
 
     year = "2005"
     expected_year_range = {1104537600, 1136073599}
-    assert LastfmArchive.data_year_range(year) == expected_year_range
+    assert LastfmArchive.year_range(year) == expected_year_range
   end
 
 end

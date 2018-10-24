@@ -1,6 +1,6 @@
 defmodule LastfmArchive.Extract do
   @moduledoc """
-  This module provides functions that interact with Lastfm API for data extraction and storage. 
+  This module provides functions that interact with Lastfm API for data extraction and storage.
 
   """
 
@@ -21,7 +21,7 @@ defmodule LastfmArchive.Extract do
 
   # pending until Elixirfm dependency pull requests are resolved
   #def extract(user, page, limit, from, to), do: get_recent_tracks(user, limit: limit, page: page, extended: 1, from: from, to: to)
-  
+
   # below are stop gap functions for Lastfm API requests until the Elixirfm pull requests
   # are resolved. This is to enable `lastfm_archive` publication on hex
   def extract(user, page, limit, from, to), do: get_tracks(user, limit: limit, page: page, extended: 1, from: from, to: to)
@@ -49,7 +49,7 @@ defmodule LastfmArchive.Extract do
     {status, resp} = HTTPoison.get(req_url, [], [{"Authorization", "Bearer #{lastfm_key}"}])
     {status, resp.body |> Poison.decode!}
   end
-  
+
   # --- end temporary stop gap
 
   @doc """
@@ -67,8 +67,8 @@ defmodule LastfmArchive.Extract do
   """
   @spec write(binary, binary | lastfm_response, binary) :: :ok | {:error, :file.posix}
   def write(user, data, filename \\ "1")
-  
-  # stop gap implementation until until Elixirfm pull requests are resolved 
+
+  # stop gap implementation until until Elixirfm pull requests are resolved
   def write(user, {:ok, %HTTPoison.Response{body: data, headers: _, request_url: _, status_code: _}}, filename), do: write(user, data, filename)
   def write(user, {:error, %HTTPoison.Error{id: nil, reason: reason}}, filename) do
     write(user, "error", Path.join(["error", reason|>to_string, filename]))

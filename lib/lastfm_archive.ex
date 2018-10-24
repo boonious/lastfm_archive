@@ -87,7 +87,7 @@ defmodule LastfmArchive do
   @spec archive(binary, integer) :: :ok | {:error, :file.posix}
   def archive(user, interval \\ Application.get_env(:lastfm_archive, :req_interval) || 500) do
     {playcount, registered} = info(user)
-    batches = data_year_range(registered)
+    batches = year_range(registered, DateTime.utc_now |> DateTime.to_unix)
 
     IO.puts "Archiving #{playcount} scrobbles for #{user}"
     for {from, to} <- batches do
@@ -135,22 +135,24 @@ defmodule LastfmArchive do
     File.exists? file_path
   end
 
-  # provide a year range in Unix time for a particular year
+  # provide a year range (first day, last day) tuple in Unix time for a particular year
   @doc false
-  def data_year_range(year) when is_binary(year) do
+  def year_range(year) when is_binary(year) do
     {_, d0, _} = "#{year}-01-01T00:00:00Z" |> DateTime.from_iso8601
     {_, d1, _} = "#{year}-12-31T23:59:59Z" |> DateTime.from_iso8601
     {d0 |> DateTime.to_unix, d1 |> DateTime.to_unix}
   end
 
-  # provides a list of year ranges in Unix time, starting from the user registration date
+  # provides a list of year range (first day, last day) tuples in Unix time
+  # starting from the user registration date - last year
   @doc false
-  def data_year_range(registered, now \\ DateTime.utc_now) when is_integer(registered) do
-    d0 = DateTime.from_unix!(registered)
-    y0 = d0.year
+  def year_range(t1, t2) when is_integer(t1) and is_integer(t2) do
+    d1 = DateTime.from_unix!(t1)
+    y1 = d1.year
 
-    this_year = now.year
-    for year <- y0..this_year, do: data_year_range(year |> to_string)
+    d2 = DateTime.from_unix!(t2)
+    y2 = d2.year
+    for year <- y1..y2, do: year_range(year |> to_string)
   end
 
   defp date_string_from_unix!(dt), do: dt |> DateTime.from_unix! |> DateTime.to_date |> Date.to_string
