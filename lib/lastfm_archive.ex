@@ -109,17 +109,17 @@ defmodule LastfmArchive do
 
   defp _archive(user, {from, to}, interval) do
     playcount = info(user, {from, to}) |> String.to_integer
-    total_pages = playcount / @per_page |> :math.ceil |> round
+    total_pages = (playcount / @per_page) |> :math.ceil |> round
 
     IO.puts "#{playcount} total scrobbles \n#{total_pages} pages - #{@per_page} scrobbles each"
     for page <- 1..total_pages do
       # starting from the last page - earliest scrobbles
       fetch_page = total_pages - (page - 1)
-      _archive(user, {from, to}, fetch_page, interval)
+      _archive(user, {from, to, fetch_page}, interval)
     end
   end
 
-  defp _archive(user, {from, to}, page, interval) do
+  defp _archive(user, {from, to, page}, interval) do
     d0 = from |> DateTime.from_unix!
     year_s = d0.year |> to_string
     filename = year_s |> Path.join(Enum.join(["#{@per_page}", "_", page |> to_string]))
