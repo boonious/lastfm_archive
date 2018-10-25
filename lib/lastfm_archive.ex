@@ -88,12 +88,14 @@ defmodule LastfmArchive do
   def archive(user, interval \\ Application.get_env(:lastfm_archive, :req_interval) || 500) do
     {playcount, registered} = info(user)
 
+    IO.puts "Archiving #{playcount} scrobbles for #{user}"
+
     now = DateTime.utc_now
     last_year_s = (now.year - 1) |> to_string 
     {_, last_year_dt, _} = last_year_s <> "-01-01T00:00:00Z" |> DateTime.from_iso8601
     batches = year_range(registered, last_year_dt |> DateTime.to_unix)
 
-    IO.puts "Archiving #{playcount} scrobbles for #{user}"
+    # archive data in yearly batches until the previous year
     for {from, to} <- batches do
       from_s = from |> date_string_from_unix!
       to_s = to |> date_string_from_unix!
@@ -104,25 +106,60 @@ defmodule LastfmArchive do
       IO.puts ""
       :timer.sleep(interval) # prevent request rate limit (max 5 per sec) from being reached
     end
+
+    # Lastfm API paging chunks from the latest tracks, any new scrobbles would swifts tracks
+    # among fixed-size pages -> all downloaded pages for the entire year would need to be updated
+    #
+    # extracting data in daily timeframes would ensure data immutability/integrity of downloaded pages,
+    # enabling easier/fastest/real-time archive syncing and new scrobbles updating
+    #
+    # archive data in daily batches for this year
+    {_, new_year_d} = Date.new(now.year, 1, 1)
+    this_year_day_range = Date.range(new_year_d, Date.utc_today)
+    for day <- this_year_day_range do
+      {_, dt1, _} = "#{day |> Date.to_string}T00:00:00Z" |> DateTime.from_iso8601
+      {_, dt2, _} = "#{day |> Date.to_string}T23:59:59Z" |> DateTime.from_iso8601
+
+      IO.puts "\n#{day |> Date.to_string}"
+
+      daily = true
+       _archive(user, {dt1 |> DateTime.to_unix, dt2 |> DateTime.to_unix}, interval, daily)
+      :timer.sleep(interval)
+    end
     :ok
   end
 
-  defp _archive(user, {from, to}, interval) do
+  defp _archive(user, range, interval, daily \\ false)
+  defp _archive(user, {from, to}, interval, daily) do
     playcount = info(user, {from, to}) |> String.to_integer
     total_pages = (playcount / @per_page) |> :math.ceil |> round
 
-    IO.puts "#{playcount} total scrobbles \n#{total_pages} pages - #{@per_page} scrobbles each"
-    for page <- 1..total_pages do
-      # starting from the last page - earliest scrobbles
-      fetch_page = total_pages - (page - 1)
-      _archive(user, {from, to, fetch_page}, interval)
+    unless playcount == 0 do
+      IO.puts "#{playcount} scrobbles"
+      unless daily, do: IO.puts "#{total_pages} pages - #{@per_page} scrobbles each"
+
+      for page <- 1..total_pages do
+        # starting from the last page - earliest scrobbles
+        fetch_page = total_pages - (page - 1)
+        _archive(user, {from, to, fetch_page}, interval, daily)
+      end
     end
   end
 
-  defp _archive(user, {from, to, page}, interval) do
-    d0 = from |> DateTime.from_unix!
-    year_s = d0.year |> to_string
-    filename = year_s |> Path.join(Enum.join(["#{@per_page}", "_", page |> to_string]))
+  defp _archive(user, {from, to, page}, interval, daily) do
+    dt = from |> DateTime.from_unix!
+
+    filename = if daily do
+      dt 
+      |> DateTime.to_date
+      |> Date.to_string
+      |> String.split("-")
+      |> Path.join
+      |> Path.join(Enum.join(["#{@per_page}", "_", page |> to_string]))
+    else
+      year_s = dt.year |> to_string
+      year_s |> Path.join(Enum.join(["#{@per_page}", "_", page |> to_string]))
+    end
 
     unless file_exists?(user, filename) do
       data = extract(user, page, @per_page, from, to)
