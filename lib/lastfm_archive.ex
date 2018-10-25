@@ -150,11 +150,8 @@ defmodule LastfmArchive do
     dt = from |> DateTime.from_unix!
 
     filename = if daily do
-      dt 
-      |> DateTime.to_date
-      |> Date.to_string
-      |> String.split("-")
-      |> Path.join
+      dt
+      |> path_from_datetime!
       |> Path.join(Enum.join(["#{@per_page}", "_", page |> to_string]))
     else
       year_s = dt.year |> to_string
@@ -197,5 +194,7 @@ defmodule LastfmArchive do
   end
 
   defp date_string_from_unix!(dt), do: dt |> DateTime.from_unix! |> DateTime.to_date |> Date.to_string
+
+  defp path_from_datetime!(dt), do: dt |> DateTime.to_date |> Date.to_string |> String.split("-") |> Path.join
 
 end
