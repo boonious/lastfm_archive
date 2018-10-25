@@ -117,14 +117,16 @@ defmodule LastfmArchive do
     {_, new_year_d} = Date.new(now.year, 1, 1)
     this_year_day_range = Date.range(new_year_d, Date.utc_today)
     for day <- this_year_day_range do
-      {_, dt1, _} = "#{day |> Date.to_string}T00:00:00Z" |> DateTime.from_iso8601
-      {_, dt2, _} = "#{day |> Date.to_string}T23:59:59Z" |> DateTime.from_iso8601
-
-      IO.puts "\n#{day |> Date.to_string}"
-
-      daily = true
-       _archive(user, {dt1 |> DateTime.to_unix, dt2 |> DateTime.to_unix}, interval, daily)
-      :timer.sleep(interval)
+      day_s = day |> Date.to_string
+      {_, dt1, _} = "#{day_s}T00:00:00Z" |> DateTime.from_iso8601
+      {_, dt2, _} = "#{day_s}T23:59:59Z" |> DateTime.from_iso8601
+      
+      file_path = day_s |> String.split("-") |> Path.join
+      unless File.dir? Path.join(user_data_dir(user), file_path) do
+        daily = true
+         _archive(user, {dt1 |> DateTime.to_unix, dt2 |> DateTime.to_unix}, interval, daily)
+        :timer.sleep(interval)
+      end
     end
     :ok
   end
@@ -135,6 +137,7 @@ defmodule LastfmArchive do
     total_pages = (playcount / @per_page) |> :math.ceil |> round
 
     unless playcount == 0 do
+      if daily, do: IO.puts "\n#{date_string_from_unix(from)}"
       IO.puts "#{playcount} scrobbles"
       unless daily, do: IO.puts "#{total_pages} pages - #{@per_page} scrobbles each"
 
