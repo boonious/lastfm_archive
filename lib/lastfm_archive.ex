@@ -132,20 +132,36 @@ defmodule LastfmArchive do
   end
 
   defp _archive(user, range, interval, daily \\ false)
-  defp _archive(user, {from, to}, interval, daily) do
+
+  # daily batch archiving
+  defp _archive(user, {from, to}, interval, true) do
     playcount = info(user, {from, to}) |> String.to_integer
     total_pages = (playcount / @per_page) |> :math.ceil |> round
-
     unless playcount == 0 do
-      if daily, do: IO.puts "\n#{date_string_from_unix(from)}"
+      IO.puts "\n#{date_string_from_unix(from)}"
       IO.puts "#{playcount} scrobbles"
-      unless daily, do: IO.puts "#{total_pages} pages - #{@per_page} scrobbles each"
 
+      daily = true
       for page <- 1..total_pages do
         # starting from the last page - earliest scrobbles
         fetch_page = total_pages - (page - 1)
         _archive(user, {from, to, fetch_page}, interval, daily)
       end
+    end
+  end
+
+  # yearly batch archiving
+  defp _archive(user, {from, to}, interval, daily) do
+    playcount = info(user, {from, to}) |> String.to_integer
+    total_pages = (playcount / @per_page) |> :math.ceil |> round
+
+    IO.puts "#{playcount} scrobbles"
+    IO.puts "#{total_pages} pages - #{@per_page} scrobbles each"
+
+    for page <- 1..total_pages do
+      # starting from the last page - earliest scrobbles
+      fetch_page = total_pages - (page - 1)
+      _archive(user, {from, to, fetch_page}, interval, daily)
     end
   end
 
