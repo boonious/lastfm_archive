@@ -97,8 +97,8 @@ defmodule LastfmArchive do
 
     # archive data in yearly batches until the previous year
     for {from, to} <- batches do
-      from_s = from |> date_string_from_unix!
-      to_s = to |> date_string_from_unix!
+      from_s = from |> date_string_from_unix
+      to_s = to |> date_string_from_unix
 
       IO.puts "\nyear: #{from_s} - #{to_s}"
       _archive(user, {from, to}, interval)
@@ -151,7 +151,7 @@ defmodule LastfmArchive do
 
     filename = if daily do
       dt
-      |> path_from_datetime!
+      |> path_from_datetime
       |> Path.join(Enum.join(["#{@per_page}", "_", page |> to_string]))
     else
       year_s = dt.year |> to_string
@@ -167,9 +167,7 @@ defmodule LastfmArchive do
   end
 
   defp file_exists?(user, filename) do
-    data_dir = Application.get_env(:lastfm_archive, :data_dir) || @default_data_dir
-    user_data_dir = Path.join "#{data_dir}", "#{user}"
-    file_path = Path.join("#{user_data_dir}", "#{filename}.gz")
+    file_path = Path.join("#{user_data_dir(user)}", "#{filename}.gz")
     File.exists? file_path
   end
 
@@ -193,8 +191,10 @@ defmodule LastfmArchive do
     for year <- y1..y2, do: year_range(year |> to_string)
   end
 
-  defp date_string_from_unix!(dt), do: dt |> DateTime.from_unix! |> DateTime.to_date |> Date.to_string
+  defp date_string_from_unix(dt), do: dt |> DateTime.from_unix! |> DateTime.to_date |> Date.to_string
 
-  defp path_from_datetime!(dt), do: dt |> DateTime.to_date |> Date.to_string |> String.split("-") |> Path.join
+  defp path_from_datetime(dt), do: dt |> DateTime.to_date |> Date.to_string |> String.split("-") |> Path.join
+
+  defp user_data_dir(user), do: (Application.get_env(:lastfm_archive, :data_dir) || @default_data_dir) |> Path.join(user)
 
 end
