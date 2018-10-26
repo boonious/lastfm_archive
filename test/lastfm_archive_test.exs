@@ -58,7 +58,7 @@ defmodule LastfmArchiveTest do
       user = "a_lastfm_user"
       prebaked_resp = %{"info" => "./test/data/test_user2.json", "recenttracks" => "./test/data/test_recenttracks.json"}
       test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "2"), user, prebaked_resp)
-      capture_io(fn -> LastfmArchive.archive(user, 0) end)
+      capture_io(fn -> LastfmArchive.archive(user, interval: 0) end)
     end
   after
     File.rm_rf Path.join(@test_data_dir, "2")

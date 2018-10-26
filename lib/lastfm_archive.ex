@@ -18,7 +18,7 @@ defmodule LastfmArchive do
   import LastfmArchive.Extract
 
   @default_data_dir "./lastfm_data/"
-  #@default_opts %{interval => 500}
+  @default_opts %{"interval" => 500}
   @per_page Application.get_env(:lastfm_archive, :per_page) || 200 # max fetch allowed by Lastfm
 
   @doc """
@@ -54,6 +54,7 @@ defmodule LastfmArchive do
 
   ```
     LastfmArchive.archive("a_lastfm_user")
+    LastfmArchive.archive("a_lastfm_user", interval: 300) # 300ms interval between Lastfm API request
   ```
 
   Older scrobbles are archived on a yearly basis, whereas the latest (current year) scrobbles
@@ -63,9 +64,10 @@ defmodule LastfmArchive do
   200-track (max) `gzip` compressed pages and stored within directories corresponding
   to the years and days when tracks were scrobbled.
 
-  `interval` is the duration (in milliseconds) between successive requests
-  sent to Lastfm API.
-  It provides a control of the max rate of requests.
+  Options:
+  
+  - `:interval` the duration (in milliseconds) between successive requests
+  sent to Lastfm API. It provides a control of the max rate of requests.
   The default (500ms) ensures a safe rate that is
   within Lastfm's term of service  - no more than 5 requests per second.
 
@@ -88,9 +90,12 @@ defmodule LastfmArchive do
   To create a fresh or refresh part of the archive: delete all or some
   files in the archive and re-run the function.
   """
-  @spec archive(binary, integer) :: :ok | {:error, :file.posix}
-  def archive(user, interval \\ Application.get_env(:lastfm_archive, :interval) || 500) do
+  @spec archive(binary, keyword) :: :ok | {:error, :file.posix}
+  def archive(user, options \\ []) do
     {playcount, registered} = info(user)
+
+    # interval between requests cf. Lastfm API request max rate limit
+    interval = option(options, :interval)
 
     IO.puts "Archiving #{playcount} scrobbles for #{user}"
 
@@ -105,7 +110,7 @@ defmodule LastfmArchive do
       to_s = to |> date_string_from_unix
 
       IO.puts "\nyear: #{from_s} - #{to_s}"
-      _archive(user, {from, to}, interval)
+      _archive(user, {from, to}, options)
 
       IO.puts ""
       :timer.sleep(interval) # prevent request rate limit (max 5 per sec) from being reached
@@ -144,17 +149,17 @@ defmodule LastfmArchive do
 
       unless extracted_day? or checked_no_scrobble_day? do
         daily = true
-         _archive(user, {dt1 |> DateTime.to_unix, dt2 |> DateTime.to_unix}, interval, daily)
+         _archive(user, {dt1 |> DateTime.to_unix, dt2 |> DateTime.to_unix}, options, daily)
         :timer.sleep(interval)
       end
     end
     :ok
   end
 
-  defp _archive(user, range, interval, daily \\ false)
+  defp _archive(user, range, options, daily \\ false)
 
   # daily batch archiving
-  defp _archive(user, {from, to}, interval, true) do
+  defp _archive(user, {from, to}, options, true) do
     playcount = info(user, {from, to}) |> String.to_integer
     total_pages = (playcount / @per_page) |> :math.ceil |> round
 
@@ -166,7 +171,7 @@ defmodule LastfmArchive do
       for page <- 1..total_pages do
         # starting from the last page - earliest scrobbles
         fetch_page = total_pages - (page - 1)
-        _archive(user, {from, to, fetch_page}, interval, daily)
+        _archive(user, {from, to, fetch_page}, options, daily)
       end
     else
       dt = from |> DateTime.from_unix!
@@ -178,7 +183,7 @@ defmodule LastfmArchive do
   end
 
   # yearly batch archiving
-  defp _archive(user, {from, to}, interval, daily) do
+  defp _archive(user, {from, to}, options, daily) do
     playcount = info(user, {from, to}) |> String.to_integer
     total_pages = (playcount / @per_page) |> :math.ceil |> round
 
@@ -188,12 +193,13 @@ defmodule LastfmArchive do
     for page <- 1..total_pages do
       # starting from the last page - earliest scrobbles
       fetch_page = total_pages - (page - 1)
-      _archive(user, {from, to, fetch_page}, interval, daily)
+      _archive(user, {from, to, fetch_page}, options, daily)
     end
   end
 
-  defp _archive(user, {from, to, page}, interval, daily) do
+  defp _archive(user, {from, to, page}, options, daily) do
     dt = from |> DateTime.from_unix!
+    interval = option(options, :interval)
 
     filename = if daily do
       dt
@@ -243,9 +249,10 @@ defmodule LastfmArchive do
 
   defp user_data_dir(user), do: (Application.get_env(:lastfm_archive, :data_dir) || @default_data_dir) |> Path.join(user)
 
-  #defp get_opts(opts, key) when is_list(opts) and is_atom(key) do
-    #option = Keyword.get(opts, key)
-    #if option, do: option, else: Application.get_env(:lastfm_archive, key) || @default_opts(key |> to_string)
-  #end
+  # the option provided through keyword list, config or system default
+  defp option(options, key) when is_list(options) and is_atom(key) do
+    option = Keyword.get(options, key)
+    if option, do: option, else: Application.get_env(:lastfm_archive, key) || @default_opts[key |> to_string]
+  end
 
 end
