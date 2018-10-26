@@ -65,7 +65,7 @@ see [https://www.last.fm/api](https://www.last.fm/api) ("Get an API account").
     user: "default_user", # the default user
     data_dir: "./lastfm_data/", # main directory for multiple archives
     per_page: 200, # 200 is max no. of tracks per call permitted by Lastfm API 
-    req_interval: 500 # milliseconds between requests cf. Lastfm's max 5 reqs/s rate
+    interval: 500 # milliseconds between requests cf. Lastfm's max 5 reqs/s rate limit
 
   config :elixirfm,
     lastfm_ws: "http://ws.audioscrobbler.com/",

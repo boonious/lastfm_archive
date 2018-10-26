@@ -18,6 +18,7 @@ defmodule LastfmArchive do
   import LastfmArchive.Extract
 
   @default_data_dir "./lastfm_data/"
+  #@default_opts %{interval => 500}
   @per_page Application.get_env(:lastfm_archive, :per_page) || 200 # max fetch allowed by Lastfm
 
   @doc """
@@ -88,7 +89,7 @@ defmodule LastfmArchive do
   files in the archive and re-run the function.
   """
   @spec archive(binary, integer) :: :ok | {:error, :file.posix}
-  def archive(user, interval \\ Application.get_env(:lastfm_archive, :req_interval) || 500) do
+  def archive(user, interval \\ Application.get_env(:lastfm_archive, :interval) || 500) do
     {playcount, registered} = info(user)
 
     IO.puts "Archiving #{playcount} scrobbles for #{user}"
@@ -241,5 +242,10 @@ defmodule LastfmArchive do
   defp path_from_datetime(dt), do: dt |> DateTime.to_date |> Date.to_string |> String.split("-") |> Path.join
 
   defp user_data_dir(user), do: (Application.get_env(:lastfm_archive, :data_dir) || @default_data_dir) |> Path.join(user)
+
+  #defp get_opts(opts, key) when is_list(opts) and is_atom(key) do
+    #option = Keyword.get(opts, key)
+    #if option, do: option, else: Application.get_env(:lastfm_archive, key) || @default_opts(key |> to_string)
+  #end
 
 end
