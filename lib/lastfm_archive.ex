@@ -116,13 +116,29 @@ defmodule LastfmArchive do
     # archive data in daily batches for this year
     {_, new_year_d} = Date.new(now.year, 1, 1)
     this_year_day_range = Date.range(new_year_d, Date.utc_today)
+    this_year_s = new_year_d.year |> to_string
+
+    IO.puts "\nyear: #{this_year_s}"
+
+    no_scrobble_log_path =  Path.join [user_data_dir(user), this_year_s, ".no_scrobble"]
+    unless (File.exists? no_scrobble_log_path) do
+      file_dir = Path.dirname no_scrobble_log_path
+      unless File.exists?(file_dir), do: File.mkdir_p file_dir
+      File.write!(no_scrobble_log_path, "no_scrobble")
+    end
+
+    no_scrobble_path = File.read!(no_scrobble_log_path) |> String.split(",")
+
     for day <- this_year_day_range do
       day_s = day |> Date.to_string
       {_, dt1, _} = "#{day_s}T00:00:00Z" |> DateTime.from_iso8601
       {_, dt2, _} = "#{day_s}T23:59:59Z" |> DateTime.from_iso8601
-      
+
       file_path = day_s |> String.split("-") |> Path.join
-      unless File.dir? Path.join(user_data_dir(user), file_path) do
+      extracted_day? = File.dir? Path.join(user_data_dir(user), file_path)
+      checked_no_scrobble_day? = Enum.member? no_scrobble_path, file_path
+
+      unless extracted_day? or checked_no_scrobble_day? do
         daily = true
          _archive(user, {dt1 |> DateTime.to_unix, dt2 |> DateTime.to_unix}, interval, daily)
         :timer.sleep(interval)
@@ -137,6 +153,7 @@ defmodule LastfmArchive do
   defp _archive(user, {from, to}, interval, true) do
     playcount = info(user, {from, to}) |> String.to_integer
     total_pages = (playcount / @per_page) |> :math.ceil |> round
+
     unless playcount == 0 do
       IO.puts "\n#{date_string_from_unix(from)}"
       IO.puts "#{playcount} scrobbles"
@@ -147,6 +164,12 @@ defmodule LastfmArchive do
         fetch_page = total_pages - (page - 1)
         _archive(user, {from, to, fetch_page}, interval, daily)
       end
+    else
+      dt = from |> DateTime.from_unix!
+      file_path =  dt |> path_from_datetime
+      year_s = dt.year |> to_string
+      no_scrobble_log_path =  Path.join [user_data_dir(user), year_s, ".no_scrobble"]
+      File.write!(no_scrobble_log_path, ",#{file_path}", [:append])
     end
   end
 
