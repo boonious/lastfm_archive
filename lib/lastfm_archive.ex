@@ -55,9 +55,12 @@ defmodule LastfmArchive do
     LastfmArchive.archive("a_lastfm_user")
   ```
 
+  Older scrobbles are archived on a yearly basis, whereas the latest (current year) scrobbles
+  are extracted on a daily basis to ensure data immutability and updatability.
+
   The data is currently in raw Lastfm `recenttracks` JSON format, chunked into
-  200-track compressed (`gzip`) pages and stored within directories corresponding
-  to the years when tracks were scrobbled.
+  200-track (max) `gzip` compressed pages and stored within directories corresponding
+  to the years and days when tracks were scrobbled.
 
   `interval` is the duration (in milliseconds) between successive requests
   sent to Lastfm API.

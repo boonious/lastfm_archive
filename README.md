@@ -20,9 +20,14 @@ applications or [interactive Elixir](https://elixir-lang.org/getting-started/int
   LastfmArchive.archive("a_lastfm_user")
 ```
 
+Older scrobbles are archived on a yearly basis, whereas the latest (current year) scrobbles
+are extracted on a daily basis to ensure data immutability and updatability.
+
 The data is currently in raw Lastfm `recenttracks` JSON format,
-chunked into 200-track compressed (gzip) pages and stored within directories
-corresponding to the years when tracks were scrobbled.
+chunked into 200-track (max) `gzip` compressed pages and stored within directories
+corresponding to the years or days when tracks were scrobbled.
+
+See [`archive/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#archive/2) for more details.
 
 The data is written to a main directory specified in configuration - see below.
 
@@ -40,7 +45,7 @@ to your list of dependencies in `mix.exs`:
 ```elixir
   def deps do
     [
-      {:lastfm_archive, "~> 0.2.0"}
+      {:lastfm_archive, "~> 0.3.0"}
     ]
   end
 ```

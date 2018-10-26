@@ -1,10 +1,15 @@
 # Changelog
 
+## 0.3.0 (2018-10-26)
+
+* `archive` latest tracks (current year) on a daily basis to better ensure data immutability and updatability (new scrobbles)
+* `archive` older tracks on a yearly basis
+
 ## 0.2.0 (2018-10-23)
 
-* `archive/0`: download scrobbled tracks, create a file archive for a default user according to configuration settings
-* `archive/2`: download scrobbled tracks, create a file archive for any Lastfm user
-* `write/3`: output data for multiple Lastfm users (no longer hardwired to the default user)
+* `archive/0`: downloads scrobbled tracks, creates a file archive for a default user according to configuration settings
+* `archive/2`: downloads scrobbled tracks, creates a file archive for any Lastfm user
+* `write/3`: outputs data for multiple Lastfm users (no longer hardwired to the default user)
 
 ## 0.1.0 (2018-10-22)
 
