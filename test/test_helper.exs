@@ -19,10 +19,10 @@ defmodule TestHelpers do
     end
   end
 
-  def test_bypass_conn_params_archive(bypass, test_dir, user) do
+  def test_bypass_conn_params_archive(bypass, test_dir, user, prebaked_resp) do
     api_key = Application.get_env(:elixirfm, :api_key)
-    prebaked_resp_get_info = File.read!("./test/data/test_user.json")
-    prebaked_resp_get_recenttraacks = File.read!("./test/data/test_recenttracks.json")
+    prebaked_resp_get_info = File.read!(prebaked_resp["info"])
+    prebaked_resp_get_recenttraacks = File.read!(prebaked_resp["recenttracks"])
 
     test_ws = "http://localhost:#{bypass.port}/"
     Application.put_env :elixirfm, :lastfm_ws, test_ws
