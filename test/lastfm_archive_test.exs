@@ -25,6 +25,7 @@ defmodule LastfmArchiveTest do
     [bypass: bypass]
   end
 
+  @tag :disk_write
   test "archive scrobbles of the configured user - archive/0", %{bypass: bypass} do
     # Bypass test only
     if(bypass) do
@@ -35,19 +36,27 @@ defmodule LastfmArchiveTest do
       # since Bypass test is not hitting Lastfm API
       Application.put_env :lastfm_archive, :req_interval, 1
 
-      test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "1"), user)
+      prebaked_resp = %{"info" => "./test/data/test_user.json", "recenttracks" => "./test/data/test_recenttracks_no_scrobble.json"}
+      test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "1"), user, prebaked_resp)
       capture_io(fn -> LastfmArchive.archive end)
+
+      today = Date.utc_today
+      year_s = today.year |> to_string
+      no_scrobble_log_file = Path.join [@test_data_dir, "1", user, year_s, ".no_scrobble"]
+      assert File.exists? no_scrobble_log_file
     end
   after
     Application.put_env :lastfm_archive, :req_interval, @req_interval
     File.rm_rf Path.join(@test_data_dir, "1")
   end
 
+  @tag :disk_write
   test "archive scrobbles of a Lastfm user - archive/2", %{bypass: bypass} do
     # Bypass test only
     if(bypass) do
       user = "a_lastfm_user"
-      test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "2"), user)
+      prebaked_resp = %{"info" => "./test/data/test_user2.json", "recenttracks" => "./test/data/test_recenttracks.json"}
+      test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "2"), user, prebaked_resp)
       capture_io(fn -> LastfmArchive.archive(user, 0) end)
     end
   after
