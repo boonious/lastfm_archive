@@ -18,7 +18,7 @@ defmodule LastfmArchive do
   import LastfmArchive.Extract
 
   @default_data_dir "./lastfm_data/"
-  @default_opts %{"interval" => 500, "per_page" => 200}
+  @default_opts %{"interval" => 500, "per_page" => 200, "overwrite" => false}
 
   @doc """
   Download all scrobbled tracks and create an archive on local filesystem for the default user.
@@ -54,6 +54,7 @@ defmodule LastfmArchive do
   ```
     LastfmArchive.archive("a_lastfm_user")
     LastfmArchive.archive("a_lastfm_user", interval: 300) # 300ms interval between Lastfm API request
+    LastfmArchive.archive("a_lastfm_user", overwrite: true) # re-fetch / overwrite downloaded data
   ```
 
   Older scrobbles are archived on a yearly basis, whereas the latest (current year) scrobbles
@@ -67,8 +68,14 @@ defmodule LastfmArchive do
   
   - `:interval` the duration (in milliseconds) between successive requests
   sent to Lastfm API. It provides a control of the max rate of requests.
-  The default (500ms) ensures a safe rate that is
+  **Default is 500** (ms), this ensures a safe rate that is
   within Lastfm's term of service  - no more than 5 requests per second
+
+  - `:overwrite` if `true`, fetch and overwrite any previously downloaded
+  data. Use this option to regenerate the file archive. **Default is false**
+  if existing data chunks / pages are found, the system will not be making
+  calls to Lastfm to re-fetch data
+
   - `:per_page` number of scrobbles per page in archive. The default is 200 -
   max number of tracks per request permissible by Lastfm API
 
@@ -127,6 +134,7 @@ defmodule LastfmArchive do
     {_, new_year_d} = Date.new(now.year, 1, 1)
     this_year_day_range = Date.range(new_year_d, Date.utc_today)
     this_year_s = new_year_d.year |> to_string
+    overwrite = option(options, :overwrite)
 
     IO.puts "\nyear: #{this_year_s}"
 
@@ -148,7 +156,7 @@ defmodule LastfmArchive do
       extracted_day? = File.dir? Path.join(user_data_dir(user), file_path)
       checked_no_scrobble_day? = Enum.member? no_scrobble_path, file_path
 
-      unless extracted_day? or checked_no_scrobble_day? do
+      if (not(extracted_day?) and not(checked_no_scrobble_day?)) or overwrite do
         daily = true
          _archive(user, {dt1 |> DateTime.to_unix, dt2 |> DateTime.to_unix}, options, daily)
         :timer.sleep(interval)
@@ -179,8 +187,12 @@ defmodule LastfmArchive do
       dt = from |> DateTime.from_unix!
       file_path =  dt |> path_from_datetime
       year_s = dt.year |> to_string
+
       no_scrobble_log_path =  Path.join [user_data_dir(user), year_s, ".no_scrobble"]
-      File.write!(no_scrobble_log_path, ",#{file_path}", [:append])
+      no_scrobble_log = File.read!(no_scrobble_log_path)
+      unless String.match?(no_scrobble_log, ~r/#{file_path}/) do
+        File.write!(no_scrobble_log_path, ",#{file_path}", [:append])
+      end
     end
   end
 
@@ -204,6 +216,7 @@ defmodule LastfmArchive do
     dt = from |> DateTime.from_unix!
     interval = option(options, :interval)
     per_page = option(options, :per_page)
+    overwrite = option(options, :overwrite)
 
     filename = if daily do
       dt
@@ -214,7 +227,7 @@ defmodule LastfmArchive do
       year_s |> Path.join(Enum.join(["#{per_page}", "_", page |> to_string]))
     end
 
-    unless file_exists?(user, filename) do
+    if not(file_exists?(user, filename)) or overwrite do
       data = extract(user, page, per_page, from, to)
       write(user, data, filename)
       IO.write "."
