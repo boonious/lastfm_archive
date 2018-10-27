@@ -18,8 +18,7 @@ defmodule LastfmArchive do
   import LastfmArchive.Extract
 
   @default_data_dir "./lastfm_data/"
-  @default_opts %{"interval" => 500}
-  @per_page Application.get_env(:lastfm_archive, :per_page) || 200 # max fetch allowed by Lastfm
+  @default_opts %{"interval" => 500, "per_page" => 200}
 
   @doc """
   Download all scrobbled tracks and create an archive on local filesystem for the default user.
@@ -64,12 +63,14 @@ defmodule LastfmArchive do
   200-track (max) `gzip` compressed pages and stored within directories corresponding
   to the years and days when tracks were scrobbled.
 
-  Options:
+  Options - also configurable:
   
   - `:interval` the duration (in milliseconds) between successive requests
   sent to Lastfm API. It provides a control of the max rate of requests.
   The default (500ms) ensures a safe rate that is
-  within Lastfm's term of service  - no more than 5 requests per second.
+  within Lastfm's term of service  - no more than 5 requests per second
+  - `:per_page` number of scrobbles per page in archive. The default is 200 -
+  max number of tracks per request permissiable by Lastfm API
 
   The data is written to a main directory,
   e.g. `./lastfm_data/a_lastfm_user/` as configured in
@@ -161,7 +162,8 @@ defmodule LastfmArchive do
   # daily batch archiving
   defp _archive(user, {from, to}, options, true) do
     playcount = info(user, {from, to}) |> String.to_integer
-    total_pages = (playcount / @per_page) |> :math.ceil |> round
+    per_page = option(options, :per_page)
+    total_pages = (playcount / per_page) |> :math.ceil |> round
 
     unless playcount == 0 do
       IO.puts "\n#{date_string_from_unix(from)}"
@@ -185,10 +187,11 @@ defmodule LastfmArchive do
   # yearly batch archiving
   defp _archive(user, {from, to}, options, daily) do
     playcount = info(user, {from, to}) |> String.to_integer
-    total_pages = (playcount / @per_page) |> :math.ceil |> round
+    per_page = option(options, :per_page)
+    total_pages = (playcount / per_page) |> :math.ceil |> round
 
     IO.puts "#{playcount} scrobbles"
-    IO.puts "#{total_pages} pages - #{@per_page} scrobbles each"
+    IO.puts "#{total_pages} pages - #{per_page} scrobbles each"
 
     for page <- 1..total_pages do
       # starting from the last page - earliest scrobbles
@@ -200,18 +203,19 @@ defmodule LastfmArchive do
   defp _archive(user, {from, to, page}, options, daily) do
     dt = from |> DateTime.from_unix!
     interval = option(options, :interval)
+    per_page = option(options, :per_page)
 
     filename = if daily do
       dt
       |> path_from_datetime
-      |> Path.join(Enum.join(["#{@per_page}", "_", page |> to_string]))
+      |> Path.join(Enum.join(["#{per_page}", "_", page |> to_string]))
     else
       year_s = dt.year |> to_string
-      year_s |> Path.join(Enum.join(["#{@per_page}", "_", page |> to_string]))
+      year_s |> Path.join(Enum.join(["#{per_page}", "_", page |> to_string]))
     end
 
     unless file_exists?(user, filename) do
-      data = extract(user, page, @per_page, from, to)
+      data = extract(user, page, per_page, from, to)
       write(user, data, filename)
       IO.write "."
       :timer.sleep(interval)
