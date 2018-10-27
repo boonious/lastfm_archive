@@ -70,7 +70,7 @@ defmodule LastfmArchive do
   The default (500ms) ensures a safe rate that is
   within Lastfm's term of service  - no more than 5 requests per second
   - `:per_page` number of scrobbles per page in archive. The default is 200 -
-  max number of tracks per request permissiable by Lastfm API
+  max number of tracks per request permissible by Lastfm API
 
   The data is written to a main directory,
   e.g. `./lastfm_data/a_lastfm_user/` as configured in

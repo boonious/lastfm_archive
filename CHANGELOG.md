@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1 (2018-10-27)
+
+* Keyword list archiving options (`per_page`, `interval`) for `archive/2` which can also be configured
+
 ## 0.3.0 (2018-10-26)
 
 * `archive` latest tracks (current year) on a daily basis to better ensure data immutability and updatability (new scrobbles)
