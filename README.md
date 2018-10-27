@@ -45,7 +45,7 @@ to your list of dependencies in `mix.exs`:
 ```elixir
   def deps do
     [
-      {:lastfm_archive, "~> 0.3.1"}
+      {:lastfm_archive, "~> 0.3.2"}
     ]
   end
 ```
@@ -58,7 +58,7 @@ the following specifies a `default_user` and a main file location for
 multiple user archives, `./lastfm_data/` relative to the software home directory.
 
 See [`archive/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#archive/2)
-for other options which are also configurable, e.g. `interval`, `per_page`.
+for other configurable archiving options, e.g. `interval`, `per_page`, `overwrite`.
 
 An `api_key` must be configured to enable Lastfm API requests,
 see [https://www.last.fm/api](https://www.last.fm/api) ("Get an API account").

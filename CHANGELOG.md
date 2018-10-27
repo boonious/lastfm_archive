@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2 (2018-10-27)
+
+* `overwrite` archiving option to also re-fetch any existing downloaded data, for refreshing file archive
+
 ## 0.3.1 (2018-10-27)
 
 * Keyword list archiving options (`per_page`, `interval`) for `archive/2` which can also be configured

@@ -72,7 +72,7 @@ defmodule LastfmArchive do
   within Lastfm's term of service  - no more than 5 requests per second
 
   - `:overwrite` if `true`, fetch and overwrite any previously downloaded
-  data. Use this option to regenerate the file archive. **Default is false**
+  data. Use this option to refresh the file archive. **Default is false**
   if existing data chunks / pages are found, the system will not be making
   calls to Lastfm to re-fetch data
 
@@ -89,14 +89,19 @@ defmodule LastfmArchive do
       data_dir: "./lastfm_data/"
   ```
 
-  **Note**: Lastfm API calls could timed out occasionally. When this happen
+  ### Reruns and refresh archive
+  Lastfm API calls could timed out occasionally. When this happen
   the function will continue archiving and move on to the next data chunk (page).
-  It will log the missing page in an `error` directory. Re-run the function
-  to download any missing data chunks. The function will skip all existing
-  archived pages.
+  It will log the missing page event(s) in an `error` directory. 
+  
+  Rerun the function
+  to download any missing data chunks. The function skips all existing
+  archived pages by default so that it will not make repeated calls to Lastfm.
+  Use the `overwrite: true` option to re-fetch existing data.
 
   To create a fresh or refresh part of the archive: delete all or some
-  files in the archive and re-run the function.
+  files in the archive and re-run the function, or use the `overwrite: true`
+  option.
   """
   @spec archive(binary, keyword) :: :ok | {:error, :file.posix}
   def archive(user, options \\ []) do
