@@ -19,6 +19,7 @@ defmodule LastfmArchive do
 
   @default_data_dir "./lastfm_data/"
   @default_opts %{"interval" => 500, "per_page" => 200, "overwrite" => false}
+  @no_scrobble_log_filenmae ".no_scrobble"
 
   @doc """
   Download all scrobbled tracks and create an archive on local filesystem for the default user.
@@ -143,14 +144,7 @@ defmodule LastfmArchive do
 
     IO.puts "\nyear: #{this_year_s}"
 
-    no_scrobble_log_path =  Path.join [user_data_dir(user), this_year_s, ".no_scrobble"]
-    unless (File.exists? no_scrobble_log_path) do
-      file_dir = Path.dirname no_scrobble_log_path
-      unless File.exists?(file_dir), do: File.mkdir_p file_dir
-      File.write!(no_scrobble_log_path, "no_scrobble")
-    end
-
-    no_scrobble_path = File.read!(no_scrobble_log_path) |> String.split(",")
+    no_scrobble_dates_l = no_scrobble_dates(user, this_year_s)
 
     for day <- this_year_day_range do
       day_s = day |> Date.to_string
@@ -159,7 +153,7 @@ defmodule LastfmArchive do
 
       file_path = day_s |> String.split("-") |> Path.join
       extracted_day? = File.dir? Path.join(user_data_dir(user), file_path)
-      checked_no_scrobble_day? = Enum.member? no_scrobble_path, file_path
+      checked_no_scrobble_day? = Enum.member? no_scrobble_dates_l, file_path
 
       if (not(extracted_day?) and not(checked_no_scrobble_day?)) or overwrite do
         daily = true
@@ -170,7 +164,7 @@ defmodule LastfmArchive do
     :ok
   end
 
-  defp _archive(user, range, options, daily \\ false)
+  defp _archive(user, date_range_unix, options, daily \\ false)
 
   # daily batch archiving
   defp _archive(user, {from, to}, options, true) do
@@ -192,12 +186,7 @@ defmodule LastfmArchive do
       dt = from |> DateTime.from_unix!
       file_path =  dt |> path_from_datetime
       year_s = dt.year |> to_string
-
-      no_scrobble_log_path =  Path.join [user_data_dir(user), year_s, ".no_scrobble"]
-      no_scrobble_log = File.read!(no_scrobble_log_path)
-      unless String.match?(no_scrobble_log, ~r/#{file_path}/) do
-        File.write!(no_scrobble_log_path, ",#{file_path}", [:append])
-      end
+      log_no_scrobble(user, year_s, file_path)
     end
   end
 
@@ -275,6 +264,24 @@ defmodule LastfmArchive do
   defp option(options, key) when is_list(options) and is_atom(key) do
     option = Keyword.get(options, key)
     if option, do: option, else: Application.get_env(:lastfm_archive, key) || @default_opts[key |> to_string]
+  end
+
+  defp no_scrobble_dates(user, year) do
+    no_scrobble_log_path =  Path.join [user_data_dir(user), year, @no_scrobble_log_filenmae]
+    unless (File.exists? no_scrobble_log_path) do
+      file_dir = Path.dirname no_scrobble_log_path
+      unless File.exists?(file_dir), do: File.mkdir_p file_dir
+      File.write!(no_scrobble_log_path, "no_scrobble")
+    end
+    File.read!(no_scrobble_log_path) |> String.split(",")
+  end
+
+  defp log_no_scrobble(user, year, file_path) do
+    no_scrobble_log_path =  Path.join [user_data_dir(user), year, @no_scrobble_log_filenmae]
+    no_scrobble_log = File.read!(no_scrobble_log_path)
+    unless String.match?(no_scrobble_log, ~r/#{file_path}/) do
+      File.write!(no_scrobble_log_path, ",#{file_path}", [:append])
+    end
   end
 
 end

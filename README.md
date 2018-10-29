@@ -27,7 +27,8 @@ The data is currently in raw Lastfm `recenttracks` JSON format,
 chunked into 200-track (max) `gzip` compressed pages and stored within directories
 corresponding to the years or days when tracks were scrobbled.
 
-See [`archive/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#archive/2) for more details.
+See [`archive/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#archive/2) for more details
+and archiving options.
 
 The data is written to a main directory specified in configuration - see below.
 
