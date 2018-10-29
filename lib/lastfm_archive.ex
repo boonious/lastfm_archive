@@ -23,6 +23,9 @@ defmodule LastfmArchive do
   @default_opts %{"interval" => 500, "per_page" => 200, "overwrite" => false}
   @no_scrobble_log_filenmae ".no_scrobble"
 
+  @doc false
+  defguard is_year(y) when is_integer(y) and y < 3000 and y > 2000
+
   @doc """
   Download all scrobbled tracks and create an archive on local filesystem for the default user.
 
@@ -124,6 +127,16 @@ defmodule LastfmArchive do
   """
   @spec archive(binary, date_range, keyword) :: :ok | {:error, :file.posix}
   def archive(user, date_range \\ :all, options \\ []) 
+
+  # single year archive
+  def archive(user, date_range, options) when is_year(date_range) do
+    IO.puts "Archiving scrobbles for #{user}"
+
+    {from, to} = date_range |> to_string |> year_range
+    _archive(user, {from, to}, options)
+    :ok
+  end
+
   def archive(user, :all, options) do
     {playcount, registered} = info(user)
 
@@ -139,10 +152,6 @@ defmodule LastfmArchive do
 
     # archive data in yearly batches until the previous year
     for {from, to} <- batches do
-      from_s = from |> date_string_from_unix
-      to_s = to |> date_string_from_unix
-
-      IO.puts "\nyear: #{from_s} - #{to_s}"
       _archive(user, {from, to}, options)
 
       IO.puts ""
@@ -215,10 +224,14 @@ defmodule LastfmArchive do
     per_page = option(options, :per_page)
     total_pages = (playcount / per_page) |> :math.ceil |> round
 
+    from_s = from |> date_string_from_unix
+    to_s = to |> date_string_from_unix
+
+    IO.puts "\nyear: #{from_s} - #{to_s}"
     IO.puts "#{playcount} scrobbles"
     IO.puts "#{total_pages} pages - #{per_page} scrobbles each"
 
-    for page <- 1..total_pages do
+    for page <- 1..total_pages, total_pages > 0 do
       # starting from the last page - earliest scrobbles
       fetch_page = total_pages - (page - 1)
       _archive(user, {from, to, fetch_page}, options, daily)
