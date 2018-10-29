@@ -7,7 +7,7 @@ defmodule LastfmArchive do
 
   Current usage:
   
-  - `archive/0`, `archive/2`: download raw Lastfm scrobble data to local filesystem.
+  - `archive/0`, `archive/2`, `archive3`: download raw Lastfm scrobble data to local filesystem.
 
   """
   # pending, with stop gap functions for `LastfmArchive.Extract.get_recent_tracks`,
@@ -16,6 +16,8 @@ defmodule LastfmArchive do
   # import Elixirfm.User
 
   import LastfmArchive.Extract
+
+  @type date_range :: :all
 
   @default_data_dir "./lastfm_data/"
   @default_opts %{"interval" => 500, "per_page" => 200, "overwrite" => false}
@@ -36,10 +38,10 @@ defmodule LastfmArchive do
   ```
     config :lastfm_archive,
       user: "user_a",
-      ...
+      ... # other archiving options
   ```
 
-  See `archive/2` for further details on archive format and file location.
+  See `archive/2` for further details on archive format, file location and archiving options
   """
   @spec archive :: :ok | {:error, :file.posix}
   def archive do
@@ -54,7 +56,9 @@ defmodule LastfmArchive do
 
   ```
     LastfmArchive.archive("a_lastfm_user")
-    LastfmArchive.archive("a_lastfm_user", interval: 300) # 300ms interval between Lastfm API request
+
+    # with archiving option
+    LastfmArchive.archive("a_lastfm_user", interval: 300) # 300ms interval between Lastfm API requests
     LastfmArchive.archive("a_lastfm_user", overwrite: true) # re-fetch / overwrite downloaded data
   ```
 
@@ -65,7 +69,7 @@ defmodule LastfmArchive do
   200-track (max) `gzip` compressed pages and stored within directories corresponding
   to the years and days when tracks were scrobbled.
 
-  Options - also configurable:
+  Options:
   
   - `:interval` the duration (in milliseconds) between successive requests
   sent to Lastfm API. It provides a control of the max rate of requests.
@@ -90,6 +94,8 @@ defmodule LastfmArchive do
       data_dir: "./lastfm_data/"
   ```
 
+  See `archive/3` for archiving data within a date range.
+
   ### Reruns and refresh archive
   Lastfm API calls could timed out occasionally. When this happen
   the function will continue archiving and move on to the next data chunk (page).
@@ -105,7 +111,20 @@ defmodule LastfmArchive do
   option.
   """
   @spec archive(binary, keyword) :: :ok | {:error, :file.posix}
-  def archive(user, options \\ []) do
+  def archive(user, options) when is_list(options), do: archive(user, :all, options)
+
+  @doc """
+  Download scrobbled tracks within a date range and create an archive on local filesystem for a Lastfm user.
+  
+  Supported date range:
+  
+  - `:all` archive all scrobble data in yearly and daily (current year) batches
+  - other date range: forthcoming
+  
+  """
+  @spec archive(binary, date_range, keyword) :: :ok | {:error, :file.posix}
+  def archive(user, date_range \\ :all, options \\ []) 
+  def archive(user, :all, options) do
     {playcount, registered} = info(user)
 
     # interval between requests cf. Lastfm API request max rate limit
