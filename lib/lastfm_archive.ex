@@ -7,7 +7,7 @@ defmodule LastfmArchive do
 
   Current usage:
   
-  - `archive/0`, `archive/2`, `archive3`: download raw Lastfm scrobble data to local filesystem.
+  - `archive/0`, `archive/2`, `archive/3`: download raw Lastfm scrobble data to local filesystem.
 
   """
   # pending, with stop gap functions for `LastfmArchive.Extract.get_recent_tracks`,
@@ -20,7 +20,7 @@ defmodule LastfmArchive do
   @type date_range :: :all
 
   @default_data_dir "./lastfm_data/"
-  @default_opts %{"interval" => 500, "per_page" => 200, "overwrite" => false}
+  @default_opts %{"interval" => 500, "per_page" => 200, "overwrite" => false, "daily" => false}
   @no_scrobble_log_filenmae ".no_scrobble"
 
   @doc false
@@ -74,18 +74,22 @@ defmodule LastfmArchive do
 
   Options:
   
-  - `:interval` the duration (in milliseconds) between successive requests
-  sent to Lastfm API. It provides a control of the max rate of requests.
-  **Default is 500** (ms), this ensures a safe rate that is
-  within Lastfm's term of service  - no more than 5 requests per second
+  - `:interval` - default `500`(ms), the duration between successive Lastfm API requests.
+  This provides a control for request rate.
+  The default interval ensures a safe rate that is
+  within Lastfm's term of service: no more than 5 requests per second
 
-  - `:overwrite` if `true`, fetch and overwrite any previously downloaded
-  data. Use this option to refresh the file archive. **Default is false**
-  if existing data chunks / pages are found, the system will not be making
-  calls to Lastfm to re-fetch data
+  - `:overwrite` - default `false`, if sets to true
+  the system will (re)fetch and overwrite any previously downloaded
+  data. Use this option to refresh the file archive. Otherwise (false), 
+  the system will not be making calls to Lastfm to check and re-fetch data
+  if existing data chunks / pages are found. This speeds up archive updating
 
-  - `:per_page` number of scrobbles per page in archive. The default is 200 -
-  max number of tracks per request permissible by Lastfm API
+  - `:per_page` - default `200`, number of scrobbles per page in archive. The default is the
+  max number of tracks per request permissible by Lastfm
+
+  - `:daily` - default `false`, an option for archiving at daily granularity, entailing
+  smaller and immutable archive files suitable for latest scrobbles data update
 
   The data is written to a main directory,
   e.g. `./lastfm_data/a_lastfm_user/` as configured in
@@ -184,33 +188,41 @@ defmodule LastfmArchive do
       checked_no_scrobble_day? = Enum.member? no_scrobble_dates_l, file_path
 
       if (not(extracted_day?) and not(checked_no_scrobble_day?)) or overwrite do
-        daily = true
-         _archive(user, {dt1 |> DateTime.to_unix, dt2 |> DateTime.to_unix}, options, daily)
+         _archive(user, {dt1 |> DateTime.to_unix, dt2 |> DateTime.to_unix}, options ++ [daily: true] )
         :timer.sleep(interval)
       end
     end
     :ok
   end
 
-  defp _archive(user, date_range_unix, options, daily \\ false)
+  defp _archive(user, date_range_unix, options)
 
-  # daily batch archiving
-  defp _archive(user, {from, to}, options, true) do
+  # daily / year  batch archiving
+  defp _archive(user, {from, to}, options) do
     playcount = info(user, {from, to}) |> String.to_integer
     per_page = option(options, :per_page)
     total_pages = (playcount / per_page) |> :math.ceil |> round
 
-    unless playcount == 0 do
-      IO.puts "\n#{date_string_from_unix(from)}"
-      IO.puts "#{playcount} scrobbles"
+    # archive at daily granularity? default is false / yearly basis
+    daily = option(options, :daily)
 
-      daily = true
-      for page <- 1..total_pages do
+    unless playcount == 0 do
+      from_s = from |> date_string_from_unix
+      to_s = to |> date_string_from_unix
+      to_s = if (to - from) < 86400, do: "", else: "- #{to_s}"
+
+      IO.puts "\n#{from_s}#{to_s}"
+      IO.puts "#{playcount} scrobble(s)"
+      IO.puts "#{total_pages} page(s)"
+
+      for page <- 1..total_pages, total_pages > 0 do
         # starting from the last page - earliest scrobbles
         fetch_page = total_pages - (page - 1)
-        _archive(user, {from, to, fetch_page}, options, daily)
+        _archive(user, {from, to, fetch_page}, options)
       end
-    else
+    end
+
+    if daily and playcount == 0 do
       dt = from |> DateTime.from_unix!
       file_path =  dt |> path_from_datetime
       year_s = dt.year |> to_string
@@ -218,31 +230,12 @@ defmodule LastfmArchive do
     end
   end
 
-  # yearly batch archiving
-  defp _archive(user, {from, to}, options, daily) do
-    playcount = info(user, {from, to}) |> String.to_integer
-    per_page = option(options, :per_page)
-    total_pages = (playcount / per_page) |> :math.ceil |> round
-
-    from_s = from |> date_string_from_unix
-    to_s = to |> date_string_from_unix
-
-    IO.puts "\nyear: #{from_s} - #{to_s}"
-    IO.puts "#{playcount} scrobbles"
-    IO.puts "#{total_pages} pages - #{per_page} scrobbles each"
-
-    for page <- 1..total_pages, total_pages > 0 do
-      # starting from the last page - earliest scrobbles
-      fetch_page = total_pages - (page - 1)
-      _archive(user, {from, to, fetch_page}, options, daily)
-    end
-  end
-
-  defp _archive(user, {from, to, page}, options, daily) do
+  defp _archive(user, {from, to, page}, options) do
     dt = from |> DateTime.from_unix!
     interval = option(options, :interval)
     per_page = option(options, :per_page)
     overwrite = option(options, :overwrite)
+    daily = option(options, :daily)
 
     filename = if daily do
       dt
@@ -315,5 +308,6 @@ defmodule LastfmArchive do
       File.write!(no_scrobble_log_path, ",#{file_path}", [:append])
     end
   end
+
 
 end
