@@ -198,6 +198,8 @@ defmodule LastfmArchive do
           batches = List.replace_at(batches, -1, {t2, to})
           for {from, to} <- batches do
             _archive(user, {from, to}, options)
+
+            IO.puts ""
             :timer.sleep(interval)
           end
       end
@@ -214,17 +216,11 @@ defmodule LastfmArchive do
     IO.puts "Archiving #{playcount} scrobbles for #{user}"
 
     now = DateTime.utc_now
-    last_year_s = (now.year - 1) |> to_string 
-    {_, last_year_dt, _} = last_year_s <> "-01-01T00:00:00Z" |> DateTime.from_iso8601
-    batches = time_range(registered, last_year_dt |> DateTime.to_unix)
+    last_year_d = Date.from_erl!({now.year - 1, 12, 31})
+    from_d = registered |> DateTime.from_unix! |> DateTime.to_date
 
-    # archive data in yearly batches until the previous year
-    for {from, to} <- batches do
-      _archive(user, {from, to}, options)
-
-      IO.puts ""
-      :timer.sleep(interval) # prevent request rate limit (max 5 per sec) from being reached
-    end
+    # archive data between registration date - end of last year at yearly batches
+    archive(user, Date.range(from_d, last_year_d), options)
 
     # Lastfm API paging chunks from the latest tracks, any new scrobbles would swifts tracks
     # among fixed-size pages -> all downloaded pages for the entire year would need to be updated
