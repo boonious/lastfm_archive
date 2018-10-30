@@ -210,9 +210,6 @@ defmodule LastfmArchive do
   def archive(user, :all, options) do
     {playcount, registered} = info(user)
 
-    # interval between requests cf. Lastfm API request max rate limit
-    interval = option(options, :interval)
-
     IO.puts "Archiving #{playcount} scrobbles for #{user}"
 
     now = DateTime.utc_now
@@ -230,29 +227,9 @@ defmodule LastfmArchive do
     #
     # archive data in daily batches for this year
     {_, new_year_d} = Date.new(now.year, 1, 1)
-    this_year_day_range = Date.range(new_year_d, Date.utc_today)
-    this_year_s = new_year_d.year |> to_string
-    overwrite = option(options, :overwrite)
+    {_, new_options} = options |> Keyword.get_and_update(:daily, fn v -> {v, true} end)
 
-    IO.puts "\nyear: #{this_year_s}"
-
-    no_scrobble_dates_l = no_scrobble_dates(user)
-
-    for day <- this_year_day_range do
-      {from, to} = time_range(day)
-
-      file_path = day |> path_from_date
-      extracted_day? = File.dir? Path.join(user_data_dir(user), file_path)
-      checked_no_scrobble_day? = Enum.member? no_scrobble_dates_l, file_path
-
-      # -> daily: true option
-      {_, new_options} = options |> Keyword.get_and_update(:daily, fn v -> {v, true} end)
-
-      if (not(extracted_day?) and not(checked_no_scrobble_day?)) or overwrite do
-         _archive(user, {from, to}, new_options)
-        :timer.sleep(interval)
-      end
-    end
+    archive(user, Date.range(new_year_d, Date.utc_today), new_options)
     :ok
   end
 
