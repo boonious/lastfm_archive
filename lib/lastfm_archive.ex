@@ -185,8 +185,11 @@ defmodule LastfmArchive do
       extracted_day? = File.dir? Path.join(user_data_dir(user), file_path)
       checked_no_scrobble_day? = Enum.member? no_scrobble_dates_l, file_path
 
+      # -> daily: true option
+      {_, new_options} = options |> Keyword.get_and_update(:daily, fn v -> {v, true} end)
+
       if (not(extracted_day?) and not(checked_no_scrobble_day?)) or overwrite do
-         _archive(user, {from, to}, options ++ [daily: true] )
+         _archive(user, {from, to}, new_options)
         :timer.sleep(interval)
       end
     end
