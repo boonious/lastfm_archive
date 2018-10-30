@@ -63,7 +63,7 @@ defmodule LastfmArchiveTest do
       File.rm_rf Path.join(@test_data_dir, "2")
     end
 
-    test "specific year scrobbles of a Lastfm user, archive/3", %{bypass: bypass} do
+    test "single year scrobbles of a Lastfm user, archive/3", %{bypass: bypass} do
       # Bypass test only
       if(bypass) do
         user = "a_lastfm_user"
@@ -79,7 +79,7 @@ defmodule LastfmArchiveTest do
       File.rm_rf Path.join(@test_data_dir, "3")
     end
 
-    test "specific day scrobbles of a Lastfm user, archive/3", %{bypass: bypass} do
+    test "single day scrobbles of a Lastfm user, Date | archive/3", %{bypass: bypass} do
       # Bypass test only
       if(bypass) do
         user = "a_lastfm_user"
@@ -96,7 +96,7 @@ defmodule LastfmArchiveTest do
       File.rm_rf Path.join(@test_data_dir, "4")
     end
 
-    test "today's scrobbles of a Lastfm user, archive/3", %{bypass: bypass} do
+    test "today's scrobbles of a Lastfm user, :today | archive/3", %{bypass: bypass} do
       # Bypass test only
       if(bypass) do
         user = "a_lastfm_user"
@@ -113,7 +113,7 @@ defmodule LastfmArchiveTest do
       File.rm_rf Path.join(@test_data_dir, "5")
     end
 
-    test "yesterday's scrobbles of a Lastfm user, archive/3", %{bypass: bypass} do
+    test "yesterday's (:yesterday) scrobbles of a Lastfm user, :yesterday | archive/3", %{bypass: bypass} do
       # Bypass test only
       if(bypass) do
         user = "a_lastfm_user"
@@ -130,6 +130,61 @@ defmodule LastfmArchiveTest do
       File.rm_rf Path.join(@test_data_dir, "6")
     end
 
+    test "date range (multi-years) scrobbles of a Lastfm user, archive/3", %{bypass: bypass} do
+      # Bypass test only
+      if(bypass) do
+        user = "a_lastfm_user"
+        date_range = Date.range(~D[2017-11-12], ~D[2018-04-01])
+        prebaked_resp = %{"info" => "./test/data/test_user2.json", "recenttracks" => "./test/data/test_recenttracks.json"}
+        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "7"), user, prebaked_resp)
+        capture_io(fn -> LastfmArchive.archive(user, date_range, interval: 0) end)
+
+        archive_year_dir = Path.join [@test_data_dir, "7", user, "2017"]
+        assert File.dir? archive_year_dir
+
+        archive_year_dir = Path.join [@test_data_dir, "7", user, "2018"]
+        assert File.dir? archive_year_dir
+      end
+    after
+      File.rm_rf Path.join(@test_data_dir, "7")
+    end
+
+    test "date range (single year) scrobbles of a Lastfm user, archive/3", %{bypass: bypass} do
+      # Bypass test only
+      if(bypass) do
+        user = "a_lastfm_user"
+        date_range = Date.range(~D[2005-05-12], ~D[2005-12-01])
+        prebaked_resp = %{"info" => "./test/data/test_user2.json", "recenttracks" => "./test/data/test_recenttracks.json"}
+        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "8"), user, prebaked_resp)
+        capture_io(fn -> LastfmArchive.archive(user, date_range, interval: 0) end)
+
+        archive_year_dir = Path.join [@test_data_dir, "8", user, "2005"]
+        assert File.dir? archive_year_dir
+      end
+    after
+      File.rm_rf Path.join(@test_data_dir, "8")
+    end
+
+    test "date range (daily) scrobbles of a Lastfm user, Date.Range | archive/3", %{bypass: bypass} do
+      # Bypass test only
+      if(bypass) do
+        user = "a_lastfm_user"
+        date_range = Date.range(~D[2018-05-30], ~D[2018-06-01])
+        prebaked_resp = %{"info" => "./test/data/test_user2.json", "recenttracks" => "./test/data/test_recenttracks.json"}
+        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "9"), user, prebaked_resp)
+        capture_io(fn -> LastfmArchive.archive(user, date_range, interval: 0, daily: true, overwrite: true) end)
+
+        file_path = ~D[2018-05-30] |> Date.to_string |> String.split("-") |> Path.join
+        archive_year_dir = Path.join [@test_data_dir, "9", user, file_path]
+        assert File.dir? archive_year_dir
+
+        file_path = ~D[2018-06-01] |> Date.to_string |> String.split("-") |> Path.join
+        archive_year_dir = Path.join [@test_data_dir, "9", user, file_path]
+        assert File.dir? archive_year_dir
+      end
+    after
+      File.rm_rf Path.join(@test_data_dir, "9")
+    end
   end
 
   test "is_year guard" do

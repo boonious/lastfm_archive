@@ -17,7 +17,7 @@ defmodule LastfmArchive do
 
   import LastfmArchive.Extract
 
-  @type date_range :: :all | integer | Date.t
+  @type date_range :: :all | :today | :yesterday | integer | Date.t | Date.Range.t
 
   @default_data_dir "./lastfm_data/"
   @default_opts %{"interval" => 500, "per_page" => 200, "overwrite" => false, "daily" => false}
@@ -130,7 +130,7 @@ defmodule LastfmArchive do
   - `:yesterday`: archive yesterday's scrobbles
   - `yyyy` (integer): data for a single year
   - `Date`: data for a specific date - single day
-
+  - `Date.Range`: data for a specific date range
 
   """
   @spec archive(binary, date_range, keyword) :: :ok | {:error, :file.posix}
@@ -156,6 +156,52 @@ defmodule LastfmArchive do
 
     {_, new_options} = options |> Keyword.get_and_update(:daily, fn v -> {v, true} end)
     _archive(user, {from, to}, new_options)
+    :ok
+  end
+
+  # date range archive
+  def archive(user, date_range = %Date.Range{}, options) do
+    IO.puts "Archiving scrobbles for #{user}"
+
+    daily = option(options, :daily)
+    overwrite = option(options, :overwrite)
+    interval = option(options, :interval)
+    no_scrobble_dates_l = no_scrobble_dates(user)
+
+    if daily do
+      for day <- date_range do
+        {from, to} = time_range(day)
+
+        file_path = day |> path_from_date
+        extracted_day? = File.dir? Path.join(user_data_dir(user), file_path)
+        checked_no_scrobble_day? = Enum.member? no_scrobble_dates_l, file_path
+
+        if (not(extracted_day?) and not(checked_no_scrobble_day?)) or overwrite do
+           _archive(user, {from, to}, options)
+          :timer.sleep(interval)
+        end
+      end
+    else
+      # archive data in year batches granularity
+      {from, to} = time_range(date_range.first, date_range.last)
+
+      batches = time_range(from, to)
+      cond do
+        length(batches) == 1 ->
+          _archive(user, {from, to}, options)
+          :timer.sleep(interval)
+        true ->
+          {_, t1} = batches |> hd
+          {t2, _} = batches |> List.last
+
+          batches = [{from, t1} | (batches |> tl)]
+          batches = List.replace_at(batches, -1, {t2, to})
+          for {from, to} <- batches do
+            _archive(user, {from, to}, options)
+            :timer.sleep(interval)
+          end
+      end
+    end
     :ok
   end
 
@@ -244,7 +290,6 @@ defmodule LastfmArchive do
     if daily and playcount == 0 do
       dt = from |> DateTime.from_unix!
       file_path =  dt |> path_from_datetime
-      year_s = dt.year |> to_string
       log_no_scrobble(user, file_path)
     end
   end
@@ -286,12 +331,22 @@ defmodule LastfmArchive do
     {dt1 |> DateTime.to_unix, dt2 |> DateTime.to_unix}
   end
 
-  # provide a day range tuple in Unix time for a particular date
+  # provide a day range tuple in Unix time for a single date
   @doc false
   def time_range(date = %Date{}) do
     day_s = date |> Date.to_string
     {_, dt1, _} = "#{day_s}T00:00:00Z" |> DateTime.from_iso8601
     {_, dt2, _} = "#{day_s}T23:59:59Z" |> DateTime.from_iso8601
+    {dt1 |> DateTime.to_unix, dt2 |> DateTime.to_unix}
+  end
+
+  # provide a date range tuple in Unix time between two dates
+  @doc false
+  def time_range(d1 = %Date{}, d2 = %Date{}) do
+    d1_s = d1 |> Date.to_string
+    d2_s = d2 |> Date.to_string
+    {_, dt1, _} = "#{d1_s}T00:00:00Z" |> DateTime.from_iso8601
+    {_, dt2, _} = "#{d2_s}T23:59:59Z" |> DateTime.from_iso8601
     {dt1 |> DateTime.to_unix, dt2 |> DateTime.to_unix}
   end
 
