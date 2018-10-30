@@ -80,6 +80,24 @@ defmodule LastfmArchiveTest do
     after
       File.rm_rf Path.join(@test_data_dir, "3")
     end
+
+    test "specific day scrobbles of a Lastfm user, archive/3", %{bypass: bypass} do
+      # Bypass test only
+      if(bypass) do
+        user = "a_lastfm_user"
+        archive_day = ~D[2012-12-12]
+        prebaked_resp = %{"info" => "./test/data/test_user2.json", "recenttracks" => "./test/data/test_recenttracks.json"}
+        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "4"), user, prebaked_resp)
+        capture_io(fn -> LastfmArchive.archive(user, archive_day, interval: 0) end)
+
+        file_path = archive_day |> Date.to_string |> String.split("-") |> Path.join
+        archive_year_dir = Path.join [@test_data_dir, "4", user, file_path]
+        assert File.dir? archive_year_dir
+      end
+    after
+      File.rm_rf Path.join(@test_data_dir, "4")
+    end
+
   end
 
   test "is_year guard" do

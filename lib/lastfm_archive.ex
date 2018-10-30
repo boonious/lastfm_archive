@@ -17,7 +17,7 @@ defmodule LastfmArchive do
 
   import LastfmArchive.Extract
 
-  @type date_range :: :all | integer
+  @type date_range :: :all | integer | Date.t
 
   @default_data_dir "./lastfm_data/"
   @default_opts %{"interval" => 500, "per_page" => 200, "overwrite" => false, "daily" => false}
@@ -125,9 +125,10 @@ defmodule LastfmArchive do
   
   Supported date range:
   
-  - `:all`, archive all scrobble data between registered and now
-  - `yyyy` (integer) data for a single year
-  
+  - `:all`: archive all scrobble data between registered and now
+  - `yyyy` (integer): data for a single year (`overwrite: false`)
+  - `Date`: data for a specific date
+
   """
   @spec archive(binary, date_range, keyword) :: :ok | {:error, :file.posix}
   def archive(user, date_range \\ :all, options \\ []) 
@@ -138,6 +139,16 @@ defmodule LastfmArchive do
 
     {from, to} = date_range |> to_string |> time_range
     _archive(user, {from, to}, options)
+    :ok
+  end
+
+  # single day/date archive
+  def archive(user, date_range = %Date{}, options) do
+    IO.puts "Archiving scrobbles for #{user}"
+    {from, to} = time_range(date_range)
+
+    {_, new_options} = options |> Keyword.get_and_update(:daily, fn v -> {v, true} end)
+    _archive(user, {from, to}, new_options)
     :ok
   end
 
