@@ -98,6 +98,40 @@ defmodule LastfmArchiveTest do
       File.rm_rf Path.join(@test_data_dir, "4")
     end
 
+    test "today's scrobbles of a Lastfm user, archive/3", %{bypass: bypass} do
+      # Bypass test only
+      if(bypass) do
+        user = "a_lastfm_user"
+        date_range = :today
+        prebaked_resp = %{"info" => "./test/data/test_user2.json", "recenttracks" => "./test/data/test_recenttracks.json"}
+        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "5"), user, prebaked_resp)
+        capture_io(fn -> LastfmArchive.archive(user, date_range, interval: 0) end)
+
+        file_path = Date.utc_today |> Date.to_string |> String.split("-") |> Path.join
+        archive_year_dir = Path.join [@test_data_dir, "5", user, file_path]
+        assert File.dir? archive_year_dir
+      end
+    after
+      File.rm_rf Path.join(@test_data_dir, "5")
+    end
+
+    test "yesterday's scrobbles of a Lastfm user, archive/3", %{bypass: bypass} do
+      # Bypass test only
+      if(bypass) do
+        user = "a_lastfm_user"
+        date_range = :yesterday
+        prebaked_resp = %{"info" => "./test/data/test_user2.json", "recenttracks" => "./test/data/test_recenttracks.json"}
+        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "6"), user, prebaked_resp)
+        capture_io(fn -> LastfmArchive.archive(user, date_range, interval: 0) end)
+
+        file_path = Date.utc_today |> Date.add(-1) |> Date.to_string |> String.split("-") |> Path.join
+        archive_year_dir = Path.join [@test_data_dir, "6", user, file_path]
+        assert File.dir? archive_year_dir
+      end
+    after
+      File.rm_rf Path.join(@test_data_dir, "6")
+    end
+
   end
 
   test "is_year guard" do
