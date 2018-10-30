@@ -43,9 +43,7 @@ defmodule LastfmArchiveTest do
         test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "1"), user, prebaked_resp)
         capture_io(fn -> LastfmArchive.archive end)
 
-        today = Date.utc_today
-        year_s = today.year |> to_string
-        no_scrobble_log_file = Path.join [@test_data_dir, "1", user, year_s, ".no_scrobble"]
+        no_scrobble_log_file = Path.join [@test_data_dir, "1", user, ".no_scrobble"]
         assert File.exists? no_scrobble_log_file
       end
     after

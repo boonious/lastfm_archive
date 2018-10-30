@@ -125,10 +125,10 @@ defmodule LastfmArchive do
   
   Supported date range:
   
-  - `:all`: archive all scrobble data between registered and now
+  - `:all`: archive all scrobble data between Lastfm registration date and now
   - `:today`: archive the latest/today's scrobbles
   - `:yesterday`: archive yesterday's scrobbles
-  - `yyyy` (integer): data for a single year (`overwrite: false`)
+  - `yyyy` (integer): data for a single year
   - `Date`: data for a specific date - single day
 
 
@@ -194,7 +194,7 @@ defmodule LastfmArchive do
 
     IO.puts "\nyear: #{this_year_s}"
 
-    no_scrobble_dates_l = no_scrobble_dates(user, this_year_s)
+    no_scrobble_dates_l = no_scrobble_dates(user)
 
     for day <- this_year_day_range do
       {from, to} = time_range(day)
@@ -245,7 +245,7 @@ defmodule LastfmArchive do
       dt = from |> DateTime.from_unix!
       file_path =  dt |> path_from_datetime
       year_s = dt.year |> to_string
-      log_no_scrobble(user, year_s, file_path)
+      log_no_scrobble(user, file_path)
     end
   end
 
@@ -321,8 +321,8 @@ defmodule LastfmArchive do
     if option, do: option, else: Application.get_env(:lastfm_archive, key) || @default_opts[key |> to_string]
   end
 
-  defp no_scrobble_dates(user, year) do
-    no_scrobble_log_path =  Path.join [user_data_dir(user), year, @no_scrobble_log_filenmae]
+  defp no_scrobble_dates(user) do
+    no_scrobble_log_path =  Path.join [user_data_dir(user), @no_scrobble_log_filenmae]
     unless (File.exists? no_scrobble_log_path) do
       file_dir = Path.dirname no_scrobble_log_path
       unless File.exists?(file_dir), do: File.mkdir_p file_dir
@@ -331,8 +331,8 @@ defmodule LastfmArchive do
     File.read!(no_scrobble_log_path) |> String.split(",")
   end
 
-  defp log_no_scrobble(user, year, file_path) do
-    no_scrobble_log_path =  Path.join [user_data_dir(user), year, @no_scrobble_log_filenmae]
+  defp log_no_scrobble(user, file_path) do
+    no_scrobble_log_path =  Path.join [user_data_dir(user), @no_scrobble_log_filenmae]
     no_scrobble_log = File.read!(no_scrobble_log_path)
     unless String.match?(no_scrobble_log, ~r/#{file_path}/) do
       File.write!(no_scrobble_log_path, ",#{file_path}", [:append])
