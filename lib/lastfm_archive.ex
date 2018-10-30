@@ -17,7 +17,7 @@ defmodule LastfmArchive do
 
   import LastfmArchive.Extract
 
-  @type date_range :: :all
+  @type date_range :: :all | integer
 
   @default_data_dir "./lastfm_data/"
   @default_opts %{"interval" => 500, "per_page" => 200, "overwrite" => false, "daily" => false}
@@ -125,8 +125,8 @@ defmodule LastfmArchive do
   
   Supported date range:
   
-  - `:all` archive all scrobble data in yearly and daily (current year) batches
-  - other date range: forthcoming
+  - `:all`, archive all scrobble data between registered and now
+  - `yyyy` (integer) data for a single year
   
   """
   @spec archive(binary, date_range, keyword) :: :ok | {:error, :file.posix}
@@ -136,7 +136,7 @@ defmodule LastfmArchive do
   def archive(user, date_range, options) when is_year(date_range) do
     IO.puts "Archiving scrobbles for #{user}"
 
-    {from, to} = date_range |> to_string |> year_range
+    {from, to} = date_range |> to_string |> time_range
     _archive(user, {from, to}, options)
     :ok
   end
@@ -152,7 +152,7 @@ defmodule LastfmArchive do
     now = DateTime.utc_now
     last_year_s = (now.year - 1) |> to_string 
     {_, last_year_dt, _} = last_year_s <> "-01-01T00:00:00Z" |> DateTime.from_iso8601
-    batches = year_range(registered, last_year_dt |> DateTime.to_unix)
+    batches = time_range(registered, last_year_dt |> DateTime.to_unix)
 
     # archive data in yearly batches until the previous year
     for {from, to} <- batches do
@@ -179,16 +179,14 @@ defmodule LastfmArchive do
     no_scrobble_dates_l = no_scrobble_dates(user, this_year_s)
 
     for day <- this_year_day_range do
-      day_s = day |> Date.to_string
-      {_, dt1, _} = "#{day_s}T00:00:00Z" |> DateTime.from_iso8601
-      {_, dt2, _} = "#{day_s}T23:59:59Z" |> DateTime.from_iso8601
+      {from, to} = time_range(day)
 
-      file_path = day_s |> String.split("-") |> Path.join
+      file_path = day |> path_from_date
       extracted_day? = File.dir? Path.join(user_data_dir(user), file_path)
       checked_no_scrobble_day? = Enum.member? no_scrobble_dates_l, file_path
 
       if (not(extracted_day?) and not(checked_no_scrobble_day?)) or overwrite do
-         _archive(user, {dt1 |> DateTime.to_unix, dt2 |> DateTime.to_unix}, options ++ [daily: true] )
+         _archive(user, {from, to}, options ++ [daily: true] )
         :timer.sleep(interval)
       end
     end
@@ -261,27 +259,38 @@ defmodule LastfmArchive do
 
   # provide a year range (first day, last day) tuple in Unix time for a particular year
   @doc false
-  def year_range(year) when is_binary(year) do
-    {_, d0, _} = "#{year}-01-01T00:00:00Z" |> DateTime.from_iso8601
-    {_, d1, _} = "#{year}-12-31T23:59:59Z" |> DateTime.from_iso8601
-    {d0 |> DateTime.to_unix, d1 |> DateTime.to_unix}
+  def time_range(year) when is_binary(year) do
+    {_, dt1, _} = "#{year}-01-01T00:00:00Z" |> DateTime.from_iso8601
+    {_, dt2, _} = "#{year}-12-31T23:59:59Z" |> DateTime.from_iso8601
+    {dt1 |> DateTime.to_unix, dt2 |> DateTime.to_unix}
+  end
+
+  # provide a day range tuple in Unix time for a particular date
+  @doc false
+  def time_range(date = %Date{}) do
+    day_s = date |> Date.to_string
+    {_, dt1, _} = "#{day_s}T00:00:00Z" |> DateTime.from_iso8601
+    {_, dt2, _} = "#{day_s}T23:59:59Z" |> DateTime.from_iso8601
+    {dt1 |> DateTime.to_unix, dt2 |> DateTime.to_unix}
   end
 
   # provides a list of year range (first day, last day) tuples in Unix time
   # starting from the user registration date - last year
   @doc false
-  def year_range(t1, t2) when is_integer(t1) and is_integer(t2) do
+  def time_range(t1, t2) when is_integer(t1) and is_integer(t2) do
     d1 = DateTime.from_unix!(t1)
     y1 = d1.year
 
     d2 = DateTime.from_unix!(t2)
     y2 = d2.year
-    for year <- y1..y2, do: year_range(year |> to_string)
+    for year <- y1..y2, do: time_range(year |> to_string)
   end
 
   defp date_string_from_unix(dt), do: dt |> DateTime.from_unix! |> DateTime.to_date |> Date.to_string
 
-  defp path_from_datetime(dt), do: dt |> DateTime.to_date |> Date.to_string |> String.split("-") |> Path.join
+  defp path_from_datetime(dt = %DateTime{}), do: dt |> DateTime.to_date |> Date.to_string |> String.split("-") |> Path.join
+
+  defp path_from_date(d = %Date{}), do: d |> Date.to_string |> String.split("-") |> Path.join
 
   defp user_data_dir(user), do: (Application.get_env(:lastfm_archive, :data_dir) || @default_data_dir) |> Path.join(user)
 
