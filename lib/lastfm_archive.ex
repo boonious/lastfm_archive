@@ -126,8 +126,7 @@ defmodule LastfmArchive do
   Supported date range:
   
   - `:all`: archive all scrobble data between Lastfm registration date and now
-  - `:today`: archive the latest/today's scrobbles
-  - `:yesterday`: archive yesterday's scrobbles
+  - `:today`, `:yesterday`, `:past_week`, `past_month` - other convenience date ranges
   - `yyyy` (integer): data for a single year
   - `Date`: data for a specific date - single day
   - `Date.Range`: data for a specific date range
@@ -136,9 +135,11 @@ defmodule LastfmArchive do
   @spec archive(binary, date_range, keyword) :: :ok | {:error, :file.posix}
   def archive(user, date_range \\ :all, options \\ []) 
 
-  # convenience functions for archive(user, %Date{}, options)
+  # convenience functions for archive(user, %Date{} | %Date.Range{}, options)
   def archive(user, :today, options), do: archive(user, Date.utc_today, options)
   def archive(user, :yesterday, options), do: archive(user, Date.utc_today |> Date.add(-1), options)
+  def archive(user, :past_week, options), do: archive(user, Date.range(Date.utc_today |> Date.add(-7), Date.utc_today), options)
+  def archive(user, :past_month, options), do: archive(user, Date.range(Date.utc_today |> Date.add(-31), Date.utc_today), options)
 
   # single year archive
   def archive(user, date_range, options) when is_year(date_range) do
