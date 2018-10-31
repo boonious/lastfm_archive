@@ -12,12 +12,27 @@ applications or [interactive Elixir](https://elixir-lang.org/getting-started/int
 (invoking `iex -S mix` command line action while in software home directory).
  
 ```elixir
-  # archive data of the default user as specified in configuration
+  # archive all data of a default user specified in configuration
   LastfmArchive.archive
 
-  # archive data of any Lastfm user
+  # archive all data of any Lastfm user
   # the data is stored in directory named after the user
   LastfmArchive.archive("a_lastfm_user")
+
+  # archive a data subset
+  LastfmArchive.archive("a_lastfm_user", :past_month)
+
+  # data from year 2016
+  LastfmArchive.archive("a_lastfm_user", 2016)
+
+  # with Date struct
+  LastfmArchive.archive("a_lastfm_user", ~D[2018-10-31])
+
+  # with Date.Range struct and archiving options
+  d1 = ~D[2018-01-01]
+  d2 = d1 |> Date.add(7)
+  LastfmArchive.archive("a_lastfm_user", Date.range(d1, d2), daily: true, overwrite: true)
+
 ```
 
 Older scrobbles are archived on a yearly basis, whereas the latest (current year) scrobbles
@@ -27,7 +42,8 @@ The data is currently in raw Lastfm `recenttracks` JSON format,
 chunked into 200-track (max) `gzip` compressed pages and stored within directories
 corresponding to the years or days when tracks were scrobbled.
 
-See [`archive/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#archive/2) for more details
+See [`archive/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#archive/2),
+[`archive/3`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#archive/3) for more details
 and archiving options.
 
 The data is written to a main directory specified in configuration - see below.
@@ -46,7 +62,7 @@ to your list of dependencies in `mix.exs`:
 ```elixir
   def deps do
     [
-      {:lastfm_archive, "~> 0.3.2"}
+      {:lastfm_archive, "~> 0.4.0"}
     ]
   end
 ```
@@ -59,7 +75,7 @@ the following specifies a `default_user` and a main file location for
 multiple user archives, `./lastfm_data/` relative to the software home directory.
 
 See [`archive/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#archive/2)
-for other configurable archiving options, e.g. `interval`, `per_page`, `overwrite`.
+for other configurable archiving options, e.g. `interval`, `per_page`.
 
 An `api_key` must be configured to enable Lastfm API requests,
 see [https://www.last.fm/api](https://www.last.fm/api) ("Get an API account").

@@ -7,7 +7,8 @@ defmodule LastfmArchive do
 
   Current usage:
   
-  - `archive/0`, `archive/2`, `archive/3`: download raw Lastfm scrobble data to local filesystem.
+  - `archive/0`, `archive/2`: download all raw Lastfm scrobble data to local filesystem
+  - `archive/3`: download a data subset within a date range
 
   """
   # pending, with stop gap functions for `LastfmArchive.Extract.get_recent_tracks`,
@@ -122,15 +123,33 @@ defmodule LastfmArchive do
 
   @doc """
   Download scrobbled tracks within a date range and create an archive on local filesystem for a Lastfm user.
-  
+
+  ### Example
+
+  ```
+    LastfmArchive.archive("a_lastfm_user", :past_month)
+
+    # data from year 2016
+    LastfmArchive.archive("a_lastfm_user", 2016)
+
+    # with Date struct
+    LastfmArchive.archive("a_lastfm_user", ~D[2018-10-31])
+
+    # with Date.Range struct
+    d1 = ~D[2018-01-01]
+    d2 = d1 |> Date.add(7)
+    LastfmArchive.archive("a_lastfm_user", Date.range(d1, d2), daily: true, overwrite: true)
+  ```
+
   Supported date range:
-  
+
   - `:all`: archive all scrobble data between Lastfm registration date and now
   - `:today`, `:yesterday`, `:past_week`, `past_month` - other convenience date ranges
   - `yyyy` (integer): data for a single year
   - `Date`: data for a specific date - single day
   - `Date.Range`: data for a specific date range
 
+  See `archive/2` for more details on archiving options.
   """
   @spec archive(binary, date_range, keyword) :: :ok | {:error, :file.posix}
   def archive(user, date_range \\ :all, options \\ []) 

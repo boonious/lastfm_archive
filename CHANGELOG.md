@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0 (2018-10-31)
+
+* `archive/3`: archiving data subset based on date ranges: single day/year, past week/month, arbitrary date range using `Date`, `Date.Range` structs
+* `daily: true` option for finer-grained batch archiving cf. the default year-level granularity
+
 ## 0.3.2 (2018-10-27)
 
 * `overwrite` archiving option to also re-fetch any existing downloaded data, for refreshing file archive
