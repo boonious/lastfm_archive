@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1 (2018-11-01)
+
+* fix single year archiving (bug): `daily: true` option
+
 ## 0.4.0 (2018-10-31)
 
 * `archive/3`: archiving data subset based on date ranges: single day/year, past week/month, arbitrary date range using `Date`, `Date.Range` structs

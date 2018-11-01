@@ -162,11 +162,9 @@ defmodule LastfmArchive do
 
   # single year archive
   def archive(user, date_range, options) when is_year(date_range) do
-    IO.puts "Archiving scrobbles for #{user}"
-
-    {from, to} = date_range |> to_string |> time_range
-    _archive(user, {from, to}, options)
-    :ok
+    {_, d1} = Date.new(date_range, 1, 1)
+    {_, d2} = Date.new(date_range, 12, 31)
+    archive(user, Date.range(d1, d2), options)
   end
 
   # single day/date archive
