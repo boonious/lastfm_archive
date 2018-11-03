@@ -291,14 +291,15 @@ defmodule LastfmArchive do
     per_page = option(options, :per_page)
     overwrite = option(options, :overwrite)
     daily = option(options, :daily)
-
+    
+    padded_page_s = page |> to_string |> String.pad_leading(3, "0")
     filename = if daily do
       dt
       |> path_from_datetime
-      |> Path.join(Enum.join(["#{per_page}", "_", page |> to_string]))
+      |> Path.join(Enum.join(["#{per_page}", "_", padded_page_s]))
     else
       year_s = dt.year |> to_string
-      year_s |> Path.join(Enum.join(["#{per_page}", "_", page |> to_string]))
+      year_s |> Path.join(Enum.join(["#{per_page}", "_", padded_page_s]))
     end
 
     if not(file_exists?(user, filename)) or overwrite do
