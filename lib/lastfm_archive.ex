@@ -404,18 +404,26 @@ defmodule LastfmArchive do
     for {year, archive_files} <- archive_file_batches, year != nil do
       tsv_filepath =  Path.join [user_data_dir(user), "tsv", "#{year}.tsv.gz"]
 
-      IO.puts "\nCreating TSV file archive for #{year} scrobbles."
-      {:ok, tsv_file} = File.open(tsv_filepath, [:write, :compressed, :utf8])
-
-      IO.puts tsv_file, @tsv_file_header
-      for archive_file <- archive_files, String.match?(archive_file, ~r/^\d{4}/) do
-        tsv_rows = LastfmArchive.Transform.transform(user, archive_file)
-        for row <- tsv_rows, do: IO.puts tsv_file, row
+      if File.exists? tsv_filepath do
+        IO.puts "\nTSV file archive exists, skipping #{year} scrobbles."
+      else
+        IO.puts "\nCreating TSV file archive for #{year} scrobbles."
+        write_tsv(user, tsv_filepath, archive_files)
       end
-
-      File.close(tsv_file)
     end
     :ok
+  end
+
+  defp write_tsv(user, tsv_filepath, archive_files) do
+    {:ok, tsv_file} = File.open(tsv_filepath, [:write, :compressed, :utf8])
+
+    IO.puts tsv_file, @tsv_file_header
+    for archive_file <- archive_files, String.match?(archive_file, ~r/^\d{4}/) do
+      tsv_rows = LastfmArchive.Transform.transform(user, archive_file)
+      for row <- tsv_rows, do: IO.puts tsv_file, row
+    end
+
+    File.close(tsv_file)
   end
 
   # return all archive file paths in a list
