@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0 (2018-11-05)
+
+* `transform_archive/2`: transform downloaded raw Lastfm archive and create a TSV file archive
+*  Underpinning functions to read, parse and transform raw Lastfm JSON data into TSV files
+
 ## 0.4.1 (2018-11-01)
 
 * fix single year archiving (bug): `daily: true` option

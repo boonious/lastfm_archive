@@ -9,6 +9,7 @@ defmodule LastfmArchive do
   
   - `archive/0`, `archive/2`: download all raw Lastfm scrobble data to local filesystem
   - `archive/3`: download a data subset within a date range
+  - `transform_archive/2`: transform downloaded raw data and create a TSV file archive
 
   """
   # pending, with stop gap functions for `LastfmArchive.Extract.get_recent_tracks`,
@@ -387,8 +388,24 @@ defmodule LastfmArchive do
       File.write!(no_scrobble_log_path, ",#{file_path}", [:append])
     end
   end
+  @doc """
+  Transform downloaded raw JSON data and create a TSV file archive for a Lastfm user.
 
-  @spec transform_archive(binary, atom) :: :ok
+  ### Example
+  
+  ```
+    LastfmArchive.transform_archive("a_lastfm_user")
+  ```
+
+  The function only transforms downloaded archive data on local filesystem. It does not fetch data from Lastfm,
+  which can be done via `archive/2`, `archive/3`. 
+  
+  The TSV files are created on a yearly basis and stored in `gzip` compressed format.
+  They are stored in a `tsv` directory within either the default `./lastfm_data/`
+  or the directory specified in config/config.exs (`:lastfm_archive, :data_dir`).
+
+  """
+  @spec transform_archive(binary, :tsv) :: :ok
   def transform_archive(user, _mode \\ :tsv) do
     raw_json_files = ls_archive_files(user)
 

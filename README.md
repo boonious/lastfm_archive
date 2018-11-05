@@ -48,6 +48,15 @@ and archiving options.
 
 The data is written to a main directory specified in configuration - see below.
 
+To generate a TSV file archive from downloaded data:
+
+```elixir
+  # transform all data of a user into to TSV files
+  LastfmArchive.transform_archive("a_lastfm_user")
+```
+
+See [`transform_archive/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#transform_archive/2).
+
 ## Requirement
 
 This tool requires Elixir and Erlang, see [installation](https://elixir-lang.org/install.html) details
