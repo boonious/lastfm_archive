@@ -34,14 +34,15 @@ defmodule LastfmArchive.Transform do
   @spec transform(binary, binary, :atom) :: list(binary) | {:error, :file.posix}
   def transform(user, filename, mode \\ :tsv)
   def transform(user, filename, :tsv) do
-    {status, tracks} = read(user, filename)
+    {status, tracks_data} = read(user, filename)
 
     case status do
       :ok ->
-        index = initial_index(tracks["recenttracks"]["@attr"])
-        _transform(user, tracks["recenttracks"]["track"], index, [])
+        index = initial_index(tracks_data["recenttracks"]["@attr"])
+        [track | tracks] = tracks_data["recenttracks"]["track"]
+        if track["@attr"]["nowplaying"], do: _transform(user, tracks, index, []), else: _transform(user, [track | tracks], index, [])
       :error ->
-        {:error, tracks}
+        {:error, tracks_data}
     end
   end
 
