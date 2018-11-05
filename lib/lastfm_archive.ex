@@ -24,6 +24,8 @@ defmodule LastfmArchive do
   @default_opts %{"interval" => 500, "per_page" => 200, "overwrite" => false, "daily" => false}
   @no_scrobble_log_filenmae ".no_scrobble"
 
+  @tsv_file_header "id\tname\tscrobble_date\tscrobble_date_iso\tmbid\turl\tartist\tartist_mbid\tartist_url\talbum\talbum_mbid"
+
   @doc false
   defguard is_year(y) when is_integer(y) and y < 3000 and y > 2000
 
@@ -386,5 +388,41 @@ defmodule LastfmArchive do
     end
   end
 
+  @spec transform_archive(binary, atom) :: :ok
+  def transform_archive(user, _mode \\ :tsv) do
+    raw_json_files = ls_archive_files(user)
+
+    # group file paths by years, to create per-year TSV file archive
+    archive_file_batches = Enum.group_by raw_json_files, fn x ->
+      x = Regex.run(~r/^\d{4}/, x)
+      if is_nil(x), do: x, else: x |> hd
+    end
+
+    tsv_dir =  Path.join [user_data_dir(user), "tsv"]
+    unless File.exists?(tsv_dir), do: File.mkdir_p tsv_dir
+
+    for {year, archive_files} <- archive_file_batches, year != nil do
+      tsv_filepath =  Path.join [user_data_dir(user), "tsv", "#{year}.tsv.gz"]
+
+      IO.puts "\nCreating TSV file archive for #{year} scrobbles."
+      {:ok, tsv_file} = File.open(tsv_filepath, [:write, :compressed, :utf8])
+
+      IO.puts tsv_file, @tsv_file_header
+      for archive_file <- archive_files, String.match?(archive_file, ~r/^\d{4}/) do
+        tsv_rows = LastfmArchive.Transform.transform(user, archive_file)
+        for row <- tsv_rows, do: IO.puts tsv_file, row
+      end
+
+      File.close(tsv_file)
+    end
+    :ok
+  end
+
+  # return all archive file paths in a list
+  defp ls_archive_files(user) do
+    archive_file_wildcard = Path.join user_data_dir(user), "**/*.gz"
+    archive_files = :filelib.wildcard(archive_file_wildcard |> to_charlist)
+    archive_files |> Enum.map(&String.split(&1 |> to_string, user <> "/") |> tl |> hd)
+  end
 
 end
