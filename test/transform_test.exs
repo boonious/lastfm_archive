@@ -25,7 +25,7 @@ defmodule TransformTest do
     assert length(tracks) > 0
   end
 
-  @tag :dev
+  @tag :disk_write
   test "transform all data and create TSV files for a given user" do
     user = "test_user"
 
@@ -39,12 +39,22 @@ defmodule TransformTest do
 
     Application.put_env :lastfm_archive, :data_dir, test_data_dir
 
-    LastfmArchive.transform_archive(user)
+    capture_io(fn -> LastfmArchive.transform_archive(user) end)
     assert File.dir? Path.join([test_data_dir, user, "tsv"])
 
     tsv_filepath = Path.join([test_data_dir, user, "tsv", "2007.tsv.gz"])
     assert File.exists? tsv_filepath
 
+    {_status, file_io} = File.open(tsv_filepath, [:read, :compressed, :utf8])
+    {_, tracks} = IO.read(file_io, :all) |> String.split("\n") |> List.pop_at(0)
+    File.close(file_io)
+
+    assert length(tracks) > 0
+
+    first_track = tracks |> List.first
+    assert String.match? first_track, ~r/test_user_1187364186_6601\t今天沒回家\t1187364186/
+
+    assert capture_io(fn -> LastfmArchive.transform_archive("test_user") end) == "\nTSV file archive exists, skipping 2007 scrobbles.\n"
   after
     test_data_dir = Path.join([".", "lastfm_data", "test", "transform", "t1"])
     File.rm_rf test_data_dir
