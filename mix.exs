@@ -40,9 +40,10 @@ defmodule LastfmArchive.MixProject do
       {:bypass, "~> 0.8.1", only: :test},
       {:excoveralls, "~> 0.10", only: :test},
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
-      {:httpoison, "~> 1.4.0"},
+      {:httpoison, "~> 1.4.0", override: true},
       {:poison, "~> 4.0.1"},
-      {:plug_cowboy, "~> 1.0"}
+      {:plug_cowboy, "~> 1.0"},
+      {:hui, "~> 0.8.2"}
     ]
   end
 

@@ -14,5 +14,11 @@ config :elixirfm,
   api_key: "",
   secret_key: ""
 
+# optional: Solr endpoint for Lastfm data loading
+config :hui, :lastfm_archive,
+  url: "http://localhost:8983/solr/lastfm_archive",
+  handler: "update",
+  headers: [{"Content-type", "application/json"}]
+
 # provides the above (private) credentails for local dev/testing purposes in lastfm.secret.exs
 if File.exists?("./config/lastfm.secret.exs"), do: import_config "lastfm.secret.exs"
