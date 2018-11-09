@@ -9,6 +9,11 @@ defmodule LoadTest do
     is_integration = :integration in ExUnit.configuration[:include]
     bypass = unless is_integration, do: Bypass.open, else: nil
 
+    configured_dir = Application.get_env :lastfm_archive, :data_dir
+    on_exit fn ->
+      Application.put_env :lastfm_archive, :data_dir, configured_dir
+    end
+
     [bypass: bypass]
   end
 
@@ -88,6 +93,31 @@ defmodule LoadTest do
 
     assert header == LastfmArchive.tsv_file_header
     assert length(scrobbles) > 0
+  end
+
+  test "load a TSV file from the archive into Solr for a given user",  %{bypass: bypass} do
+    Application.put_env :lastfm_archive, :data_dir, @test_data_dir
+
+    bypass_url = "http://localhost:#{bypass.port}/"
+    headers = [{"Content-type", "application/json"}]
+    url = %Hui.URL{url: "#{bypass_url}", handler: "update", headers: headers}
+
+    expected_solr_docs = File.read!(Path.join ["test", "data", "update_solr_docs1.json"])
+
+    Bypass.expect bypass, fn conn ->
+
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+      assert conn.method == "POST"
+      assert body == expected_solr_docs
+
+      Plug.Conn.resp(conn, 200, "{}")
+    end
+
+    assert {:ok,  %HTTPoison.Response{body: _, headers: _, request: request,  request_url: _, status_code: 200}}
+           = LastfmArchive.Load.load_solr(url, "test_user", "tsv/2018.tsv.gz")
+
+    assert request.body == expected_solr_docs
+    assert {:error, :enoent} = LastfmArchive.Load.load_solr(url, "test_user", "not_available_file.tsv.gz")
   end
 
 end

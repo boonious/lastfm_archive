@@ -3,6 +3,7 @@ defmodule LastfmArchive.Load do
   This module provides functions for loading Lastfm data into databases and search engines.
 
   """
+  @default_data_dir "./lastfm_data/"
 
   @doc """
   Ping a Solr core/collection endpoint to check if it is running.
@@ -14,7 +15,7 @@ defmodule LastfmArchive.Load do
 
   ```
     LastfmArchive.Load.ping_solr("http://solr_url...")
-    LastfmArchive.Load.ping_solr(:lastfm_archive) # ping a configured endpoint
+    LastfmArchive.Load.ping_solr(:lastfm_archive) # check a configured endpoint
   ```
 
   `:lastfm_archive` refers to the following Solr update endpoint in configuration:
@@ -87,6 +88,29 @@ defmodule LastfmArchive.Load do
       {:error, %HTTPoison.Error{id: _, reason: reason}} ->
         {:error, %Hui.Error{reason: reason}}
     end
+  end
+
+  def load_solr(url, user, filename) do
+    {status, resp} = read(user, filename)
+
+    case status do
+      :ok ->
+        [header | scrobbles] = resp
+        solr_docs = for scrobble <- scrobbles, scrobble != "" do
+          field_names = header |> String.split("\t")
+          scrobble_data = scrobble |> String.split("\t")
+          map_fields(field_names, scrobble_data, []) |> Enum.into(%{})
+        end
+
+        Hui.update(url, solr_docs)
+      :error ->
+        {:error, resp}
+    end
+  end
+
+  defp map_fields(_, [], acc), do: acc
+  defp map_fields([field_name|field_names], [data | rest_of_data], acc) do
+    map_fields(field_names, rest_of_data, acc ++ [{field_name, data}])
   end
 
   @doc """
