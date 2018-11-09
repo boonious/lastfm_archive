@@ -1,0 +1,1 @@
+{"id":"StrField","name":"SortableTextField","scrobble_date":"IntPointField","scrobble_date_iso":"DateRangeField","mbid":"StrField","url":"StrField","artist":"SortableTextField","artist_mbid":"StrField","artist_url":"StrField","album":"SortableTextField","album_mbid":"StrField"}
