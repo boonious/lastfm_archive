@@ -2,6 +2,7 @@ defmodule LoadTest do
   use ExUnit.Case, async: true
 
   @expected_solr_fields_path Path.join ["solr", "fields.json"]
+  @test_data_dir Path.join([".", "test", "data"])
 
   setup do
     # true if mix test --include integration 
@@ -77,6 +78,16 @@ defmodule LoadTest do
     end
 
     assert {:error, %Hui.Error{reason: :einit} } = LastfmArchive.Load.check_solr_schema(url)
+  end
+
+  test "read and parse TSV file into scrobble list from the archive, for a given user, file location" do
+    Application.put_env :lastfm_archive, :data_dir, @test_data_dir
+
+    assert {:error, :enoent} = LastfmArchive.Load.read("test_user", "non_existing_file.tsv.gz")
+    assert {:ok, [header | scrobbles]} = LastfmArchive.Load.read("test_user", "tsv/2018.tsv.gz")
+
+    assert header == LastfmArchive.tsv_file_header
+    assert length(scrobbles) > 0
   end
 
 end

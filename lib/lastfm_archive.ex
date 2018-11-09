@@ -30,6 +30,9 @@ defmodule LastfmArchive do
   @doc false
   defguard is_year(y) when is_integer(y) and y < 3000 and y > 2000
 
+  @doc false
+  def tsv_file_header, do: @tsv_file_header
+
   @doc """
   Download all scrobbled tracks and create an archive on local filesystem for the default user.
 
