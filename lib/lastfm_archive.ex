@@ -1,6 +1,6 @@
 defmodule LastfmArchive do
   @moduledoc """
-  `lastfm_archive` is a tool for creating local Last.fm scrobble data archive and analytics.
+  `lastfm_archive` is a tool for creating local Lastfm scrobble data archive and analytics.
   
   The software is currently experimental and in preliminary development. It should
   eventually provide capability to perform ETL and analytic tasks on Lastfm scrobble data.
@@ -10,6 +10,7 @@ defmodule LastfmArchive do
   - `archive/0`, `archive/2`: download all raw Lastfm scrobble data to local filesystem
   - `archive/3`: download a data subset within a date range
   - `transform_archive/2`: transform downloaded raw data and create a TSV file archive
+  - `load_archive/2`: load all (TSV) data from the archive into Solr
 
   """
   # pending, with stop gap functions for `LastfmArchive.Extract.get_recent_tracks`,
@@ -20,6 +21,7 @@ defmodule LastfmArchive do
   import LastfmArchive.Extract
 
   @type date_range :: :all | :today | :yesterday | integer | Date.t | Date.Range.t
+  @type solr_url :: Hui.URL.t
 
   @default_data_dir "./lastfm_data/"
   @default_opts %{"interval" => 500, "per_page" => 200, "overwrite" => false, "daily" => false}
@@ -402,7 +404,7 @@ defmodule LastfmArchive do
 
   The function only transforms downloaded archive data on local filesystem. It does not fetch data from Lastfm,
   which can be done via `archive/2`, `archive/3`. 
-  
+
   The TSV files are created on a yearly basis and stored in `gzip` compressed format.
   They are stored in a `tsv` directory within either the default `./lastfm_data/`
   or the directory specified in config/config.exs (`:lastfm_archive, :data_dir`).
@@ -451,6 +453,50 @@ defmodule LastfmArchive do
     archive_file_wildcard = Path.join user_data_dir(user), "**/*.gz"
     archive_files = :filelib.wildcard(archive_file_wildcard |> to_charlist)
     archive_files |> Enum.map(&String.split(&1 |> to_string, user <> "/") |> tl |> hd)
+  end
+
+  @doc """
+  Load all TSV data from the archive into Solr for a Lastfm user.
+
+  The functions find TSV files from the archive and send them to
+  Solr for ingestion one at a time. It uses `Hui` client to interact
+  with Solr and the `t:Hui.URL.t/0` struct
+  to specify the Solr endpoint.
+
+  ### Example
+
+  ```
+    # define a Solr endpoint with %Hui.URL{} struct
+    headers = [{"Content-type", "application/json"}]
+    url = %Hui.URL{url: "http://localhost:8983/solr/lastfm_archive", handler: "update", headers: headers}
+
+    LastfmArchive.load_archive("a_lastfm_user", url)
+  ```
+
+  TSV files must be pre-created before the loading - see
+  `transform_archive/2`.
+  """
+  @spec load_archive(binary, solr_url) :: :ok | {:error, Hui.Error.t}
+  def load_archive(user, url) do
+    with {status1, _} <- LastfmArchive.Load.ping_solr(url.url),
+         {status2, _} <- LastfmArchive.Load.check_solr_schema(url.url) do
+
+      case {status1, status2} do
+        {:ok, :ok} -> _load_archive(user, url)
+        _ -> {:error, %Hui.Error{reason: :ehostunreach}}
+      end
+    end
+  end
+
+  defp _load_archive(user, url) do
+    archive_files = ls_archive_files(user)
+
+    for tsv_file <- archive_files, String.match?(tsv_file, ~r/^tsv/) do
+      IO.puts "Loading #{tsv_file} into Solr"
+      {status, _resp} = LastfmArchive.Load.load_solr(url, user, tsv_file)
+      IO.puts "#{status}\n"
+    end
+    :ok
   end
 
 end

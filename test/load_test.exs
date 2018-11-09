@@ -1,5 +1,6 @@
 defmodule LoadTest do
   use ExUnit.Case, async: true
+  import ExUnit.CaptureIO
 
   @expected_solr_fields_path Path.join ["solr", "fields.json"]
   @test_data_dir Path.join([".", "test", "data"])
@@ -126,6 +127,30 @@ defmodule LoadTest do
 
     assert request.body == expected_solr_docs
     assert {:error, :enoent} = LastfmArchive.Load.load_solr(url, "test_user", "not_available_file.tsv.gz")
+  end
+
+  test "load_archive/2: load all TSV data from the archive into Solr for a given user",  %{bypass: bypass} do
+    Application.put_env :lastfm_archive, :data_dir, @test_data_dir
+
+    bypass_url = "http://localhost:#{bypass.port}/"
+    headers = [{"Content-type", "application/json"}]
+    url = %Hui.URL{url: "#{bypass_url}", handler: "update", headers: headers}
+
+    schema_response = File.read!(Path.join ["test","data", "schema_response.json"])
+    expected_solr_docs = File.read!(Path.join ["test", "data", "update_solr_docs1.json"])
+
+    Bypass.expect bypass, fn conn ->
+      case conn.method do
+        "GET" ->
+          assert (conn.path_info == ["schema"]) or (conn.path_info == ["admin", "ping"])
+        "POST" ->
+          {:ok, body, _conn} = Plug.Conn.read_body(conn)
+          assert body == expected_solr_docs
+      end
+      Plug.Conn.resp(conn, 200, schema_response)
+    end
+
+    capture_io(fn -> LastfmArchive.load_archive("test_user", url) end)
   end
 
 end
