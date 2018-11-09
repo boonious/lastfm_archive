@@ -40,7 +40,7 @@ defmodule LoadTest do
     LastfmArchive.Load.ping_solr(:lastfm_ping_test1)
   end
 
-  test "check Solr schema by URL string", %{bypass: bypass} do
+  test "Solr schema check by URL string", %{bypass: bypass} do
     url = "http://localhost:#{bypass.port}/"
     expected_fields = File.read!(@expected_solr_fields_path) |> Poison.decode!
 
@@ -56,7 +56,7 @@ defmodule LoadTest do
     assert expected_fields == fields
   end
 
-  test "check Solr schema by URL config key", %{bypass: bypass} do
+  test "Solr schema schema by URL config key", %{bypass: bypass} do
     url = "http://localhost:#{bypass.port}/"
     Application.put_env :hui, :lastfm_ping_test2, url: url
     expected_fields = File.read!(@expected_solr_fields_path) |> Poison.decode!
@@ -73,7 +73,15 @@ defmodule LoadTest do
     assert expected_fields == fields
   end
 
-  test "should returns error if fields are missing in Solr schema check", %{bypass: bypass} do
+  test "Solr schema check should returns error with malformed URL", %{bypass: bypass} do
+    url = "http://localhost:#{bypass.port}/"
+    Bypass.down(bypass)
+
+    assert {:error, %Hui.Error{reason: :econnrefused}} = LastfmArchive.Load.check_solr_schema(url)
+    assert {:error, %Hui.Error{reason: :ehostunreach}} = LastfmArchive.Load.check_solr_schema(:not_valid_url)
+  end
+
+  test "Solr schema check should returns error if fields are missing", %{bypass: bypass} do
     url = "http://localhost:#{bypass.port}/"
 
     Bypass.expect bypass, fn conn ->      
