@@ -59,10 +59,14 @@ defmodule LastfmArchive.Load do
   See `ping_solr/1` for more details on URL configuration.
   """
   @spec check_solr_schema(binary|atom) :: {:ok, map} | {:error, Hui.Error.t}
-  def check_solr_schema(url) when is_atom(url), do: Application.get_env(:hui, url)[:url] |> check_solr_schema
-  def check_solr_schema(url) when is_binary(url) do
-    {:ok, schema_resp} = solr_schema(url)
-    schema = schema_resp["schema"]
+  def check_solr_schema(url) when is_atom(url) and url != nil, do: Application.get_env(:hui, url)[:url] |> check_solr_schema
+  def check_solr_schema(url) when is_binary(url), do: solr_schema(url) |> check_solr_schema
+
+  def check_solr_schema(nil), do: {:error, %Hui.Error{reason: :ehostunreach}}
+  def check_solr_schema({:error, error}), do: {:error, error}
+
+  def check_solr_schema({:ok, schema_data}) do
+    schema = schema_data["schema"]
     fields = schema["fields"] |> Enum.map(&(&1["name"]))
 
     {:ok, fields_s} = File.read("./solr/fields.json")
