@@ -90,6 +90,29 @@ defmodule LastfmArchive.Load do
     end
   end
 
+  @doc """
+  Load a TSV file data from the archive into Solr for a Lastfm user.
+
+  The function reads and converts scrobbles in a TSV file from the file
+  archive into a list of maps. The maps are sent to Solr for ingestion.
+  Use `t:Hui.URL.t/0` struct to specify the Solr endpoint.
+
+  ### Example
+
+  ```
+    # define a Solr endpoint with %Hui.URL{} struct
+    headers = [{"Content-type", "application/json"}]
+    url = %Hui.URL{url: "http://localhost:8983/solr/lastfm_archive", handler: "update", headers: headers}
+
+    # ingest data scrobbled in 2018
+    LastfmArchive.Load.load_solr(url, "a_lastfm_user", "tsv/2018.tsv.gz")
+  ```
+
+  TSV files must be pre-created by transforming raw JSON Lastfm data - see
+  `LastfmArchive.transform_archive/2`.
+
+  """
+  @spec load_solr(Hui.URL.t, binary, binary) :: {:ok, HTTPoison.Response.t()} | {:error, :enoent}
   def load_solr(url, user, filename) do
     {status, resp} = read(user, filename)
 
