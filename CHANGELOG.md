@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0 (2018-11-10)
+
+* Support for Solr: load all transformed (TSV) data from the archive into Solr, `load_archive/2`
+* Underpinning functions to read, parse, load data into Solr
+
 ## 0.5.0 (2018-11-05)
 
 * `transform_archive/2`: transform downloaded raw Lastfm archive and create a TSV file archive

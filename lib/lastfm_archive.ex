@@ -1,6 +1,6 @@
 defmodule LastfmArchive do
   @moduledoc """
-  `lastfm_archive` is a tool for creating local Lastfm scrobble data archive and analytics.
+  `lastfm_archive` is a tool for creating local Last.fm scrobble file archive, Solr archive and analytics.
   
   The software is currently experimental and in preliminary development. It should
   eventually provide capability to perform ETL and analytic tasks on Lastfm scrobble data.
@@ -459,10 +459,10 @@ defmodule LastfmArchive do
   @doc """
   Load all TSV data from the archive into Solr for a Lastfm user.
 
-  The functions find TSV files from the archive and send them to
+  The function finds TSV files from the archive and sends them to
   Solr for ingestion one at a time. It uses `Hui` client to interact
   with Solr and the `t:Hui.URL.t/0` struct
-  to specify the Solr endpoint.
+  for Solr endpoint specification.
 
   ### Example
 

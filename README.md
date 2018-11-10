@@ -1,6 +1,6 @@
 # Lastfm Archive [![Build Status](https://travis-ci.org/boonious/lastfm_archive.svg?branch=master)](https://travis-ci.org/boonious/lastfm_archive) [![Hex pm](http://img.shields.io/hexpm/v/lastfm_archive.svg?style=flat)](https://hex.pm/packages/lastfm_archive) [![Coverage Status](https://coveralls.io/repos/github/boonious/lastfm_archive/badge.svg)](https://coveralls.io/github/boonious/lastfm_archive?branch=master)
 
-A tool for creating local Last.fm scrobble data archive and analytics.
+A tool for creating local Last.fm scrobble file archive, Solr archive and analytics.
 
 The software is currently experimental and in preliminary development. It should
 eventually provide capability to perform ETL and analytic tasks on Lastfm scrobble data.
@@ -57,6 +57,26 @@ To generate a TSV file archive from downloaded data:
 
 See [`transform_archive/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#transform_archive/2).
 
+### Loading data into Solr
+
+To load all transformed TSV data from the archive into Solr:
+
+
+```elixir
+  # define a Solr endpoint with %Hui.URL{} struct
+  headers = [{"Content-type", "application/json"}]
+  url = %Hui.URL{url: "http://localhost:8983/solr/lastfm_archive", handler: "update", headers: headers}
+
+  LastfmArchive.load_archive("a_lastfm_user", url)
+
+  # use Solr endpoint from config setting - Configuration below
+  LastfmArchive.load_archive("a_lastfm_user", :lastfm_archive)
+```
+
+The function finds TSV files from the archive and send them to
+Solr for ingestion one at a time. It uses `Hui` client to interact
+with Solr and the `t:Hui.URL.t/0` struct for Solr endpoint specification.
+
 ## Requirement
 
 This tool requires Elixir and Erlang, see [installation](https://elixir-lang.org/install.html) details
@@ -71,7 +91,7 @@ to your list of dependencies in `mix.exs`:
 ```elixir
   def deps do
     [
-      {:lastfm_archive, "~> 0.5.0"}
+      {:lastfm_archive, "~> 0.6.0"}
     ]
   end
 ```
@@ -82,12 +102,6 @@ Documentation can be found at [https://hexdocs.pm/lastfm_archive](https://hexdoc
 Add the following entries in your config - `config/config.exs`. For example,
 the following specifies a `default_user` and a main file location for
 multiple user archives, `./lastfm_data/` relative to the software home directory.
-
-See [`archive/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#archive/2)
-for other configurable archiving options, e.g. `interval`, `per_page`.
-
-An `api_key` must be configured to enable Lastfm API requests,
-see [https://www.last.fm/api](https://www.last.fm/api) ("Get an API account").
 
 ```elixir
   config :lastfm_archive, 
@@ -101,4 +115,20 @@ see [https://www.last.fm/api](https://www.last.fm/api) ("Get an API account").
     api_key: "", # mandatory
     secret_key: ""
 
+  # optional: Solr endpoint for Lastfm data loading
+  config :hui, :lastfm_archive,
+    url: "http://localhost:8983/solr/lastfm_archive",
+    handler: "update",
+    headers: [{"Content-type", "application/json"}]
+
 ```
+
+See [`archive/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#archive/2)
+for other configurable archiving options, e.g. `interval`, `per_page`.
+
+See [`Hui`](https://hexdocs.pm/hui/readme.html#content) for more details on Solr configuration.
+
+An `api_key` must be configured to enable Lastfm API requests,
+see [https://www.last.fm/api](https://www.last.fm/api) ("Get an API account").
+
+
