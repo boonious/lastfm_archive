@@ -21,7 +21,7 @@ defmodule LastfmArchive do
   import LastfmArchive.Extract
 
   @type date_range :: :all | :today | :yesterday | integer | Date.t | Date.Range.t
-  @type solr_url :: Hui.URL.t
+  @type solr_url :: atom | Hui.URL.t
 
   @default_data_dir "./lastfm_data/"
   @default_opts %{"interval" => 500, "per_page" => 200, "overwrite" => false, "daily" => false}
@@ -393,11 +393,12 @@ defmodule LastfmArchive do
       File.write!(no_scrobble_log_path, ",#{file_path}", [:append])
     end
   end
+
   @doc """
   Transform downloaded raw JSON data and create a TSV file archive for a Lastfm user.
 
   ### Example
-  
+
   ```
     LastfmArchive.transform_archive("a_lastfm_user")
   ```
@@ -477,7 +478,13 @@ defmodule LastfmArchive do
   `transform_archive/2`.
   """
   @spec load_archive(binary, solr_url) :: :ok | {:error, Hui.Error.t}
-  def load_archive(user, url) do
+  def load_archive(user, url) when is_atom(url) and url != nil do
+    url_config = Application.get_env(:hui, url)
+    url_struct = if url_config, do: struct(Hui.URL, url_config), else: nil
+    load_archive(user, url_struct)
+  end
+
+  def load_archive(user, url) when is_map(url) do
     with {status1, _} <- LastfmArchive.Load.ping_solr(url.url),
          {status2, _} <- LastfmArchive.Load.check_solr_schema(url.url) do
 
@@ -487,6 +494,8 @@ defmodule LastfmArchive do
       end
     end
   end
+
+  def load_archive(_, _), do: {:error, %Hui.Error{reason: :einval}}
 
   defp _load_archive(user, url) do
     archive_files = ls_archive_files(user)

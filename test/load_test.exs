@@ -129,7 +129,7 @@ defmodule LoadTest do
     assert {:error, :enoent} = LastfmArchive.Load.load_solr(url, "test_user", "not_available_file.tsv.gz")
   end
 
-  test "load_archive/2: load all TSV data from the archive into Solr for a given user",  %{bypass: bypass} do
+  test "load_archive/2: load all TSV data from the archive into Solr for a given user, via %Hui.URL{}",  %{bypass: bypass} do
     Application.put_env :lastfm_archive, :data_dir, @test_data_dir
 
     bypass_url = "http://localhost:#{bypass.port}/"
@@ -151,6 +151,29 @@ defmodule LoadTest do
     end
 
     capture_io(fn -> LastfmArchive.load_archive("test_user", url) end)
+  end
+
+  test "load_archive/2: load all TSV data from the archive into Solr for a given user, via URL config key",  %{bypass: bypass} do
+    bypass_url = "http://localhost:#{bypass.port}/"
+    headers = [{"Content-type", "application/json"}]
+
+    Application.put_env :hui, :test_url1, url: bypass_url, headers: headers, handler: "update"
+
+    schema_response = File.read!(Path.join ["test","data", "schema_response.json"])
+    Bypass.expect bypass, fn conn ->
+      if conn.method == "GET" do
+        assert (conn.path_info == ["schema"]) or (conn.path_info == ["admin", "ping"])
+      end
+      Plug.Conn.resp(conn, 200, schema_response)
+    end
+
+    LastfmArchive.load_archive("test_user", :test_url1)
+
+    # test malformed URL
+    assert {:error, %Hui.Error{reason: :einval}} == LastfmArchive.load_archive("test_user", :not_valid_url_config_key)
+    assert {:error, %Hui.Error{reason: :einval}} == LastfmArchive.load_archive("test_user", nil)
+    assert {:error, %Hui.Error{reason: :einval}} == LastfmArchive.load_archive("test_user", "http://binary_url")
+
   end
 
 end

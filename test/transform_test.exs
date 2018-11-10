@@ -1,5 +1,5 @@
 defmodule TransformTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   import ExUnit.CaptureIO
 
   @test_data_dir Path.join([".", "test", "data"])
