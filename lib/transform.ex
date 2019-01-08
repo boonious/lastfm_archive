@@ -13,7 +13,7 @@ defmodule LastfmArchive.Transform do
   ### Example
   ```
     # transform a page of scrobbles from the file archive
-    LastfmArchive.transform("a_lastfm_user", "2007/200_1.gz")
+    LastfmArchive.Transform.transform("a_lastfm_user", "2007/200_1.gz")
   ```
 
   A row of tab-delimited track currently contains (if any):
