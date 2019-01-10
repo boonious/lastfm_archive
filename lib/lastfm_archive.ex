@@ -35,6 +35,37 @@ defmodule LastfmArchive do
   @doc false
   def tsv_file_header, do: @tsv_file_header
 
+  @spec sync :: :ok | {:error, :file.posix}
+  def sync do
+    user = Application.get_env(:lastfm_archive, :user) || raise "User not found in configuration"
+    sync(user)
+  end
+
+  @spec archive(binary) :: :ok | {:error, :file.posix}
+  def sync(user) do
+    log_file = ".lastfm_archive"
+    today = Date.utc_today
+
+    if File.exists? log_file do
+      {_status, "sync_date=" <> x} = File.read log_file
+      sync_date = x |> String.trim |> Date.from_iso8601!
+
+      if sync_date.year < today.year do
+        last_year_d = Date.from_erl!({today.year - 1, 12, 31})
+        from_d = Date.from_erl!({sync_date.year, 1, 1})
+        archive(user, Date.range(from_d, last_year_d))
+      end
+
+      from_d = if sync_date.year < today.year, do: Date.from_erl!({today.year, 1, 1}), else: sync_date
+      archive(user, Date.range(from_d, today), daily: true, overwrite: true)
+
+      File.write(log_file, "sync_date=#{today|>to_string}")
+    else
+      archive(user)
+      File.write(log_file, "sync_date=#{today|>to_string}")
+    end
+  end
+
   @doc """
   Download all scrobbled tracks and create an archive on local filesystem for the default user.
 
