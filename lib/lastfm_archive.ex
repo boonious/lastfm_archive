@@ -41,9 +41,9 @@ defmodule LastfmArchive do
     sync(user)
   end
 
-  @spec archive(binary) :: :ok | {:error, :file.posix}
+  @spec sync(binary) :: :ok | {:error, :file.posix}
   def sync(user) do
-    log_file = ".lastfm_archive"
+    log_file = Path.join user_data_dir(user), ".lastfm_archive"
     today = Date.utc_today
 
     if File.exists? log_file do
