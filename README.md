@@ -14,10 +14,12 @@ applications or [interactive Elixir](https://elixir-lang.org/getting-started/int
 ```elixir
   # archive all data of a default user specified in configuration
   LastfmArchive.archive
+  LastfmArchive.sync # subsequent calls download only latest scrobbles
 
   # archive all data of any Lastfm user
   # the data is stored in directory named after the user
   LastfmArchive.archive("a_lastfm_user")
+  LastfmArchive.sync("a_lastfm_user") # subsequent calls download only latest scrobbles
 
   # archive a data subset
   LastfmArchive.archive("a_lastfm_user", :past_month)

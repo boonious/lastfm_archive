@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.0 (2019-01-11)
+
+* `sync/0`, `sync/1`: sync and keep tracks of scrobbles for a default and Lastfm users, via delta archiving (download latest scrobbles)
+
 ## 0.6.0 (2018-11-10)
 
 * Support for Solr: load all transformed (TSV) data from the archive into Solr, `load_archive/2`

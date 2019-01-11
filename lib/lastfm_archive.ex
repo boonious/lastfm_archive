@@ -9,6 +9,7 @@ defmodule LastfmArchive do
   
   - `archive/0`, `archive/2`: download all raw Lastfm scrobble data to local filesystem
   - `archive/3`: download a data subset within a date range
+  - `sync/0`, `sync/1`: sync Lastfm scrobble data to local filesystem
   - `transform_archive/2`: transform downloaded raw data and create a TSV file archive
   - `load_archive/2`: load all (TSV) data from the archive into Solr
 
@@ -35,12 +36,40 @@ defmodule LastfmArchive do
   @doc false
   def tsv_file_header, do: @tsv_file_header
 
+  @doc """
+  Sync scrobbled tracks for the default user.
+
+  ### Example
+
+  ```
+    LastfmArchive.sync
+  ```
+
+  The first sync downloads all scrobbles and creates an archive on local filesystem. Subsequent sync calls
+  download the latest scrobbles starting from the previous date of sync.
+
+  See `archive/0` for further details on how to configured a default user.
+  """
   @spec sync :: :ok | {:error, :file.posix}
   def sync do
     user = Application.get_env(:lastfm_archive, :user) || raise "User not found in configuration"
     sync(user)
   end
 
+  @doc """
+  Sync scrobbled tracks for a Lastfm user.
+
+  ### Example
+
+  ```
+    LastfmArchive.sync("a_lastfm_user")
+  ```
+
+  The first sync downloads all scrobbles and creates an archive on local filesystem. Subsequent sync calls
+  download only the latest scrobbles starting from the previous date of sync. The date of sync is logged in
+  a `.lastfm_archive` file in the user archive data directory.
+
+  """
   @spec sync(binary) :: :ok | {:error, :file.posix}
   def sync(user) do
     log_file = Path.join user_data_dir(user), ".lastfm_archive"
