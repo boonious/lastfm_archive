@@ -187,6 +187,57 @@ defmodule LastfmArchiveTest do
     end
   end
 
+  describe "sync" do
+    @describetag :disk_write
+
+    test "scrobbles of the configured user - sync/0", %{bypass: bypass} do
+      # Bypass test only
+      if(bypass) do
+        user = Application.get_env(:lastfm_archive, :user)
+
+        # speed up this test
+        # no requirement for 'interval' beetween requests, since Bypass test is not hitting Lastfm API
+        Application.put_env :lastfm_archive, :interval, 1
+
+        prebaked_resp = %{"info" => "./test/data/test_user.json", "recenttracks" => "./test/data/test_recenttracks_no_scrobble.json"}
+        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "10"), user, prebaked_resp)
+        capture_io(fn -> LastfmArchive.sync end)
+
+        sync_log_file =  Path.join [@test_data_dir, "10", user, ".lastfm_archive"]
+        assert File.exists? sync_log_file
+
+        # re-sync, and from an older date from previous year
+        File.write(sync_log_file, "sync_date=2017-12-25")
+        capture_io(fn -> LastfmArchive.sync end)
+      end
+    after
+      Application.put_env :lastfm_archive, :interval, @interval
+      File.rm_rf Path.join(@test_data_dir, "10")
+    end
+
+    test "scrobbles of a Lastfm user - sync/1", %{bypass: bypass} do
+      # Bypass test only
+      if(bypass) do
+        user = "a_lastfm_user"
+        Application.put_env :lastfm_archive, :interval, 1
+
+        prebaked_resp = %{"info" => "./test/data/test_user.json", "recenttracks" => "./test/data/test_recenttracks_no_scrobble.json"}
+        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "11"), user, prebaked_resp)
+        capture_io(fn -> LastfmArchive.sync(user) end)
+
+        sync_log_file =  Path.join [@test_data_dir, "11", user, ".lastfm_archive"]
+        assert File.exists? sync_log_file
+
+        File.write(sync_log_file, "sync_date=2018-12-25")
+        capture_io(fn -> LastfmArchive.sync(user) end)
+      end
+    after
+      Application.put_env :lastfm_archive, :interval, @interval
+      File.rm_rf Path.join(@test_data_dir, "11")
+    end
+
+  end
+
   test "is_year guard" do
     assert LastfmArchive.is_year(2017)
     refute LastfmArchive.is_year(1234)
