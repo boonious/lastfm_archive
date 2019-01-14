@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.1 (2019-01-14)
+
+* patches as per Lastfm API JSON data format changes: uts timestamp, play counts info are now returned as integers instead of strings.
+
 ## 0.7.0 (2019-01-11)
 
 * `sync/0`, `sync/1`: sync and keep tracks of scrobbles for a default and Lastfm users, via delta archiving (download latest scrobbles)

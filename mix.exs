@@ -8,7 +8,7 @@ defmodule LastfmArchive.MixProject do
   def project do
     [
       app: :lastfm_archive,
-      version: "0.7.0",
+      version: "0.7.1",
       elixir: "~> 1.7",
       start_permanent: Mix.env() == :prod,
       escript: [main_module: LastfmArchive.Cli, path: "bin/lastfm_archive"],
