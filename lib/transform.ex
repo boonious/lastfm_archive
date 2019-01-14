@@ -55,7 +55,7 @@ defmodule LastfmArchive.Transform do
   # id,name,scrobble_date,date_iso,mbid,url,artist,artist_mbid,artist_url,album,album_mbid
   defp _transform(user, track, index) do
     id = "#{user}_#{track["date"]["uts"]}_#{index |> to_string}"
-    date_s = track["date"]["uts"] |> String.to_integer |> DateTime.from_unix! |> DateTime.to_iso8601
+    date_s = track["date"]["uts"] |> DateTime.from_unix! |> DateTime.to_iso8601
 
     track_info = [ id, track["name"] |> String.trim, track["date"]["uts"], date_s, track["mbid"], track["url"] ]
     artist_info = [ track["artist"]["name"],  track["artist"]["mbid"], track["artist"]["url"]]
@@ -85,6 +85,6 @@ defmodule LastfmArchive.Transform do
     resp
   end
 
-  defp initial_index(info), do: ((String.to_integer(info["page"]) - 1) * String.to_integer(info["perPage"])) + 1
+  defp initial_index(info), do: ((info["page"] - 1) * info["perPage"]) + 1
 
 end

@@ -323,7 +323,7 @@ defmodule LastfmArchive do
 
   # daily / year  batch archiving
   defp _archive(user, {from, to}, options) do
-    playcount = info(user, {from, to}) |> String.to_integer
+    playcount = info(user, {from, to})
     per_page = option(options, :per_page)
     total_pages = (playcount / per_page) |> :math.ceil |> round
 
