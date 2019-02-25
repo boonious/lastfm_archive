@@ -97,7 +97,14 @@ defmodule LastfmArchive.Extract do
   # find out more about the user (playcount, earliest scrobbles)
   # to determine data extraction strategy
   @doc false
-  def info(user) do
+  def info(user), do: _info(user) |> _format_info
+
+  # get playcount for a particular year for a user
+  @doc false
+  def info(user, {from, to}), do: _info(user, {from, to}) |> _format_info
+
+  # fetching user info
+  defp _info(user) do
     {_status, resp} = get_info(user)
 
     playcount = resp["user"]["playcount"]
@@ -107,8 +114,7 @@ defmodule LastfmArchive.Extract do
   end
 
   # get playcount for a particular year for a user
-  @doc false
-  def info(user, {from, to}) do
+  defp _info(user, {from, to}) do
     # pending, with a stop gap until Elixirfm pull requests are sorted out
     # this is so that `lastfm_archive` can be published on Hex now
     #{_status, resp} = get_recent_tracks(user, limit: 1, page: 1, from: from, to: to)
@@ -119,5 +125,20 @@ defmodule LastfmArchive.Extract do
     resp_body = resp.body |> Poison.decode!
     resp_body["recenttracks"]["@attr"]["total"]
   end
+
+  # Lastfm keeps changing the date/count JSON data type back and forth (from string to integer)
+  # use pattern matching to ensure the return date/count data is always in integer type
+
+  defp _format_info(playcount) when is_binary(playcount), do: playcount |> String.to_integer
+  defp _format_info(playcount) when is_integer(playcount), do: playcount
+
+  defp _format_info({playcount, registered}) when is_binary(playcount) or is_binary(registered) do
+    {playcount |> String.to_integer, registered |> String.to_integer}
+  end
+
+  defp _format_info({playcount, registered}) when is_integer(playcount) and is_integer(registered), do: {playcount, registered}
+
+  defp _format_info({nil, nil}), do: {0, 0}
+  defp _format_info(nil), do: 0
 
 end

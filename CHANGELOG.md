@@ -1,8 +1,12 @@
 # Changelog
 
+## 0.7.2 (2019-02-25)
+
+* Fix the issue of Lastfm changing the date/count data type in JSON back and forth (string <-> integer).
+
 ## 0.7.1 (2019-01-14)
 
-* patches as per Lastfm API JSON data format changes: uts timestamp, play counts info are now returned as integers instead of strings.
+* Patches as per Lastfm API JSON data format changes: uts timestamp, play counts info are now returned as integers instead of strings.
 
 ## 0.7.0 (2019-01-11)
 

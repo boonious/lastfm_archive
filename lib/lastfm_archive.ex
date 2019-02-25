@@ -359,7 +359,7 @@ defmodule LastfmArchive do
     per_page = option(options, :per_page)
     overwrite = option(options, :overwrite)
     daily = option(options, :daily)
-    
+
     padded_page_s = page |> to_string |> String.pad_leading(3, "0")
     filename = if daily do
       dt
