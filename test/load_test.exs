@@ -122,10 +122,16 @@ defmodule LoadTest do
       Plug.Conn.resp(conn, 200, "{}")
     end
 
-    assert {:ok,  %HTTPoison.Response{body: _, headers: _, request: request,  request_url: _, status_code: 200}}
+    assert {:ok, %Hui.Http{
+                body: "{}",
+                headers: [{"cache-control", "max-age=0, private, must-revalidate"}, {"date", _}, {"server", "Cowboy"}, {"content-length", "2"}],
+                method: :post,
+                options: [],
+                status: 200,
+                url: _
+              }}
            = LastfmArchive.Load.load_solr(url, "test_user", "tsv/2018.tsv.gz")
 
-    assert request.body == expected_solr_docs
     assert {:error, :enoent} = LastfmArchive.Load.load_solr(url, "test_user", "not_available_file.tsv.gz")
   end
 

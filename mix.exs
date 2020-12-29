@@ -9,7 +9,7 @@ defmodule LastfmArchive.MixProject do
     [
       app: :lastfm_archive,
       version: "0.7.2",
-      elixir: "~> 1.7",
+      elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       escript: [main_module: LastfmArchive.Cli, path: "bin/lastfm_archive"],
       deps: deps(),
@@ -37,13 +37,12 @@ defmodule LastfmArchive.MixProject do
 
   defp deps do
     [
-      {:bypass, "~> 0.8.1", only: :test},
-      {:excoveralls, "~> 0.10", only: :test},
-      {:ex_doc, "~> 0.19", only: :dev, runtime: false},
-      {:httpoison, "~> 1.4.0"},
+      {:bypass, "~> 2.1", only: :test},
+      {:excoveralls, "~> 0.13", only: :test},
+      {:ex_doc, "~> 0.23", only: :dev, runtime: false},
+      {:httpoison, "~> 1.5"},
       {:poison, "~> 4.0.1"},
-      {:plug_cowboy, "~> 1.0"},
-      {:hui, "~> 0.8.3"}
+      {:hui, "~> 0.10"}
     ]
   end
 
