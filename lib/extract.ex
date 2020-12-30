@@ -8,7 +8,7 @@ defmodule LastfmArchive.Extract do
   # until Elixirfm pull requests are resolved
   # import Elixirfm.User
 
-  @type lastfm_response :: {:ok, map} | {:error, binary, Hui.Error.t}
+  @type lastfm_response :: {:ok, map} | {:error, binary, Hui.Error.t()}
   @default_data_dir "./lastfm_data/"
 
   @doc """
@@ -20,26 +20,29 @@ defmodule LastfmArchive.Extract do
   def extract(user, page \\ 1, limit \\ 1, from \\ 0, to \\ 0)
 
   # pending until Elixirfm dependency pull requests are resolved
-  #def extract(user, page, limit, from, to), do: get_recent_tracks(user, limit: limit, page: page, extended: 1, from: from, to: to)
+  # def extract(user, page, limit, from, to), do: get_recent_tracks(user, limit: limit, page: page, extended: 1, from: from, to: to)
 
   # below are stop gap functions for Lastfm API requests until the Elixirfm pull requests
   # are resolved. This is to enable `lastfm_archive` publication on hex
-  def extract(user, page, limit, from, to), do: get_tracks(user, limit: limit, page: page, extended: 1, from: from, to: to)
+  def extract(user, page, limit, from, to),
+    do: get_tracks(user, limit: limit, page: page, extended: 1, from: from, to: to)
 
   @doc false
   def get_tracks(user, args \\ []) do
-    ext_query_string = encode(args) |> Enum.join
+    ext_query_string = encode(args) |> Enum.join()
     base_url = Application.get_env(:elixirfm, :lastfm_ws) || "http://ws.audioscrobbler.com/"
     lastfm_key = Application.get_env(:elixirfm, :api_key, System.get_env("LASTFM_API_KEY")) || raise "API key error"
 
-    req_url = "#{base_url}2.0/?method=user.getrecenttracks&user=#{user}#{ext_query_string}&api_key=#{lastfm_key}&format=json"
+    req_url =
+      "#{base_url}2.0/?method=user.getrecenttracks&user=#{user}#{ext_query_string}&api_key=#{lastfm_key}&format=json"
+
     :httpc.request(:get, {to_charlist(req_url), [{'Authorization', to_charlist("Bearer #{lastfm_key}")}]}, [], [])
   end
 
   defp encode(nil), do: ""
   defp encode({_k, 0}), do: ""
   defp encode({k, v}), do: "&#{k}=#{v}"
-  defp encode(args), do: for {k, v} <- args, do: encode({k, v})
+  defp encode(args), do: for({k, v} <- args, do: encode({k, v}))
 
   @doc false
   def get_info(user) do
@@ -47,8 +50,11 @@ defmodule LastfmArchive.Extract do
     lastfm_key = Application.get_env(:elixirfm, :api_key, System.get_env("LASTFM_API_KEY")) || raise "API key error"
 
     req_url = "#{base_url}2.0/?method=user.getinfo&user=#{user}&api_key=#{lastfm_key}&format=json"
-    {status, {{_scheme, _status, _}, _headers, body}} = :httpc.request(:get, {to_charlist(req_url), [{'Authorization', to_charlist("Bearer #{lastfm_key}")}]}, [], [])
-    {status, body |> Jason.decode!}
+
+    {status, {{_scheme, _status, _}, _headers, body}} =
+      :httpc.request(:get, {to_charlist(req_url), [{'Authorization', to_charlist("Bearer #{lastfm_key}")}]}, [], [])
+
+    {status, body |> Jason.decode!()}
   end
 
   # --- end temporary stop gap
@@ -66,33 +72,35 @@ defmodule LastfmArchive.Extract do
     data_dir: "./lastfm_data/"
   ```
   """
-  @spec write(binary, binary | lastfm_response, binary) :: :ok | {:error, :file.posix}
+  @spec write(binary, binary | lastfm_response, binary) :: :ok | {:error, :file.posix()}
   def write(user, data, filename \\ "1")
 
   # stop gap implementation until until Elixirfm pull requests are resolved
-  def write(user, {:ok, {{_scheme, _status, _}, _headers, body}}, filename), do: write(user, body |> to_string(), filename)
+  def write(user, {:ok, {{_scheme, _status, _}, _headers, body}}, filename),
+    do: write(user, body |> to_string(), filename)
+
   def write(user, {:error, %Hui.Error{reason: reason}}, filename) do
-    write(user, "error", Path.join(["error", reason|>to_string, filename]))
+    write(user, "error", Path.join(["error", reason |> to_string, filename]))
   end
 
   # pending until Elixirfm pull requests are resolved
-  #def write({:ok, data}, filename), do: write(data |> Poison.encode!, filename)
-  #def write({:error, _message, %HTTPoison.Error{id: nil, reason: reason}}, filename) do
-    #write("error", Path.join(["error", reason|>to_string, filename]))
-  #end
+  # def write({:ok, data}, filename), do: write(data |> Poison.encode!, filename)
+  # def write({:error, _message, %HTTPoison.Error{id: nil, reason: reason}}, filename) do
+  # write("error", Path.join(["error", reason|>to_string, filename]))
+  # end
 
   def write(user, data, filename) when is_binary(data), do: _write(user, data, filename)
 
   defp _write(user, data, filename) do
     data_dir = Application.get_env(:lastfm_archive, :data_dir) || @default_data_dir
-    user_data_dir = Path.join "#{data_dir}", "#{user}"
-    unless File.exists?(user_data_dir), do: File.mkdir_p user_data_dir
+    user_data_dir = Path.join("#{data_dir}", "#{user}")
+    unless File.exists?(user_data_dir), do: File.mkdir_p(user_data_dir)
 
     file_path = Path.join("#{user_data_dir}", "#{filename}.gz")
-    file_dir = Path.dirname file_path
-    unless File.exists?(file_dir), do: File.mkdir_p file_dir
+    file_dir = Path.dirname(file_path)
+    unless File.exists?(file_dir), do: File.mkdir_p(file_dir)
 
-    File.write file_path, data, [:compressed]
+    File.write(file_path, data, [:compressed])
   end
 
   # find out more about the user (playcount, earliest scrobbles)
@@ -118,28 +126,30 @@ defmodule LastfmArchive.Extract do
   defp _info(user, {from, to}) do
     # pending, with a stop gap until Elixirfm pull requests are sorted out
     # this is so that `lastfm_archive` can be published on Hex now
-    #{_status, resp} = get_recent_tracks(user, limit: 1, page: 1, from: from, to: to)
-    #resp["recenttracks"]["@attr"]["total"]
-    
+    # {_status, resp} = get_recent_tracks(user, limit: 1, page: 1, from: from, to: to)
+    # resp["recenttracks"]["@attr"]["total"]
+
     # stop gap
-    {:ok, {{[?H, ?T, ?T, ?P | _], _status, _}, _headers, body}} = get_tracks(user, limit: 1, page: 1, from: from, to: to)
-    resp_body = body |> Jason.decode!
+    {:ok, {{[?H, ?T, ?T, ?P | _], _status, _}, _headers, body}} =
+      get_tracks(user, limit: 1, page: 1, from: from, to: to)
+
+    resp_body = body |> Jason.decode!()
     resp_body["recenttracks"]["@attr"]["total"]
   end
 
   # Lastfm keeps changing the date/count JSON data type back and forth (from string to integer)
   # use pattern matching to ensure the return date/count data is always in integer type
 
-  defp _format_info(playcount) when is_binary(playcount), do: playcount |> String.to_integer
+  defp _format_info(playcount) when is_binary(playcount), do: playcount |> String.to_integer()
   defp _format_info(playcount) when is_integer(playcount), do: playcount
 
   defp _format_info({playcount, registered}) when is_binary(playcount) or is_binary(registered) do
-    {playcount |> String.to_integer, registered |> String.to_integer}
+    {playcount |> String.to_integer(), registered |> String.to_integer()}
   end
 
-  defp _format_info({playcount, registered}) when is_integer(playcount) and is_integer(registered), do: {playcount, registered}
+  defp _format_info({playcount, registered}) when is_integer(playcount) and is_integer(registered),
+    do: {playcount, registered}
 
   defp _format_info({nil, nil}), do: {0, 0}
   defp _format_info(nil), do: 0
-
 end

@@ -29,14 +29,16 @@ defmodule LastfmArchive.Load do
 
   See `Hui.URL` module for more details.
   """
-  @spec ping_solr(binary|atom) :: {:ok, map} | {:error, Hui.Error.t}
+  @spec ping_solr(binary | atom) :: {:ok, map} | {:error, Hui.Error.t()}
   def ping_solr(url) when is_atom(url), do: Application.get_env(:hui, url)[:url] |> ping_solr
+
   def ping_solr(url) when is_binary(url) do
     response = :httpc.request(:get, {to_charlist(url <> "/admin/ping"), []}, [], [])
 
     case response do
       {:ok, {{[?H, ?T, ?T, ?P | _], status, _}, _headers, body}} ->
-        if status == 200, do: {:ok, body |> Jason.decode!}, else: {:error, %Hui.Error{reason: :einval}}
+        if status == 200, do: {:ok, body |> Jason.decode!()}, else: {:error, %Hui.Error{reason: :einval}}
+
       {:error, {:failed_connect, [{:to_address, _}, {:inet, [:inet], reason}]}} ->
         {:error, %Hui.Error{reason: reason}}
     end
@@ -58,8 +60,10 @@ defmodule LastfmArchive.Load do
 
   See `ping_solr/1` for more details on URL configuration.
   """
-  @spec check_solr_schema(binary|atom) :: {:ok, map} | {:error, Hui.Error.t}
-  def check_solr_schema(url) when is_atom(url) and url != nil, do: Application.get_env(:hui, url)[:url] |> check_solr_schema
+  @spec check_solr_schema(binary | atom) :: {:ok, map} | {:error, Hui.Error.t()}
+  def check_solr_schema(url) when is_atom(url) and url != nil,
+    do: Application.get_env(:hui, url)[:url] |> check_solr_schema
+
   def check_solr_schema(url) when is_binary(url), do: solr_schema(url) |> check_solr_schema
 
   def check_solr_schema(nil), do: {:error, %Hui.Error{reason: :ehostunreach}}
@@ -67,18 +71,18 @@ defmodule LastfmArchive.Load do
 
   def check_solr_schema({:ok, schema_data}) do
     schema = schema_data["schema"]
-    fields = schema["fields"] |> Enum.map(&(&1["name"]))
+    fields = schema["fields"] |> Enum.map(& &1["name"])
 
     {:ok, fields_s} = File.read("./solr/fields.json")
-    expected_fields = fields_s |> Jason.decode!
+    expected_fields = fields_s |> Jason.decode!()
 
     # simple check if field exists, no type checking for the time being
-    missing_fields = for {field, _type} <- expected_fields, do: unless Enum.member?(fields, field), do: field
-    missing_fields = missing_fields |> Enum.uniq |> List.delete(nil)
+    missing_fields = for {field, _type} <- expected_fields, do: unless(Enum.member?(fields, field), do: field)
+    missing_fields = missing_fields |> Enum.uniq() |> List.delete(nil)
 
-    if length(missing_fields) > 0 do 
+    if length(missing_fields) > 0 do
       {:error, %Hui.Error{reason: :einit}}
-    else 
+    else
       {:ok, expected_fields}
     end
   end
@@ -88,7 +92,8 @@ defmodule LastfmArchive.Load do
 
     case response do
       {:ok, {{[?H, ?T, ?T, ?P | _], status, _}, _headers, body}} ->
-        if status == 200, do: {:ok, body |> Jason.decode!}, else: {:error, %Hui.Error{reason: :ehostunreach}}
+        if status == 200, do: {:ok, body |> Jason.decode!()}, else: {:error, %Hui.Error{reason: :ehostunreach}}
+
       {:error, {:failed_connect, [{:to_address, _}, {:inet, [:inet], reason}]}} ->
         {:error, %Hui.Error{reason: reason}}
     end
@@ -116,27 +121,31 @@ defmodule LastfmArchive.Load do
   `LastfmArchive.transform_archive/2`.
 
   """
-  @spec load_solr(Hui.URL.t, binary, binary) :: {:ok, Hui.Http.t()} | {:error, :enoent}
+  @spec load_solr(Hui.URL.t(), binary, binary) :: {:ok, Hui.Http.t()} | {:error, :enoent}
   def load_solr(url, user, filename) do
     {status, resp} = read(user, filename)
 
     case status do
       :ok ->
         [header | scrobbles] = resp
-        solr_docs = for scrobble <- scrobbles, scrobble != "" do
-          field_names = header |> String.split("\t")
-          scrobble_data = scrobble |> String.split("\t")
-          map_fields(field_names, scrobble_data, []) |> Enum.into(%{})
-        end
+
+        solr_docs =
+          for scrobble <- scrobbles, scrobble != "" do
+            field_names = header |> String.split("\t")
+            scrobble_data = scrobble |> String.split("\t")
+            map_fields(field_names, scrobble_data, []) |> Enum.into(%{})
+          end
 
         Hui.update(url, solr_docs)
+
       :error ->
         {:error, resp}
     end
   end
 
   defp map_fields(_, [], acc), do: acc
-  defp map_fields([field_name|field_names], [data | rest_of_data], acc) do
+
+  defp map_fields([field_name | field_names], [data | rest_of_data], acc) do
     map_fields(field_names, rest_of_data, acc ++ [{field_name, data}])
   end
 
@@ -156,22 +165,24 @@ defmodule LastfmArchive.Load do
 
   # need to consolidate this with read functions from other modules,
   # e.g. into a generic read function under a separate IO module
-  @spec read(binary, binary) :: {:ok, list(binary)} | {:error, :file.posix}
+  @spec read(binary, binary) :: {:ok, list(binary)} | {:error, :file.posix()}
   def read(user, filename) do
     data_dir = Application.get_env(:lastfm_archive, :data_dir) || @default_data_dir
-    user_data_dir = Path.join data_dir, user
-    file_path = Path.join user_data_dir, filename
+    user_data_dir = Path.join(data_dir, user)
+    file_path = Path.join(user_data_dir, filename)
 
     {status, file_io} = File.open(file_path, [:read, :compressed, :utf8])
-    resp = case status do
-      :ok ->
-        {:ok, IO.read(file_io, :all) |> String.split("\n")}
-      :error ->
-        {:error, file_io}
-    end
+
+    resp =
+      case status do
+        :ok ->
+          {:ok, IO.read(file_io, :all) |> String.split("\n")}
+
+        :error ->
+          {:error, file_io}
+      end
 
     if is_pid(file_io), do: File.close(file_io)
     resp
   end
-
 end

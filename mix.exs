@@ -57,5 +57,4 @@ defmodule LastfmArchive.MixProject do
       }
     ]
   end
-
 end
