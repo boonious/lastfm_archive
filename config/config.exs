@@ -1,11 +1,13 @@
 use Mix.Config
 
 # Lastfm user for the archive
-config :lastfm_archive, 
+config :lastfm_archive,
   user: "",
   data_dir: "./lastfm_data/",
-  per_page: 200, # 200 is max permissable number of results per call
-  interval: 500 # milliseconds between requests cf. Lastfm permissable max 5 reqs/s rate
+  # 200 is max permissable number of results per call
+  per_page: 200,
+  # milliseconds between requests cf. Lastfm permissable max 5 reqs/s rate
+  interval: 500
 
 # API key required to extract Lastfm data
 # see: https://www.last.fm/api
@@ -21,4 +23,4 @@ config :hui, :lastfm_archive,
   headers: [{"Content-type", "application/json"}]
 
 # provides the above (private) credentails for local dev/testing purposes in lastfm.secret.exs
-if File.exists?("./config/lastfm.secret.exs"), do: import_config "lastfm.secret.exs"
+if File.exists?("./config/lastfm.secret.exs"), do: import_config("lastfm.secret.exs")
