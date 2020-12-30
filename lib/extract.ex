@@ -8,7 +8,7 @@ defmodule LastfmArchive.Extract do
   # until Elixirfm pull requests are resolved
   # import Elixirfm.User
 
-  @type lastfm_response :: {:ok, map} | {:error, binary, HTTPoison.Error.t}
+  @type lastfm_response :: {:ok, map} | {:error, binary, Hui.Error.t}
   @default_data_dir "./lastfm_data/"
 
   @doc """
@@ -33,8 +33,9 @@ defmodule LastfmArchive.Extract do
     lastfm_key = Application.get_env(:elixirfm, :api_key, System.get_env("LASTFM_API_KEY")) || raise "API key error"
 
     req_url = "#{base_url}2.0/?method=user.getrecenttracks&user=#{user}#{ext_query_string}&api_key=#{lastfm_key}&format=json"
-    HTTPoison.get(req_url, [], [{"Authorization", "Bearer #{lastfm_key}"}])
+    :httpc.request(:get, {to_charlist(req_url), [{'Authorization', to_charlist("Bearer #{lastfm_key}")}]}, [], [])
   end
+
   defp encode(nil), do: ""
   defp encode({_k, 0}), do: ""
   defp encode({k, v}), do: "&#{k}=#{v}"
@@ -46,8 +47,8 @@ defmodule LastfmArchive.Extract do
     lastfm_key = Application.get_env(:elixirfm, :api_key, System.get_env("LASTFM_API_KEY")) || raise "API key error"
 
     req_url = "#{base_url}2.0/?method=user.getinfo&user=#{user}&api_key=#{lastfm_key}&format=json"
-    {status, resp} = HTTPoison.get(req_url, [], [{"Authorization", "Bearer #{lastfm_key}"}])
-    {status, resp.body |> Poison.decode!}
+    {status, {{_scheme, _status, _}, _headers, body}} = :httpc.request(:get, {to_charlist(req_url), [{'Authorization', to_charlist("Bearer #{lastfm_key}")}]}, [], [])
+    {status, body |> Jason.decode!}
   end
 
   # --- end temporary stop gap
@@ -69,8 +70,8 @@ defmodule LastfmArchive.Extract do
   def write(user, data, filename \\ "1")
 
   # stop gap implementation until until Elixirfm pull requests are resolved
-  def write(user, {:ok, %HTTPoison.Response{body: data, headers: _, request_url: _, status_code: _}}, filename), do: write(user, data, filename)
-  def write(user, {:error, %HTTPoison.Error{id: nil, reason: reason}}, filename) do
+  def write(user, {:ok, {{_scheme, _status, _}, _headers, body}}, filename), do: write(user, body |> to_string(), filename)
+  def write(user, {:error, %Hui.Error{reason: reason}}, filename) do
     write(user, "error", Path.join(["error", reason|>to_string, filename]))
   end
 
@@ -121,8 +122,8 @@ defmodule LastfmArchive.Extract do
     #resp["recenttracks"]["@attr"]["total"]
     
     # stop gap
-    {_status, resp} = get_tracks(user, limit: 1, page: 1, from: from, to: to)
-    resp_body = resp.body |> Poison.decode!
+    {:ok, {{[?H, ?T, ?T, ?P | _], _status, _}, _headers, body}} = get_tracks(user, limit: 1, page: 1, from: from, to: to)
+    resp_body = body |> Jason.decode!
     resp_body["recenttracks"]["@attr"]["total"]
   end
 

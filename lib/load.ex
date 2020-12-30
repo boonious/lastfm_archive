@@ -32,12 +32,12 @@ defmodule LastfmArchive.Load do
   @spec ping_solr(binary|atom) :: {:ok, map} | {:error, Hui.Error.t}
   def ping_solr(url) when is_atom(url), do: Application.get_env(:hui, url)[:url] |> ping_solr
   def ping_solr(url) when is_binary(url) do
-    response = HTTPoison.get url <> "/admin/ping"
- 
+    response = :httpc.request(:get, {to_charlist(url <> "/admin/ping"), []}, [], [])
+
     case response do
-      {:ok, resp} -> 
-        if resp.status_code == 200, do: {:ok, resp.body |> Poison.decode!}, else: {:error, %Hui.Error{reason: :einval}}
-      {:error, %HTTPoison.Error{id: _, reason: reason}} ->
+      {:ok, {{[?H, ?T, ?T, ?P | _], status, _}, _headers, body}} ->
+        if status == 200, do: {:ok, body |> Jason.decode!}, else: {:error, %Hui.Error{reason: :einval}}
+      {:error, {:failed_connect, [{:to_address, _}, {:inet, [:inet], reason}]}} ->
         {:error, %Hui.Error{reason: reason}}
     end
   end
@@ -70,7 +70,7 @@ defmodule LastfmArchive.Load do
     fields = schema["fields"] |> Enum.map(&(&1["name"]))
 
     {:ok, fields_s} = File.read("./solr/fields.json")
-    expected_fields = fields_s |> Poison.decode!
+    expected_fields = fields_s |> Jason.decode!
 
     # simple check if field exists, no type checking for the time being
     missing_fields = for {field, _type} <- expected_fields, do: unless Enum.member?(fields, field), do: field
@@ -84,12 +84,12 @@ defmodule LastfmArchive.Load do
   end
 
   defp solr_schema(url) do
-    response = HTTPoison.get url <> "/schema"
-    
+    response = :httpc.request(:get, {to_charlist(url <> "/schema"), []}, [], [])
+
     case response do
-      {:ok, resp} -> 
-        if resp.status_code == 200, do: {:ok, resp.body |> Poison.decode!}, else: {:error, %Hui.Error{reason: :ehostunreach}}
-      {:error, %HTTPoison.Error{id: _, reason: reason}} ->
+      {:ok, {{[?H, ?T, ?T, ?P | _], status, _}, _headers, body}} ->
+        if status == 200, do: {:ok, body |> Jason.decode!}, else: {:error, %Hui.Error{reason: :ehostunreach}}
+      {:error, {:failed_connect, [{:to_address, _}, {:inet, [:inet], reason}]}} ->
         {:error, %Hui.Error{reason: reason}}
     end
   end
@@ -116,7 +116,7 @@ defmodule LastfmArchive.Load do
   `LastfmArchive.transform_archive/2`.
 
   """
-  @spec load_solr(Hui.URL.t, binary, binary) :: {:ok, HTTPoison.Response.t()} | {:error, :enoent}
+  @spec load_solr(Hui.URL.t, binary, binary) :: {:ok, Hui.Http.t()} | {:error, :enoent}
   def load_solr(url, user, filename) do
     {status, resp} = read(user, filename)
 

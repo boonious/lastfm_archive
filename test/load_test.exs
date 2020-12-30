@@ -43,7 +43,7 @@ defmodule LoadTest do
 
   test "Solr schema check by URL string", %{bypass: bypass} do
     url = "http://localhost:#{bypass.port}/"
-    expected_fields = File.read!(@expected_solr_fields_path) |> Poison.decode!
+    expected_fields = File.read!(@expected_solr_fields_path) |> Jason.decode!
 
     Bypass.expect bypass, fn conn ->      
       schema_response = File.read!(Path.join ["test","data", "schema_response.json"])
@@ -60,7 +60,7 @@ defmodule LoadTest do
   test "Solr schema schema by URL config key", %{bypass: bypass} do
     url = "http://localhost:#{bypass.port}/"
     Application.put_env :hui, :lastfm_ping_test2, url: url
-    expected_fields = File.read!(@expected_solr_fields_path) |> Poison.decode!
+    expected_fields = File.read!(@expected_solr_fields_path) |> Jason.decode!
 
     Bypass.expect bypass, fn conn ->      
       schema_response = File.read!(Path.join ["test","data", "schema_response.json"])

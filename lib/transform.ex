@@ -76,7 +76,7 @@ defmodule LastfmArchive.Transform do
 
     resp = case status do
       :ok ->
-        {:ok, IO.read(file_io, :line) |> Poison.decode!}
+        {:ok, IO.read(file_io, :line) |> Jason.decode!}
       :error ->
         {:error, file_io}
     end

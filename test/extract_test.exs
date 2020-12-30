@@ -41,7 +41,7 @@ defmodule ExtractTest do
       user = Application.get_env(:lastfm_archive, :user)
       api_key = Application.get_env(:elixirfm, :api_key)
       {_status, resp} = LastfmArchive.Extract.extract(user, 1, 5, 1325376000, 1356998399) # 2012 scrobbles
-      resp_body = resp.body |> Poison.decode!
+      resp_body = resp.body |> Jason.decode!
 
       track = resp_body["recenttracks"]["track"] |> hd
       track_date_uts = track["date"]["uts"] |> String.to_integer
