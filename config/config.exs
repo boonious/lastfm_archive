@@ -1,7 +1,8 @@
-use Mix.Config
+import Config
 
 # Lastfm user for the archive
 config :lastfm_archive,
+  api: %{api_key: "", endpoint: "", method: ""},
   user: "",
   data_dir: "./lastfm_data/",
   # 200 is max permissable number of results per call

@@ -135,8 +135,7 @@ defmodule LoadTest do
               options: [],
               status: 200,
               url: _
-            }} =
-             LastfmArchive.Load.load_solr(url, "test_user", "tsv/2018.tsv.gz")
+            }} = LastfmArchive.Load.load_solr(url, "test_user", "tsv/2018.tsv.gz")
 
     assert {:error, :enoent} = LastfmArchive.Load.load_solr(url, "test_user", "not_available_file.tsv.gz")
   end

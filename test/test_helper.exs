@@ -1,3 +1,5 @@
+Code.require_file("fixtures/lastfm.exs", __DIR__)
+
 ExUnit.start()
 
 defmodule TestHelpers do
