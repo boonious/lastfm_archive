@@ -8,11 +8,6 @@ defmodule LastfmArchiveTest do
 
   @test_data_dir Application.get_env(:lastfm_archive, :data_dir)
 
-  setup_all do
-    defmock(Lastfm.ClientMock, for: Lastfm.Client)
-    :ok
-  end
-
   describe "archive all scrobbles" do
     @describetag :disk_write
 

@@ -10,8 +10,8 @@ defmodule LastfmArchive.MixProject do
       app: :lastfm_archive,
       version: "0.7.2",
       elixir: "~> 1.11",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
-      escript: [main_module: LastfmArchive.Cli, path: "bin/lastfm_archive"],
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [coveralls: :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test],
@@ -29,6 +29,9 @@ defmodule LastfmArchive.MixProject do
     ]
   end
 
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
+  defp elixirc_paths(_), do: ["lib"]
+
   def application do
     [
       extra_applications: [:logger]
@@ -41,9 +44,8 @@ defmodule LastfmArchive.MixProject do
       {:excoveralls, "~> 0.13", only: :test},
       {:ex_doc, "~> 0.23", only: :dev, runtime: false},
       {:hammox, "~> 0.3", only: :test},
-      {:httpoison, "~> 1.5"},
-      {:poison, "~> 4.0.1"},
-      {:hui, "~> 0.10"}
+      {:hui, "~> 0.10"},
+      {:jason, "~> 1.2"}
     ]
   end
 
