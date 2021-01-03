@@ -15,8 +15,18 @@ defmodule Lastfm.Client do
           method: binary
         }
 
-  @type lastfm_response :: {:ok, map} | {:error, binary, Hui.Error.t()}
   @type user :: binary
+  @type page :: integer
+  @type limit :: integer
+  @type from :: integer
+  @type to :: integer
+
+  @doc """
+  Returns the scrobbles of a user for a given time range.
+
+  See Lastfm API [documentation](https://www.last.fm/api/show/user.getRecentTracks) for more details.
+  """
+  @callback scrobbles(user, {page, limit, from, to}, t) :: map
 
   @doc """
   Returns the total playcount and earliest scrobble date for a user.
@@ -26,5 +36,5 @@ defmodule Lastfm.Client do
   @doc """
   Returns the playcount of a user for a given time range.
   """
-  @callback playcount(user, {integer, integer}, t) :: integer
+  @callback playcount(user, {from, to}, t) :: integer
 end

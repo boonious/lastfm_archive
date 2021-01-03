@@ -1,23 +1,12 @@
 defmodule ExtractTest do
   use ExUnit.Case, async: true
-  import TestHelpers
 
   doctest LastfmArchive
-
-  @lastfm_tracks_api_params %{
-    "method" => "user.getrecenttracks",
-    "api_key" => Application.get_env(:elixirfm, :api_key),
-    "user" => Application.get_env(:lastfm_archive, :user),
-    "limit" => "1",
-    "extended" => "1",
-    "page" => "1"
-  }
 
   @test_data_dir Path.join([".", "lastfm_data", "test", "extract"])
 
   # testing with Bypass
   setup do
-    lastfm_ws = Application.get_env(:elixirfm, :lastfm_ws)
     configured_dir = Application.get_env(:lastfm_archive, :data_dir)
 
     # true if mix test --include integration 
@@ -25,35 +14,10 @@ defmodule ExtractTest do
     bypass = unless is_integration, do: Bypass.open(), else: nil
 
     on_exit(fn ->
-      Application.put_env(:elixirfm, :lastfm_ws, lastfm_ws)
       Application.put_env(:lastfm_archive, :data_dir, configured_dir)
     end)
 
     [bypass: bypass]
-  end
-
-  test "extract/5 requests params for a specific user", %{bypass: bypass} do
-    if(bypass) do
-      # Bypass test
-      test_bypass_conn_params(bypass, %{@lastfm_tracks_api_params | "user" => "a_lastfm_user"})
-      LastfmArchive.Extract.extract("a_lastfm_user")
-    else
-      # integration test, require a user with 2012 scrobbles
-      user = Application.get_env(:lastfm_archive, :user)
-      api_key = Application.get_env(:elixirfm, :api_key)
-      # 2012 scrobbles
-      {_status, resp} = LastfmArchive.Extract.extract(user, 1, 5, 1_325_376_000, 1_356_998_399)
-      resp_body = resp.body |> Jason.decode!()
-
-      track = resp_body["recenttracks"]["track"] |> hd
-      track_date_uts = track["date"]["uts"] |> String.to_integer()
-      track_date = DateTime.from_unix!(track_date_uts)
-
-      assert track_date.year == 2012
-      assert length(resp_body["recenttracks"]["track"]) == 5
-      assert String.match?(resp.request_url, ~r/#{user}/)
-      assert String.match?(resp.request_url, ~r/#{api_key}/)
-    end
   end
 
   describe "data output" do

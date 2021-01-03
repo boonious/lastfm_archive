@@ -4,6 +4,64 @@ defmodule Lastfm.ExtractTest do
   import Fixtures.Lastfm
   alias Lastfm.{Client, Extract}
 
+  describe "scrobbles/3" do
+    setup do
+      bypass = Bypass.open()
+
+      %{
+        bypass: bypass,
+        api: %Client{api_key: "12345", endpoint: "http://localhost:#{bypass.port}/", method: "user.getrecenttracks"},
+        params: {1, 1, 1_167_609_600, 1_199_145_599}
+      }
+    end
+
+    test "returns scrobbles of a user for given a time range", %{bypass: bypass, api: api, params: params} do
+      {user, count} = {"a_lastfm_user", 12}
+
+      Bypass.expect(bypass, fn conn ->
+        params = Plug.Conn.fetch_query_params(conn) |> Map.fetch!(:query_params)
+        authorization_header = conn.req_headers |> Enum.find(&(elem(&1, 0) == "authorization")) |> elem(1)
+
+        assert "Bearer #{api.api_key}" == authorization_header
+
+        assert %{
+                 "api_key" => "12345",
+                 "method" => "user.getrecenttracks",
+                 "user" => "a_lastfm_user",
+                 "from" => "1167609600",
+                 "to" => "1199145599",
+                 "page" => "1",
+                 "limit" => "1"
+               } = params
+
+        Plug.Conn.resp(conn, 200, recent_tracks(user, count))
+      end)
+
+      assert %{"recenttracks" => %{"@attr" => %{"user" => ^user, "total" => ^count}}} =
+               Extract.scrobbles("a_lastfm_user", params, api)
+    end
+
+    test "raises exception when API returns error", %{bypass: bypass, api: api, params: params} do
+      error_message = "Invalid Method - No method with that name in this package"
+
+      Bypass.expect(bypass, fn conn ->
+        Plug.Conn.resp(conn, 200, "{\"error\":3,\"message\":\"#{error_message}\"}")
+      end)
+
+      assert_raise RuntimeError, error_message, fn ->
+        Extract.scrobbles("a_lastfm_user", params, api)
+      end
+    end
+
+    test "raises exception when Lastfm API is down", %{bypass: bypass, api: api, params: params} do
+      Bypass.down(bypass)
+
+      assert_raise RuntimeError, "failed to connect with Lastfm API", fn ->
+        Extract.scrobbles("a_lastfm_user", params, api)
+      end
+    end
+  end
+
   describe "info/2" do
     setup do
       bypass = Bypass.open()
@@ -49,7 +107,7 @@ defmodule Lastfm.ExtractTest do
     end
   end
 
-  describe "playcount/2" do
+  describe "playcount/3" do
     setup do
       bypass = Bypass.open()
 
@@ -61,6 +119,8 @@ defmodule Lastfm.ExtractTest do
     end
 
     test "returns count of a user given a time range", %{bypass: bypass, api: api, time_range: time_range} do
+      count = 12
+
       Bypass.expect(bypass, fn conn ->
         params = Plug.Conn.fetch_query_params(conn) |> Map.fetch!(:query_params)
         authorization_header = conn.req_headers |> Enum.find(&(elem(&1, 0) == "authorization")) |> elem(1)
@@ -75,10 +135,10 @@ defmodule Lastfm.ExtractTest do
                  "to" => "1199145599"
                } = params
 
-        Plug.Conn.resp(conn, 200, recent_tracks("a_lastfm_user", "12"))
+        Plug.Conn.resp(conn, 200, recent_tracks("a_lastfm_user", count))
       end)
 
-      Extract.playcount("a_lastfm_user", time_range, api)
+      assert count == Extract.playcount("a_lastfm_user", time_range, api)
     end
 
     test "playcount/2 raises exception when API returns error", context do

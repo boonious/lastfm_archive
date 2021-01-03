@@ -11,13 +11,6 @@ config :lastfm_archive,
   # milliseconds between requests cf. Lastfm permissable max 5 reqs/s rate
   interval: 500
 
-# API key required to extract Lastfm data
-# see: https://www.last.fm/api
-config :elixirfm,
-  lastfm_ws: "http://ws.audioscrobbler.com/",
-  api_key: "",
-  secret_key: ""
-
 # optional: Solr endpoint for Lastfm data loading
 config :hui, :lastfm_archive,
   url: "http://localhost:8983/solr/lastfm_archive",

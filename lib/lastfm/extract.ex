@@ -25,6 +25,21 @@ defmodule Lastfm.Extract do
   end
 
   @impl true
+  def scrobbles(user, {page, limit, from, to}, api \\ %Client{method: "user.getrecenttracks"}) do
+    extra_query = [limit: limit, page: page, from: from, to: to, extended: 1] |> encode() |> Enum.join()
+
+    "#{api.endpoint}2.0/?method=#{api.method}&user=#{user}&api_key=#{api.api_key}&format=json#{extra_query}"
+    |> get(api.api_key)
+    |> case do
+      %{"recenttracks" => _} = scrobbles ->
+        scrobbles
+
+      %{"error" => _, "message" => message} ->
+        raise message
+    end
+  end
+
+  @impl true
   def playcount(user, {from, to}, api \\ %Client{method: "user.getrecenttracks"}) do
     extra_query = [limit: 1, page: 1, from: from, to: to] |> encode() |> Enum.join()
 

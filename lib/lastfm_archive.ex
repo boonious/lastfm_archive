@@ -15,11 +15,6 @@ defmodule LastfmArchive do
 
   """
 
-  # pending, with stop gap functions for `LastfmArchive.Extract.get_recent_tracks`,
-  # `LastfmArchive.Extract.get_info`
-  # until Elixirfm pull requests are resolved
-  # import Elixirfm.User
-
   import LastfmArchive.Extract
 
   @lastfm_client Application.get_env(:lastfm_archive, :lastfm_client)
@@ -384,8 +379,10 @@ defmodule LastfmArchive do
       end
 
     if not file_exists?(user, filename) or overwrite do
-      data = extract(user, page, per_page, from, to)
-      write(user, data, filename)
+      scrobbles =
+        @lastfm_client.scrobbles(user, {page, per_page, from, to}, %Lastfm.Client{method: "user.getrecenttracks"})
+
+      write(user, scrobbles, filename)
       IO.write(".")
       :timer.sleep(interval)
     end
