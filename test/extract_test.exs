@@ -3,32 +3,15 @@ defmodule ExtractTest do
 
   doctest LastfmArchive
 
-  @test_data_dir Path.join([".", "lastfm_data", "test", "extract"])
-
-  # testing with Bypass
-  setup do
-    configured_dir = Application.get_env(:lastfm_archive, :data_dir)
-
-    # true if mix test --include integration 
-    is_integration = :integration in ExUnit.configuration()[:include]
-    bypass = unless is_integration, do: Bypass.open(), else: nil
-
-    on_exit(fn ->
-      Application.put_env(:lastfm_archive, :data_dir, configured_dir)
-    end)
-
-    [bypass: bypass]
-  end
+  @test_data_dir Application.get_env(:lastfm_archive, :data_dir)
 
   describe "data output" do
     @describetag :disk_write
 
     test "write/3 compressed data to the default file location" do
-      user = Application.get_env(:lastfm_archive, :user) || ""
-      Application.put_env(:lastfm_archive, :data_dir, @test_data_dir)
-
+      user = "extract_user"
       file_path = Path.join(["#{@test_data_dir}", "#{user}", "1.gz"])
-      on_exit(fn -> File.rm(file_path) end)
+      on_exit(fn -> File.rm_rf(Path.join(@test_data_dir, "#{user}")) end)
 
       # use mocked data when available
       LastfmArchive.Extract.write(user, "test")
@@ -37,12 +20,9 @@ defmodule ExtractTest do
     end
 
     test "write/3 compressed data to the configured file location" do
-      user = Application.get_env(:lastfm_archive, :user) || ""
-      Application.put_env(:lastfm_archive, :data_dir, @test_data_dir)
-
-      data_dir = Application.get_env(:lastfm_archive, :data_dir)
-      file_path = Path.join(["#{data_dir}", "#{user}", "1.gz"])
-      on_exit(fn -> File.rm(file_path) end)
+      user = "extract_user"
+      file_path = Path.join(["#{@test_data_dir}", "#{user}", "1.gz"])
+      on_exit(fn -> File.rm_rf(Path.join(@test_data_dir, "#{user}")) end)
 
       # use mocked data when available
       LastfmArchive.Extract.write(user, "test")
@@ -51,12 +31,9 @@ defmodule ExtractTest do
     end
 
     test "write/2 compressed data to nested file location" do
-      user = Application.get_env(:lastfm_archive, :user) || ""
-      Application.put_env(:lastfm_archive, :data_dir, @test_data_dir)
-
-      data_dir = Application.get_env(:lastfm_archive, :data_dir)
-      file_path = Path.join(["#{data_dir}", "#{user}", "2007/02/1.gz"])
-      on_exit(fn -> File.rm(file_path) end)
+      user = "extract_user"
+      file_path = Path.join(["#{@test_data_dir}", "#{user}", "2007/02/1.gz"])
+      on_exit(fn -> File.rm_rf(Path.join(@test_data_dir, "#{user}")) end)
 
       # use mocked data when available
       LastfmArchive.Extract.write(user, "test", "2007/02/1")
