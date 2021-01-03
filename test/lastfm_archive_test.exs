@@ -1,12 +1,18 @@
 defmodule LastfmArchiveTest do
   use ExUnit.Case
+
   import ExUnit.CaptureIO
   import TestHelpers
+  import Mox
 
   doctest LastfmArchive
 
   @test_data_dir Path.join([".", "lastfm_data", "test", "archive"])
-  @interval Application.get_env(:lastfm_archive, :interval) || 500
+
+  setup_all do
+    defmock(Lastfm.ClientMock, for: Lastfm.Client)
+    :ok
+  end
 
   # testing with Bypass
   setup do
@@ -33,11 +39,9 @@ defmodule LastfmArchiveTest do
       if(bypass) do
         user = Application.get_env(:lastfm_archive, :user)
 
-        # speed up this test
-        # no requirement for 'interval' beetween requests
-        # as per rate limit
-        # since Bypass test is not hitting Lastfm API
-        Application.put_env(:lastfm_archive, :interval, 1)
+        Lastfm.ClientMock
+        |> expect(:info, fn ^user, _api -> {1234, 1_472_601_600} end)
+        |> stub(:playcount, fn ^user, _time_range, _api -> 12 end)
 
         prebaked_resp = %{
           "info" => "./test/data/test_user.json",
@@ -51,7 +55,6 @@ defmodule LastfmArchiveTest do
         assert File.exists?(no_scrobble_log_file)
       end
     after
-      Application.put_env(:lastfm_archive, :interval, @interval)
       File.rm_rf(Path.join(@test_data_dir, "1"))
     end
 
@@ -59,6 +62,10 @@ defmodule LastfmArchiveTest do
       # Bypass test only
       if(bypass) do
         user = "a_lastfm_user"
+
+        Lastfm.ClientMock
+        |> expect(:info, fn ^user, _api -> {12, 1_483_228_800} end)
+        |> stub(:playcount, fn ^user, _time_range, _api -> 12 end)
 
         prebaked_resp = %{
           "info" => "./test/data/test_user2.json",
@@ -77,6 +84,8 @@ defmodule LastfmArchiveTest do
       if(bypass) do
         user = "a_lastfm_user"
         archive_year = 2015
+
+        Lastfm.ClientMock |> stub(:playcount, fn ^user, _time_range, _api -> 12 end)
 
         prebaked_resp = %{
           "info" => "./test/data/test_user2.json",
@@ -98,6 +107,8 @@ defmodule LastfmArchiveTest do
       if(bypass) do
         user = "a_lastfm_user"
         archive_day = ~D[2012-12-12]
+
+        Lastfm.ClientMock |> stub(:playcount, fn ^user, _time_range, _api -> 12 end)
 
         prebaked_resp = %{
           "info" => "./test/data/test_user2.json",
@@ -121,6 +132,8 @@ defmodule LastfmArchiveTest do
         user = "a_lastfm_user"
         date_range = :today
 
+        Lastfm.ClientMock |> stub(:playcount, fn ^user, _time_range, _api -> 12 end)
+
         prebaked_resp = %{
           "info" => "./test/data/test_user2.json",
           "recenttracks" => "./test/data/test_recenttracks.json"
@@ -143,6 +156,8 @@ defmodule LastfmArchiveTest do
         user = "a_lastfm_user"
         date_range = :yesterday
 
+        Lastfm.ClientMock |> stub(:playcount, fn ^user, _time_range, _api -> 12 end)
+
         prebaked_resp = %{
           "info" => "./test/data/test_user2.json",
           "recenttracks" => "./test/data/test_recenttracks.json"
@@ -164,6 +179,8 @@ defmodule LastfmArchiveTest do
       if(bypass) do
         user = "a_lastfm_user"
         date_range = Date.range(~D[2017-11-12], ~D[2018-04-01])
+
+        Lastfm.ClientMock |> stub(:playcount, fn ^user, _time_range, _api -> 12 end)
 
         prebaked_resp = %{
           "info" => "./test/data/test_user2.json",
@@ -189,6 +206,8 @@ defmodule LastfmArchiveTest do
         user = "a_lastfm_user"
         date_range = Date.range(~D[2005-05-12], ~D[2005-12-01])
 
+        Lastfm.ClientMock |> stub(:playcount, fn ^user, _time_range, _api -> 12 end)
+
         prebaked_resp = %{
           "info" => "./test/data/test_user2.json",
           "recenttracks" => "./test/data/test_recenttracks.json"
@@ -209,6 +228,8 @@ defmodule LastfmArchiveTest do
       if(bypass) do
         user = "a_lastfm_user"
         date_range = Date.range(~D[2018-05-30], ~D[2018-06-01])
+
+        Lastfm.ClientMock |> stub(:playcount, fn ^user, _time_range, _api -> 12 end)
 
         prebaked_resp = %{
           "info" => "./test/data/test_user2.json",
@@ -239,9 +260,9 @@ defmodule LastfmArchiveTest do
       if(bypass) do
         user = Application.get_env(:lastfm_archive, :user)
 
-        # speed up this test
-        # no requirement for 'interval' beetween requests, since Bypass test is not hitting Lastfm API
-        Application.put_env(:lastfm_archive, :interval, 1)
+        Lastfm.ClientMock
+        |> expect(:info, fn ^user, _api -> {1234, 1_472_601_600} end)
+        |> stub(:playcount, fn ^user, _time_range, _api -> 12 end)
 
         prebaked_resp = %{
           "info" => "./test/data/test_user.json",
@@ -259,7 +280,6 @@ defmodule LastfmArchiveTest do
         capture_io(fn -> LastfmArchive.sync() end)
       end
     after
-      Application.put_env(:lastfm_archive, :interval, @interval)
       File.rm_rf(Path.join(@test_data_dir, "10"))
     end
 
@@ -267,7 +287,10 @@ defmodule LastfmArchiveTest do
       # Bypass test only
       if(bypass) do
         user = "a_lastfm_user"
-        Application.put_env(:lastfm_archive, :interval, 1)
+        expect(Lastfm.ClientMock, :info, fn ^user, _api -> {1234, 1_472_601_600} end)
+
+        Lastfm.ClientMock
+        |> stub(:playcount, fn ^user, _time_range, _api -> 12 end)
 
         prebaked_resp = %{
           "info" => "./test/data/test_user.json",
@@ -284,7 +307,6 @@ defmodule LastfmArchiveTest do
         capture_io(fn -> LastfmArchive.sync(user) end)
       end
     after
-      Application.put_env(:lastfm_archive, :interval, @interval)
       File.rm_rf(Path.join(@test_data_dir, "11"))
     end
   end

@@ -40,6 +40,7 @@ defmodule LastfmArchive.MixProject do
       {:bypass, "~> 2.1", only: :test},
       {:excoveralls, "~> 0.13", only: :test},
       {:ex_doc, "~> 0.23", only: :dev, runtime: false},
+      {:hammox, "~> 0.3", only: :test},
       {:httpoison, "~> 1.5"},
       {:poison, "~> 4.0.1"},
       {:hui, "~> 0.10"}
