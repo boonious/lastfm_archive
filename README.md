@@ -1,4 +1,4 @@
-# Lastfm Archive [![Build Status](https://travis-ci.org/boonious/lastfm_archive.svg?branch=master)](https://travis-ci.org/boonious/lastfm_archive) [![Hex pm](http://img.shields.io/hexpm/v/lastfm_archive.svg?style=flat)](https://hex.pm/packages/lastfm_archive) [![Coverage Status](https://coveralls.io/repos/github/boonious/lastfm_archive/badge.svg)](https://coveralls.io/github/boonious/lastfm_archive?branch=master)
+# Lastfm Archive [![Build Status](https://api.travis-ci.com/boonious/lastfm_archive.svg?branch=master)](https://travis-ci.com/boonious/lastfm_archive) [![Hex pm](http://img.shields.io/hexpm/v/lastfm_archive.svg?style=flat)](https://hex.pm/packages/lastfm_archive) [![Coverage Status](https://coveralls.io/repos/github/boonious/lastfm_archive/badge.svg)](https://coveralls.io/github/boonious/lastfm_archive?branch=master)
 
 A tool for creating local Last.fm scrobble file archive, Solr archive and analytics.
 
