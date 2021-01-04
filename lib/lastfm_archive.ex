@@ -15,21 +15,18 @@ defmodule LastfmArchive do
 
   """
 
-  # pending, with stop gap functions for `LastfmArchive.Extract.get_recent_tracks`,
-  # `LastfmArchive.Extract.get_info`
-  # until Elixirfm pull requests are resolved
-  # import Elixirfm.User
-
   import LastfmArchive.Extract
 
-  @type date_range :: :all | :today | :yesterday | integer | Date.t() | Date.Range.t()
-  @type solr_url :: atom | Hui.URL.t()
+  @lastfm_client Application.get_env(:lastfm_archive, :lastfm_client)
 
   @default_data_dir "./lastfm_data/"
   @default_opts %{"interval" => 500, "per_page" => 200, "overwrite" => false, "daily" => false}
   @no_scrobble_log_filenmae ".no_scrobble"
 
   @tsv_file_header "id\tname\tscrobble_date\tscrobble_date_iso\tmbid\turl\tartist\tartist_mbid\tartist_url\talbum\talbum_mbid"
+
+  @type date_range :: :all | :today | :yesterday | integer | Date.t() | Date.Range.t()
+  @type solr_url :: atom | Hui.URL.t()
 
   @doc false
   defguard is_year(y) when is_integer(y) and y < 3000 and y > 2000
@@ -303,7 +300,7 @@ defmodule LastfmArchive do
   end
 
   def archive(user, :all, options) do
-    {playcount, registered} = info(user)
+    {playcount, registered} = @lastfm_client.info(user, %Lastfm.Client{method: "user.getinfo"})
 
     IO.puts("Archiving #{playcount} scrobbles for #{user}")
 
@@ -332,7 +329,7 @@ defmodule LastfmArchive do
 
   # daily / year  batch archiving
   defp _archive(user, {from, to}, options) do
-    playcount = info(user, {from, to})
+    playcount = @lastfm_client.playcount(user, {from, to}, %Lastfm.Client{method: "user.getrecenttracks"})
     per_page = option(options, :per_page)
     total_pages = (playcount / per_page) |> :math.ceil() |> round
 
@@ -382,8 +379,10 @@ defmodule LastfmArchive do
       end
 
     if not file_exists?(user, filename) or overwrite do
-      data = extract(user, page, per_page, from, to)
-      write(user, data, filename)
+      scrobbles =
+        @lastfm_client.scrobbles(user, {page, per_page, from, to}, %Lastfm.Client{method: "user.getrecenttracks"})
+
+      write(user, scrobbles, filename)
       IO.write(".")
       :timer.sleep(interval)
     end

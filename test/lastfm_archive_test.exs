@@ -1,291 +1,171 @@
 defmodule LastfmArchiveTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
+
   import ExUnit.CaptureIO
-  import TestHelpers
+  import Mox
 
   doctest LastfmArchive
 
-  @test_data_dir Path.join([".", "lastfm_data", "test", "archive"])
-  @interval Application.get_env(:lastfm_archive, :interval) || 500
+  @test_data_dir Application.get_env(:lastfm_archive, :data_dir)
 
-  # testing with Bypass
-  setup do
-    lastfm_ws = Application.get_env(:elixirfm, :lastfm_ws)
-    configured_dir = Application.get_env(:lastfm_archive, :data_dir)
-
-    # true if mix test --include integration
-    is_integration = :integration in ExUnit.configuration()[:include]
-    bypass = unless is_integration, do: Bypass.open(), else: nil
-
-    on_exit(fn ->
-      Application.put_env(:elixirfm, :lastfm_ws, lastfm_ws)
-      Application.put_env(:lastfm_archive, :data_dir, configured_dir)
-    end)
-
-    [bypass: bypass]
-  end
-
-  describe "archive" do
+  describe "archive all scrobbles" do
     @describetag :disk_write
 
-    test "scrobbles of the configured user - archive/0", %{bypass: bypass} do
-      # Bypass test only
-      if(bypass) do
-        user = Application.get_env(:lastfm_archive, :user)
+    test "of the configured user - archive/0" do
+      user = Application.get_env(:lastfm_archive, :user)
 
-        # speed up this test
-        # no requirement for 'interval' beetween requests
-        # as per rate limit
-        # since Bypass test is not hitting Lastfm API
-        Application.put_env(:lastfm_archive, :interval, 1)
+      Lastfm.ClientMock
+      |> expect(:info, fn ^user, _api -> {1234, 1_472_601_600} end)
+      |> stub(:playcount, fn ^user, _time_range, _api -> 12 end)
+      |> stub(:scrobbles, fn ^user, _params, _api -> %{} end)
 
-        prebaked_resp = %{
-          "info" => "./test/data/test_user.json",
-          "recenttracks" => "./test/data/test_recenttracks_no_scrobble.json"
-        }
-
-        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "1"), user, prebaked_resp)
-        capture_io(fn -> LastfmArchive.archive() end)
-
-        no_scrobble_log_file = Path.join([@test_data_dir, "1", user, ".no_scrobble"])
-        assert File.exists?(no_scrobble_log_file)
-      end
-    after
-      Application.put_env(:lastfm_archive, :interval, @interval)
-      File.rm_rf(Path.join(@test_data_dir, "1"))
+      capture_io(fn -> LastfmArchive.archive() end)
     end
 
-    test "scrobbles of a Lastfm user - archive/2", %{bypass: bypass} do
-      # Bypass test only
-      if(bypass) do
-        user = "a_lastfm_user"
+    test "of a given Lastfm user - archive/2" do
+      user = "a_lastfm_user"
 
-        prebaked_resp = %{
-          "info" => "./test/data/test_user2.json",
-          "recenttracks" => "./test/data/test_recenttracks.json"
-        }
+      Lastfm.ClientMock
+      |> expect(:info, fn ^user, _api -> {12, DateTime.utc_now() |> DateTime.to_unix()} end)
+      |> stub(:playcount, fn ^user, _time_range, _api -> 0 end)
+      |> stub(:scrobbles, fn ^user, _params, _api -> %{} end)
 
-        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "2"), user, prebaked_resp)
-        capture_io(fn -> LastfmArchive.archive(user, interval: 0) end)
-      end
+      capture_io(fn -> LastfmArchive.archive(user, interval: 0) end)
     after
-      File.rm_rf(Path.join(@test_data_dir, "2"))
+      File.rm_rf(Path.join(@test_data_dir, "a_lastfm_user"))
+    end
+  end
+
+  describe "archive/3 scrobbles of a Lastfm user given a time frame:" do
+    setup do
+      user = Application.get_env(:lastfm_archive, :user)
+
+      Lastfm.ClientMock
+      |> stub(:playcount, fn ^user, _time_range, _api -> 12 end)
+      |> stub(:scrobbles, fn ^user, _params, _api -> %{} end)
+
+      on_exit(fn ->
+        File.rm_rf(Path.join(@test_data_dir, user))
+      end)
+
+      %{user: user}
     end
 
-    test "single year scrobbles of a Lastfm user, archive/3", %{bypass: bypass} do
-      # Bypass test only
-      if(bypass) do
-        user = "a_lastfm_user"
-        archive_year = 2015
+    test "single year", %{user: user} do
+      archive_year = 2015
+      archive_dir = Path.join([@test_data_dir, user, archive_year |> to_string])
 
-        prebaked_resp = %{
-          "info" => "./test/data/test_user2.json",
-          "recenttracks" => "./test/data/test_recenttracks.json"
-        }
-
-        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "3"), user, prebaked_resp)
-        capture_io(fn -> LastfmArchive.archive(user, archive_year, interval: 0) end)
-
-        archive_year_dir = Path.join([@test_data_dir, "3", user, archive_year |> to_string])
-        assert File.dir?(archive_year_dir)
-      end
-    after
-      File.rm_rf(Path.join(@test_data_dir, "3"))
+      capture_io(fn -> LastfmArchive.archive(user, archive_year, interval: 0) end)
+      assert File.dir?(archive_dir)
     end
 
-    test "single day scrobbles of a Lastfm user, Date | archive/3", %{bypass: bypass} do
-      # Bypass test only
-      if(bypass) do
-        user = "a_lastfm_user"
-        archive_day = ~D[2012-12-12]
+    test "single day", %{user: user} do
+      archive_day = ~D[2012-12-12]
+      file_path = archive_day |> Date.to_string() |> String.split("-") |> Path.join()
+      archive_dir = Path.join([@test_data_dir, user, file_path])
 
-        prebaked_resp = %{
-          "info" => "./test/data/test_user2.json",
-          "recenttracks" => "./test/data/test_recenttracks.json"
-        }
-
-        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "4"), user, prebaked_resp)
-        capture_io(fn -> LastfmArchive.archive(user, archive_day, interval: 0) end)
-
-        file_path = archive_day |> Date.to_string() |> String.split("-") |> Path.join()
-        archive_year_dir = Path.join([@test_data_dir, "4", user, file_path])
-        assert File.dir?(archive_year_dir)
-      end
-    after
-      File.rm_rf(Path.join(@test_data_dir, "4"))
+      capture_io(fn -> LastfmArchive.archive(user, archive_day, interval: 0) end)
+      assert File.dir?(archive_dir)
     end
 
-    test "today's scrobbles of a Lastfm user, :today | archive/3", %{bypass: bypass} do
-      # Bypass test only
-      if(bypass) do
-        user = "a_lastfm_user"
-        date_range = :today
+    test "today", %{user: user} do
+      date_range = :today
+      file_path = Date.utc_today() |> Date.to_string() |> String.split("-") |> Path.join()
+      archive_dir = Path.join([@test_data_dir, user, file_path])
 
-        prebaked_resp = %{
-          "info" => "./test/data/test_user2.json",
-          "recenttracks" => "./test/data/test_recenttracks.json"
-        }
-
-        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "5"), user, prebaked_resp)
-        capture_io(fn -> LastfmArchive.archive(user, date_range, interval: 0) end)
-
-        file_path = Date.utc_today() |> Date.to_string() |> String.split("-") |> Path.join()
-        archive_year_dir = Path.join([@test_data_dir, "5", user, file_path])
-        assert File.dir?(archive_year_dir)
-      end
-    after
-      File.rm_rf(Path.join(@test_data_dir, "5"))
+      capture_io(fn -> LastfmArchive.archive(user, date_range, interval: 0) end)
+      assert File.dir?(archive_dir)
     end
 
-    test "yesterday's (:yesterday) scrobbles of a Lastfm user, :yesterday | archive/3", %{bypass: bypass} do
-      # Bypass test only
-      if(bypass) do
-        user = "a_lastfm_user"
-        date_range = :yesterday
+    test "yesterday", %{user: user} do
+      date_range = :yesterday
+      file_path = Date.utc_today() |> Date.add(-1) |> Date.to_string() |> String.split("-") |> Path.join()
+      archive_dir = Path.join([@test_data_dir, user, file_path])
 
-        prebaked_resp = %{
-          "info" => "./test/data/test_user2.json",
-          "recenttracks" => "./test/data/test_recenttracks.json"
-        }
-
-        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "6"), user, prebaked_resp)
-        capture_io(fn -> LastfmArchive.archive(user, date_range, interval: 0) end)
-
-        file_path = Date.utc_today() |> Date.add(-1) |> Date.to_string() |> String.split("-") |> Path.join()
-        archive_year_dir = Path.join([@test_data_dir, "6", user, file_path])
-        assert File.dir?(archive_year_dir)
-      end
-    after
-      File.rm_rf(Path.join(@test_data_dir, "6"))
+      capture_io(fn -> LastfmArchive.archive(user, date_range, interval: 0) end)
+      assert File.dir?(archive_dir)
     end
 
-    test "date range (multi-years) scrobbles of a Lastfm user, archive/3", %{bypass: bypass} do
-      # Bypass test only
-      if(bypass) do
-        user = "a_lastfm_user"
-        date_range = Date.range(~D[2017-11-12], ~D[2018-04-01])
+    test "multi-years date range", %{user: user} do
+      date_range = Date.range(~D[2017-11-12], ~D[2018-04-01])
+      capture_io(fn -> LastfmArchive.archive(user, date_range, interval: 0) end)
 
-        prebaked_resp = %{
-          "info" => "./test/data/test_user2.json",
-          "recenttracks" => "./test/data/test_recenttracks.json"
-        }
+      archive_dir = Path.join([@test_data_dir, user, "2017"])
+      assert File.dir?(archive_dir)
 
-        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "7"), user, prebaked_resp)
-        capture_io(fn -> LastfmArchive.archive(user, date_range, interval: 0) end)
-
-        archive_year_dir = Path.join([@test_data_dir, "7", user, "2017"])
-        assert File.dir?(archive_year_dir)
-
-        archive_year_dir = Path.join([@test_data_dir, "7", user, "2018"])
-        assert File.dir?(archive_year_dir)
-      end
-    after
-      File.rm_rf(Path.join(@test_data_dir, "7"))
+      archive_dir = Path.join([@test_data_dir, user, "2018"])
+      assert File.dir?(archive_dir)
     end
 
-    test "date range (single year) scrobbles of a Lastfm user, archive/3", %{bypass: bypass} do
-      # Bypass test only
-      if(bypass) do
-        user = "a_lastfm_user"
-        date_range = Date.range(~D[2005-05-12], ~D[2005-12-01])
+    test "date range within a single year", %{user: user} do
+      date_range = Date.range(~D[2005-05-12], ~D[2005-12-01])
 
-        prebaked_resp = %{
-          "info" => "./test/data/test_user2.json",
-          "recenttracks" => "./test/data/test_recenttracks.json"
-        }
+      capture_io(fn -> LastfmArchive.archive(user, date_range, interval: 0) end)
 
-        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "8"), user, prebaked_resp)
-        capture_io(fn -> LastfmArchive.archive(user, date_range, interval: 0) end)
-
-        archive_year_dir = Path.join([@test_data_dir, "8", user, "2005"])
-        assert File.dir?(archive_year_dir)
-      end
-    after
-      File.rm_rf(Path.join(@test_data_dir, "8"))
+      archive_dir = Path.join([@test_data_dir, user, "2005"])
+      assert File.dir?(archive_dir)
     end
 
-    test "date range (daily) scrobbles of a Lastfm user, Date.Range | archive/3", %{bypass: bypass} do
-      # Bypass test only
-      if(bypass) do
-        user = "a_lastfm_user"
-        date_range = Date.range(~D[2018-05-30], ~D[2018-06-01])
+    test "date range in daily granularity", %{user: user} do
+      date_range = Date.range(~D[2018-05-30], ~D[2018-06-01])
+      capture_io(fn -> LastfmArchive.archive(user, date_range, interval: 0, daily: true, overwrite: true) end)
 
-        prebaked_resp = %{
-          "info" => "./test/data/test_user2.json",
-          "recenttracks" => "./test/data/test_recenttracks.json"
-        }
+      file_path = ~D[2018-05-30] |> Date.to_string() |> String.split("-") |> Path.join()
+      archive_dir = Path.join([@test_data_dir, user, file_path])
+      assert File.dir?(archive_dir)
 
-        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "9"), user, prebaked_resp)
-        capture_io(fn -> LastfmArchive.archive(user, date_range, interval: 0, daily: true, overwrite: true) end)
+      file_path = ~D[2018-05-31] |> Date.to_string() |> String.split("-") |> Path.join()
+      archive_dir = Path.join([@test_data_dir, user, file_path])
+      assert File.dir?(archive_dir)
 
-        file_path = ~D[2018-05-30] |> Date.to_string() |> String.split("-") |> Path.join()
-        archive_year_dir = Path.join([@test_data_dir, "9", user, file_path])
-        assert File.dir?(archive_year_dir)
-
-        file_path = ~D[2018-06-01] |> Date.to_string() |> String.split("-") |> Path.join()
-        archive_year_dir = Path.join([@test_data_dir, "9", user, file_path])
-        assert File.dir?(archive_year_dir)
-      end
-    after
-      File.rm_rf(Path.join(@test_data_dir, "9"))
+      file_path = ~D[2018-06-01] |> Date.to_string() |> String.split("-") |> Path.join()
+      archive_dir = Path.join([@test_data_dir, user, file_path])
+      assert File.dir?(archive_dir)
     end
   end
 
   describe "sync" do
     @describetag :disk_write
 
-    test "scrobbles of the configured user - sync/0", %{bypass: bypass} do
-      # Bypass test only
-      if(bypass) do
-        user = Application.get_env(:lastfm_archive, :user)
+    test "scrobbles of the configured user - sync/0" do
+      user = Application.get_env(:lastfm_archive, :user)
 
-        # speed up this test
-        # no requirement for 'interval' beetween requests, since Bypass test is not hitting Lastfm API
-        Application.put_env(:lastfm_archive, :interval, 1)
+      Lastfm.ClientMock
+      |> expect(:info, fn ^user, _api -> {1234, 1_472_601_600} end)
+      |> stub(:playcount, fn ^user, _time_range, _api -> 0 end)
+      |> stub(:scrobbles, fn ^user, _params, _api -> %{} end)
 
-        prebaked_resp = %{
-          "info" => "./test/data/test_user.json",
-          "recenttracks" => "./test/data/test_recenttracks_no_scrobble.json"
-        }
+      capture_io(fn -> LastfmArchive.sync() end)
 
-        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "10"), user, prebaked_resp)
-        capture_io(fn -> LastfmArchive.sync() end)
+      sync_log_file = Path.join([@test_data_dir, user, ".lastfm_archive"])
+      assert File.exists?(sync_log_file)
 
-        sync_log_file = Path.join([@test_data_dir, "10", user, ".lastfm_archive"])
-        assert File.exists?(sync_log_file)
-
-        # re-sync, and from an older date from previous year
-        File.write(sync_log_file, "sync_date=2017-12-25")
-        capture_io(fn -> LastfmArchive.sync() end)
-      end
+      today = DateTime.utc_now() |> DateTime.to_date() |> Date.to_string()
+      assert File.read!(sync_log_file) |> String.contains?(today)
     after
-      Application.put_env(:lastfm_archive, :interval, @interval)
-      File.rm_rf(Path.join(@test_data_dir, "10"))
+      File.rm_rf(Path.join(@test_data_dir, Application.get_env(:lastfm_archive, :user)))
     end
 
-    test "scrobbles of a Lastfm user - sync/1", %{bypass: bypass} do
-      # Bypass test only
-      if(bypass) do
-        user = "a_lastfm_user"
-        Application.put_env(:lastfm_archive, :interval, 1)
+    test "scrobbles of a Lastfm user - sync/1" do
+      user = "a_lastfm_user"
 
-        prebaked_resp = %{
-          "info" => "./test/data/test_user.json",
-          "recenttracks" => "./test/data/test_recenttracks_no_scrobble.json"
-        }
+      Lastfm.ClientMock
+      |> expect(:info, fn ^user, _api -> {1234, 1_578_068_137} end)
+      |> stub(:playcount, fn ^user, _time_range, _api -> 12 end)
+      |> stub(:scrobbles, fn ^user, _params, _api -> %{} end)
 
-        test_bypass_conn_params_archive(bypass, Path.join(@test_data_dir, "11"), user, prebaked_resp)
-        capture_io(fn -> LastfmArchive.sync(user) end)
+      capture_io(fn -> LastfmArchive.sync(user) end)
 
-        sync_log_file = Path.join([@test_data_dir, "11", user, ".lastfm_archive"])
-        assert File.exists?(sync_log_file)
+      sync_log_file = Path.join([@test_data_dir, user, ".lastfm_archive"])
+      assert File.exists?(sync_log_file)
 
-        File.write(sync_log_file, "sync_date=2018-12-25")
-        capture_io(fn -> LastfmArchive.sync(user) end)
-      end
+      File.write(sync_log_file, "sync_date=2020-12-25")
+      capture_io(fn -> LastfmArchive.sync(user) end)
+
+      today = DateTime.utc_now() |> DateTime.to_date() |> Date.to_string()
+      assert File.read!(sync_log_file) |> String.contains?(today)
     after
-      Application.put_env(:lastfm_archive, :interval, @interval)
-      File.rm_rf(Path.join(@test_data_dir, "11"))
+      File.rm_rf(Path.join(@test_data_dir, "a_lastfm_user"))
     end
   end
 
