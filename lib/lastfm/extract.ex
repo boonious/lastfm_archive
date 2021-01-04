@@ -1,14 +1,15 @@
 defmodule Lastfm.Extract do
   @moduledoc """
-  This module implements Lastfm.Client behaviour to extract data from Lastfm API.
+  This module implements Lastfm.Client behaviour for extracting data from Lastfm API.
   """
 
   @behaviour Lastfm.Client
 
-  alias Lastfm.Client
-
+  @doc """
+  Returns the total playcount and earliest scrobble date for a user.
+  """
   @impl true
-  def info(user, api \\ %Client{method: "user.getinfo"}) do
+  def info(user, api \\ %Lastfm.Client{method: "user.getinfo"}) do
     "#{api.endpoint}2.0/?method=#{api.method}&user=#{user}&api_key=#{api.api_key}&format=json"
     |> get(api.api_key)
     |> case do
@@ -24,8 +25,13 @@ defmodule Lastfm.Extract do
     end
   end
 
+  @doc """
+  Returns the scrobbles of a user for a given time range.
+
+  See Lastfm API [documentation](https://www.last.fm/api/show/user.getRecentTracks) for more details.
+  """
   @impl true
-  def scrobbles(user, {page, limit, from, to}, api \\ %Client{method: "user.getrecenttracks"}) do
+  def scrobbles(user, {page, limit, from, to}, api \\ %Lastfm.Client{method: "user.getrecenttracks"}) do
     extra_query = [limit: limit, page: page, from: from, to: to, extended: 1] |> encode() |> Enum.join()
 
     "#{api.endpoint}2.0/?method=#{api.method}&user=#{user}&api_key=#{api.api_key}&format=json#{extra_query}"
@@ -39,8 +45,11 @@ defmodule Lastfm.Extract do
     end
   end
 
+  @doc """
+  Returns the playcount of a user for a given time range.
+  """
   @impl true
-  def playcount(user, {from, to}, api \\ %Client{method: "user.getrecenttracks"}) do
+  def playcount(user, {from, to}, api \\ %Lastfm.Client{method: "user.getrecenttracks"}) do
     extra_query = [limit: 1, page: 1, from: from, to: to] |> encode() |> Enum.join()
 
     "#{api.endpoint}2.0/?method=#{api.method}&user=#{user}&api_key=#{api.api_key}&format=json#{extra_query}"

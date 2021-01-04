@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0 (2021-01-04)
+
+* Update Elixir/Erlang versions and dependencies
+* Replace HTTP client (HTTPoison) with Erlang's built-in httpc client
+* Replace Poison with Jason for JSON decoding/encoding
+* Apply mix formatting to the entire codebase
+* Refactor and abstract LastfmArchive.Extract functions into a new module based on `Lastfm.Client` behaviour
+* Implement explicit behaviour and contract-based unit testing (Hammox/Mox)
+* Refactor and enable concurrent testing
+
 ## 0.7.2 (2019-02-25)
 
 * Fix the issue of Lastfm changing the date/count data type in JSON back and forth (string <-> integer).

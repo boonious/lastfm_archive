@@ -1,8 +1,5 @@
 defmodule LastfmArchive.Extract do
-  @moduledoc """
-  This module provides functions that interact with Lastfm API for data extraction and storage.
-
-  """
+  @moduledoc false
 
   @type lastfm_response :: {:ok, map} | {:error, binary, Hui.Error.t()}
   @default_data_dir "./lastfm_data/"
