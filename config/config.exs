@@ -11,6 +11,8 @@ config :lastfm_archive,
   # milliseconds between requests cf. Lastfm permissable max 5 reqs/s rate
   interval: 500
 
+config :lastfm_archive, file_io: Elixir.File
+
 # optional: Solr endpoint for Lastfm data loading
 config :hui, :lastfm_archive,
   url: "http://localhost:8983/solr/lastfm_archive",

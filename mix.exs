@@ -43,7 +43,7 @@ defmodule LastfmArchive.MixProject do
       {:bypass, "~> 2.1", only: :test},
       {:excoveralls, "~> 0.13", only: :test},
       {:ex_doc, "~> 0.23", only: :dev, runtime: false},
-      {:hammox, "~> 0.3", only: :test},
+      {:hammox, "~> 0.4", only: :test},
       {:hui, "~> 0.10"},
       {:jason, "~> 1.2"}
     ]

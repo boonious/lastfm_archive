@@ -1,4 +1,5 @@
 Code.require_file("fixtures/lastfm.exs", __DIR__)
+Code.require_file("fixtures/archive.exs", __DIR__)
 
 ExUnit.start()
 

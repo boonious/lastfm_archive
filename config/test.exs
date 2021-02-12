@@ -8,3 +8,5 @@ config :lastfm_archive,
   data_dir: "./lastfm_data/test/",
   per_page: 200,
   interval: 1
+
+config :lastfm_archive, file_io: Lastfm.FileIOMock

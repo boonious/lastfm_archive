@@ -7,6 +7,7 @@ defmodule Lastfm.Archive do
   upon various storage implementation such as file systems and databases.
   """
 
+  @derive Jason.Encoder
   @enforce_keys [:creator]
   defstruct [
     :created,
@@ -23,7 +24,7 @@ defmodule Lastfm.Archive do
   ]
 
   @type archive_id :: binary()
-  @type archive_options :: map()
+  @type options :: keyword()
   @type lastfm_user :: binary()
   @type scrobbles :: map()
 
@@ -32,23 +33,23 @@ defmodule Lastfm.Archive do
   [Dublin Core Metadata Initiative](https://www.dublincore.org/specifications/dublin-core/dcmi-terms/).
   """
   @type t :: %__MODULE__{
-          created: integer(),
+          created: DateTime.t(),
           creator: binary(),
           date: Date.t(),
           description: binary(),
           format: binary(),
           identifier: binary(),
-          modified: integer(),
+          modified: DateTime.t(),
           source: binary(),
-          temporal: {integer(), integer()},
+          temporal: {DateTime.t(), DateTime.t()},
           title: binary(),
           type: binary()
         }
 
   @doc """
-  Creates a new and empty archive.
+  Creates a new and empty archive and records metadata.
   """
-  @callback create(t(), archive_options) :: {:ok, t()} | {:error, term()}
+  @callback create(t(), options) :: {:ok, t()} | {:error, term()}
 
   @doc """
   Describes the status of an existing archive.
@@ -58,7 +59,7 @@ defmodule Lastfm.Archive do
   @doc """
   Write scrobbles data to an existing archive.
   """
-  @callback write(t(), scrobbles, archive_options) :: {:ok, t()} | {:error, term()}
+  @callback write(t(), scrobbles, options) :: {:ok, t()} | {:error, term()}
 
   @doc """
   Data struct containing new and some default metadata of an archive.
@@ -70,7 +71,7 @@ defmodule Lastfm.Archive do
   @spec new(lastfm_user) :: t()
   def new(lastfm_user) do
     %__MODULE__{
-      created: DateTime.utc_now() |> DateTime.to_unix(),
+      created: DateTime.utc_now(),
       creator: lastfm_user,
       description: "Lastfm archive of #{lastfm_user}, extracted from Lastfm API,",
       format: "application/json",
