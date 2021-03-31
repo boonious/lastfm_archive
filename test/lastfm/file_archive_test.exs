@@ -22,7 +22,7 @@ defmodule Lastfm.FileArchiveTest do
                %Archive{
                  created: %{__struct__: DateTime},
                  creator: "a_user",
-                 description: "Lastfm archive of a_user, extracted from Lastfm API,",
+                 description: "Lastfm archive of a_user, extracted from Lastfm API",
                  format: "application/json",
                  identifier: "a_user",
                  source: "http://ws.audioscrobbler.com/2.0",
@@ -58,7 +58,7 @@ defmodule Lastfm.FileArchiveTest do
                %Archive{
                  created: created,
                  creator: "a_user",
-                 description: "Lastfm archive of a_user, extracted from Lastfm API,",
+                 description: "Lastfm archive of a_user, extracted from Lastfm API",
                  format: "application/json",
                  identifier: "a_user",
                  source: "http://ws.audioscrobbler.com/2.0",
@@ -68,6 +68,35 @@ defmodule Lastfm.FileArchiveTest do
              } = FileArchive.create(existing_archive, data_dir: "existing_archive", overwrite: true)
 
       assert DateTime.compare(earlier_created_datetime, created) == :lt
+    end
+  end
+
+  describe "describe/2" do
+    test "an existing file archive" do
+      archive_id = "a_user"
+      metadata_path = Path.join([Application.get_env(:lastfm_archive, :data_dir), archive_id, ".archive"])
+      metadata = Jason.encode!(test_file_archive(archive_id))
+
+      Lastfm.FileIOMock |> expect(:read, fn ^metadata_path -> {:ok, metadata} end)
+
+      assert {
+               :ok,
+               %Archive{
+                 created: %{__struct__: DateTime},
+                 creator: "a_user",
+                 description: "Lastfm archive of a_user, extracted from Lastfm API",
+                 format: "application/json",
+                 identifier: "a_user",
+                 source: "http://ws.audioscrobbler.com/2.0",
+                 title: "Lastfm archive of a_user",
+                 type: FileArchive
+               }
+             } = FileArchive.describe("a_user")
+    end
+
+    test "return error if file archive does not exist" do
+      Lastfm.FileIOMock |> expect(:read, fn _ -> {:error, :enoent} end)
+      assert {:error, :enoent} == FileArchive.describe("non_existig_archive_id")
     end
   end
 end

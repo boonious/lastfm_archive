@@ -54,7 +54,7 @@ defmodule Lastfm.Archive do
   @doc """
   Describes the status of an existing archive.
   """
-  @callback describe(archive_id) :: {:ok, t()} | {:error, term()}
+  @callback describe(archive_id, options) :: {:ok, t()} | {:error, term()}
 
   @doc """
   Write scrobbles data to an existing archive.
@@ -73,7 +73,7 @@ defmodule Lastfm.Archive do
     %__MODULE__{
       created: DateTime.utc_now(),
       creator: lastfm_user,
-      description: "Lastfm archive of #{lastfm_user}, extracted from Lastfm API,",
+      description: "Lastfm archive of #{lastfm_user}, extracted from Lastfm API",
       format: "application/json",
       identifier: lastfm_user,
       source: "http://ws.audioscrobbler.com/2.0",

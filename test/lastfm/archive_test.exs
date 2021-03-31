@@ -5,7 +5,7 @@ defmodule Lastfm.ArchiveTest do
     assert %{
              creator: "a_lastfm_user",
              created: %{__struct__: DateTime},
-             description: "Lastfm archive of a_lastfm_user, extracted from Lastfm API,",
+             description: "Lastfm archive of a_lastfm_user, extracted from Lastfm API",
              format: "application/json",
              identifier: "a_lastfm_user",
              source: "http://ws.audioscrobbler.com/2.0",

@@ -14,9 +14,8 @@ defmodule Lastfm.FileArchive do
 
   @impl true
   def create(%Archive{creator: creator} = archive, options) when creator != nil and is_binary(creator) do
-    data_dir = Keyword.get(options, :data_dir, @data_dir)
     overwrite? = Keyword.get(options, :overwrite, @overwrite)
-    metadata_file = Path.join([data_dir, creator, @metadata_file])
+    metadata_file = Keyword.get(options, :data_dir, @data_dir) |> create_path(creator)
 
     case @file_io.read(metadata_file) do
       {:ok, metadata} ->
@@ -38,9 +37,27 @@ defmodule Lastfm.FileArchive do
     end
   end
 
+  defp create_path(archive_dir, archive_id), do: Path.join([archive_dir, archive_id, @metadata_file])
+
   defp maybe_reset({archive, metadata_file}, overwrite?: true) do
     create({%{archive | created: DateTime.utc_now()}, metadata_file})
   end
 
   defp maybe_reset({_archive, _metadata_file}, overwrite?: false), do: {:error, :already_created}
+
+  @impl true
+  def describe(archive_id, options \\ []) do
+    metadata_file = Keyword.get(options, :data_dir, @data_dir) |> create_path(archive_id)
+
+    case @file_io.read(metadata_file) do
+      {:ok, metadata} ->
+        metadata = Jason.decode!(metadata, keys: :atoms!)
+        type = String.to_existing_atom(metadata.type)
+        {:ok, created, _} = DateTime.from_iso8601(metadata.created)
+        {:ok, struct(Archive, %{metadata | type: type, created: created})}
+
+      {:error, error} ->
+        {:error, error}
+    end
+  end
 end
