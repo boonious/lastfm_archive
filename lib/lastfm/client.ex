@@ -26,15 +26,15 @@ defmodule Lastfm.Client do
 
   See Lastfm API [documentation](https://www.last.fm/api/show/user.getRecentTracks) for more details.
   """
-  @callback scrobbles(user, {page, limit, from, to}, t) :: map
+  @callback scrobbles(user, {page, limit, from, to}, t) :: map | {:error, term()}
 
   @doc """
-  Returns the total playcount and earliest scrobble date for a user.
+  Returns the total playcount, registered time for a user.
   """
-  @callback info(user, t) :: {integer, integer}
+  @callback info(user, t) :: {integer, integer} | {:error, term()}
 
   @doc """
-  Returns the playcount of a user for a given time range.
+  Returns the playcount and the latest scrobble date of a user for a given time range.
   """
-  @callback playcount(user, {from, to}, t) :: integer
+  @callback playcount(user, {from, to}, t) :: {integer, integer} | {:error, term()}
 end

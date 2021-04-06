@@ -41,24 +41,19 @@ defmodule Lastfm.ExtractTest do
                Extract.scrobbles("a_lastfm_user", params, api)
     end
 
-    test "raises exception when API returns error", %{bypass: bypass, api: api, params: params} do
-      error_message = "Invalid Method - No method with that name in this package"
+    test "returns error tuple on API error response", %{bypass: bypass, api: api, params: params} do
+      message = "Invalid Method - No method with that name in this package"
 
       Bypass.expect(bypass, fn conn ->
-        Plug.Conn.resp(conn, 200, "{\"error\":3,\"message\":\"#{error_message}\"}")
+        Plug.Conn.resp(conn, 200, "{\"error\":3,\"message\":\"#{message}\"}")
       end)
 
-      assert_raise RuntimeError, error_message, fn ->
-        Extract.scrobbles("a_lastfm_user", params, api)
-      end
+      assert {:error, message} == Extract.scrobbles("a_lastfm_user", params, api)
     end
 
-    test "raises exception when Lastfm API is down", %{bypass: bypass, api: api, params: params} do
+    test "return error tuple when Lastfm API is down", %{bypass: bypass, api: api, params: params} do
       Bypass.down(bypass)
-
-      assert_raise RuntimeError, "failed to connect with Lastfm API", fn ->
-        Extract.scrobbles("a_lastfm_user", params, api)
-      end
+      assert {:error, {:failed_connect, _message}} = Extract.scrobbles("a_lastfm_user", params, api)
     end
   end
 
@@ -86,24 +81,19 @@ defmodule Lastfm.ExtractTest do
       Extract.info("a_lastfm_user", api)
     end
 
-    test "raises exception when API returns error", %{bypass: bypass, api: api} do
-      error_message = "Invalid Method - No method with that name in this package"
+    test "returns error tuple on API error response", %{bypass: bypass, api: api} do
+      message = "Invalid Method - No method with that name in this package"
 
       Bypass.expect(bypass, fn conn ->
-        Plug.Conn.resp(conn, 200, "{\"error\":3,\"message\":\"#{error_message}\"}")
+        Plug.Conn.resp(conn, 200, "{\"error\":3,\"message\":\"#{message}\"}")
       end)
 
-      assert_raise RuntimeError, error_message, fn ->
-        Extract.info("a_lastfm_user", api)
-      end
+      assert {:error, message} == Extract.info("a_lastfm_user", api)
     end
 
-    test "raises exception when Lastfm API is down", %{bypass: bypass, api: api} do
+    test "returns error tuple when Lastfm API is down", %{bypass: bypass, api: api} do
       Bypass.down(bypass)
-
-      assert_raise RuntimeError, "failed to connect with Lastfm API", fn ->
-        Extract.info("a_lastfm_user", api)
-      end
+      assert {:error, {:failed_connect, _message}} = Extract.info("a_lastfm_user", api)
     end
   end
 
@@ -138,27 +128,22 @@ defmodule Lastfm.ExtractTest do
         Plug.Conn.resp(conn, 200, recent_tracks("a_lastfm_user", count))
       end)
 
-      assert count == Extract.playcount("a_lastfm_user", time_range, api)
+      assert {^count, _} = Extract.playcount("a_lastfm_user", time_range, api)
     end
 
-    test "playcount/2 raises exception when API returns error", context do
-      error_message = "Invalid Method - No method with that name in this package"
+    test "returns error tuple on API error response", context do
+      message = "Invalid Method - No method with that name in this package"
 
       Bypass.expect(context.bypass, fn conn ->
-        Plug.Conn.resp(conn, 200, "{\"error\":3,\"message\":\"#{error_message}\"}")
+        Plug.Conn.resp(conn, 200, "{\"error\":3,\"message\":\"#{message}\"}")
       end)
 
-      assert_raise RuntimeError, error_message, fn ->
-        Extract.playcount("a_lastfm_user", context.time_range, context.api)
-      end
+      assert {:error, message} == Extract.playcount("a_lastfm_user", context.time_range, context.api)
     end
 
-    test "raises exception when Lastfm API is down", %{bypass: bypass, api: api, time_range: time_range} do
+    test "returns error tuple when Lastfm API is down", %{bypass: bypass, api: api, time_range: time_range} do
       Bypass.down(bypass)
-
-      assert_raise RuntimeError, "failed to connect with Lastfm API", fn ->
-        Extract.playcount("a_lastfm_user", time_range, api)
-      end
+      assert {:error, {:failed_connect, _message}} = Extract.playcount("a_lastfm_user", time_range, api)
     end
   end
 end

@@ -14,6 +14,7 @@ defmodule Lastfm.Archive do
     :creator,
     :date,
     :description,
+    :extent,
     :format,
     :identifier,
     :modified,
@@ -37,11 +38,12 @@ defmodule Lastfm.Archive do
           creator: binary(),
           date: Date.t(),
           description: binary(),
+          extent: integer(),
           format: binary(),
           identifier: binary(),
           modified: DateTime.t(),
           source: binary(),
-          temporal: {DateTime.t(), DateTime.t()},
+          temporal: {integer, integer},
           title: binary(),
           type: binary()
         }

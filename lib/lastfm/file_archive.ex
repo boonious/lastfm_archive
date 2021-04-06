@@ -55,8 +55,8 @@ defmodule Lastfm.FileArchive do
 
     case @file_io.read(metadata_path) do
       {:ok, data} ->
-        metadata = Jason.decode!(data, keys: :atoms!)
-        type = String.to_existing_atom(metadata.type)
+        metadata = Jason.decode!(data, keys: :atoms)
+        type = String.to_atom(metadata.type)
         {:ok, created, _} = DateTime.from_iso8601(metadata.created)
         {:ok, struct(Archive, %{metadata | type: type, created: created})}
 
@@ -81,11 +81,11 @@ defmodule Lastfm.FileArchive do
 
       true ->
         archive_dir = Path.dirname(metadata_path)
-        write_to = Path.join(archive_dir, "#{path}.gz")
-        write_to_dir = Path.dirname(write_to)
-        unless @file_io.exists?(write_to_dir), do: @file_io.mkdir_p(write_to_dir)
+        to = Path.join(archive_dir, "#{path}.gz")
+        to_dir = Path.dirname(to)
+        unless @file_io.exists?(to_dir), do: @file_io.mkdir_p(to_dir)
 
-        case @file_io.write(write_to, scrobbles |> Jason.encode!(), [:compressed]) do
+        case @file_io.write(to, scrobbles |> Jason.encode!(), [:compressed]) do
           :ok ->
             now = DateTime.utc_now()
             {:ok, %{archive | modified: now, date: now |> DateTime.to_date()}}
