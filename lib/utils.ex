@@ -1,6 +1,9 @@
 defmodule LastfmArchive.Utils do
   @moduledoc false
 
+  @data_dir Application.get_env(:lastfm_archive, :data_dir, "./archive_data/")
+  @metadata_file ".archive"
+
   @doc """
   Generate {from, to} time ranges for querying LastFM API based on
   the first and last scrobble unix timestamps.
@@ -14,9 +17,9 @@ defmodule LastfmArchive.Utils do
   without the need to re-download or querying the API again for older
   scrobbles.
   """
-  def build_time_ranges({first_scrobble_data, last_scrobble_date}) do
+  def build_time_ranges({first_scrobble_data, now}) do
     {:ok, from} = DateTime.from_unix(first_scrobble_data)
-    {:ok, to} = DateTime.from_unix(last_scrobble_date)
+    {:ok, to} = DateTime.from_unix(now)
 
     year_range = build_time_range(from.year..(to.year - 1))
     this_year_to_end_of_last_month_range = build_time_range(to)
@@ -56,5 +59,23 @@ defmodule LastfmArchive.Utils do
     {:ok, to, _} = DateTime.from_iso8601(to)
 
     {DateTime.to_unix(from), DateTime.to_unix(to)}
+  end
+
+  def archive_dir(options \\ []), do: Keyword.get(options, :data_dir, @data_dir)
+
+  def metadata_path(archive_id, options), do: Path.join([archive_dir(options), archive_id, @metadata_file])
+
+  def display_progress(archive) do
+    IO.puts("Archiving #{archive.extent} scrobbles for #{archive.creator}")
+  end
+
+  def display_progress({from, to}, playcount, pages) do
+    from_date = DateTime.from_unix!(from) |> DateTime.to_date()
+    to_date = DateTime.from_unix!(to) |> DateTime.to_date()
+
+    IO.puts("\n")
+    IO.puts("#{from_date} - #{to_date}")
+    IO.puts("#{playcount} scrobble(s)")
+    IO.puts("#{pages} page(s)")
   end
 end

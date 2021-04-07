@@ -6,6 +6,8 @@ defmodule Lastfm.FileArchiveTest do
 
   alias Lastfm.{Archive, FileArchive}
 
+  @archive Application.get_env(:lastfm_archive, :type)
+
   setup :verify_on_exit!
 
   describe "create/2" do
@@ -13,9 +15,10 @@ defmodule Lastfm.FileArchiveTest do
       new_archive = test_file_archive("a_user")
       archive_metadata = Jason.encode!(new_archive)
 
-      Lastfm.FileIOMock |> expect(:read, fn "new_archive/a_user/.archive" -> {:error, :enoent} end)
-      Lastfm.FileIOMock |> expect(:mkdir_p, fn "new_archive/a_user" -> :ok end)
-      Lastfm.FileIOMock |> expect(:write, fn "new_archive/a_user/.archive", ^archive_metadata -> :ok end)
+      Lastfm.FileIOMock
+      |> expect(:read, fn "new_archive/a_user/.archive" -> {:error, :enoent} end)
+      |> expect(:mkdir_p, fn "new_archive/a_user" -> :ok end)
+      |> expect(:write, fn "new_archive/a_user/.archive", ^archive_metadata -> :ok end)
 
       assert {
                :ok,
@@ -27,7 +30,7 @@ defmodule Lastfm.FileArchiveTest do
                  identifier: "a_user",
                  source: "http://ws.audioscrobbler.com/2.0",
                  title: "Lastfm archive of a_user",
-                 type: FileArchive
+                 type: @archive
                }
              } = FileArchive.create(new_archive, data_dir: "new_archive")
     end
@@ -37,9 +40,8 @@ defmodule Lastfm.FileArchiveTest do
 
       Lastfm.FileIOMock
       |> expect(:read, fn "existing_archive/a_user/.archive" -> {:ok, "{\"creator\": \"lastfm_user\"}"} end)
-
-      Lastfm.FileIOMock |> expect(:mkdir_p, 0, fn "existing_archive/a_user" -> :ok end)
-      Lastfm.FileIOMock |> expect(:write, 0, fn "existing_archive/a_user/.archive", _ -> :ok end)
+      |> expect(:mkdir_p, 0, fn "existing_archive/a_user" -> :ok end)
+      |> expect(:write, 0, fn "existing_archive/a_user/.archive", _ -> :ok end)
 
       assert {:error, :already_created} == FileArchive.create(existing_archive, data_dir: "existing_archive")
     end
@@ -49,9 +51,10 @@ defmodule Lastfm.FileArchiveTest do
       existing_archive = test_file_archive("a_user", earlier_created_datetime)
       archive_metadata = Jason.encode!(existing_archive)
 
-      Lastfm.FileIOMock |> expect(:read, fn "existing_archive/a_user/.archive" -> {:ok, archive_metadata} end)
-      Lastfm.FileIOMock |> expect(:mkdir_p, fn "existing_archive/a_user" -> :ok end)
-      Lastfm.FileIOMock |> expect(:write, fn "existing_archive/a_user/.archive", _ -> :ok end)
+      Lastfm.FileIOMock
+      |> expect(:read, fn "existing_archive/a_user/.archive" -> {:ok, archive_metadata} end)
+      |> expect(:mkdir_p, fn "existing_archive/a_user" -> :ok end)
+      |> expect(:write, fn "existing_archive/a_user/.archive", _ -> :ok end)
 
       assert {
                :ok,
@@ -63,7 +66,8 @@ defmodule Lastfm.FileArchiveTest do
                  identifier: "a_user",
                  source: "http://ws.audioscrobbler.com/2.0",
                  title: "Lastfm archive of a_user",
-                 type: FileArchive
+                 modified: nil,
+                 date: nil
                }
              } = FileArchive.create(existing_archive, data_dir: "existing_archive", overwrite: true)
 
@@ -89,14 +93,14 @@ defmodule Lastfm.FileArchiveTest do
                  identifier: "a_user",
                  source: "http://ws.audioscrobbler.com/2.0",
                  title: "Lastfm archive of a_user",
-                 type: FileArchive
+                 type: @archive
                }
              } = FileArchive.describe("a_user")
     end
 
     test "return error if file archive does not exist" do
       Lastfm.FileIOMock |> expect(:read, fn _ -> {:error, :enoent} end)
-      assert {:error, :enoent} == FileArchive.describe("non_existig_archive_id")
+      assert {:error, _new_archive_to_created} = FileArchive.describe("non_existig_archive_id")
     end
   end
 
@@ -120,34 +124,21 @@ defmodule Lastfm.FileArchiveTest do
     end
 
     test "scrobbles into a file archive",
-         context = %{id: id, data_json: data_json, metadata: metadata, full_path: full_path, full_dir: full_dir} do
-      Lastfm.FileIOMock |> expect(:exists?, fn ^metadata -> true end)
-      Lastfm.FileIOMock |> expect(:exists?, fn ^full_dir -> false end)
-      Lastfm.FileIOMock |> expect(:mkdir_p, fn ^full_dir -> :ok end)
-      Lastfm.FileIOMock |> expect(:write, fn ^full_path, ^data_json, [:compressed] -> :ok end)
+         context = %{data_json: data_json, metadata: metadata, full_path: full_path, full_dir: full_dir} do
+      Lastfm.FileIOMock
+      |> expect(:exists?, fn ^metadata -> true end)
+      |> expect(:exists?, fn ^full_dir -> false end)
+      |> expect(:mkdir_p, fn ^full_dir -> :ok end)
+      |> expect(:write, fn ^full_path, ^data_json, [:compressed] -> :ok end)
 
-      assert {
-               :ok,
-               %Lastfm.Archive{
-                 created: %{__struct__: DateTime},
-                 creator: ^id,
-                 date: %{__struct__: Date},
-                 description: "Lastfm archive of a_user, extracted from Lastfm API",
-                 format: "application/json",
-                 identifier: ^id,
-                 modified: %{__struct__: DateTime},
-                 source: "http://ws.audioscrobbler.com/2.0",
-                 temporal: nil,
-                 title: "Lastfm archive of a_user",
-                 type: Lastfm.FileArchive
-               }
-             } = FileArchive.write(test_file_archive(context.id), context.data, filepath: context.path)
+      assert :ok == FileArchive.write(test_file_archive(context.id), context.data, filepath: context.path)
     end
 
     test "does not write to non existing archive",
          context = %{id: id, data_json: data_json, metadata: metadata, full_path: full_path} do
-      Lastfm.FileIOMock |> expect(:exists?, fn ^metadata -> false end)
-      Lastfm.FileIOMock |> expect(:write, 0, fn ^full_path, ^data_json, [:compressed] -> true end)
+      Lastfm.FileIOMock
+      |> expect(:exists?, fn ^metadata -> false end)
+      |> expect(:write, 0, fn ^full_path, ^data_json, [:compressed] -> true end)
 
       assert_raise RuntimeError, "attempt to write to a non existing archive", fn ->
         FileArchive.write(test_file_archive(id), context.data, filepath: context.path)

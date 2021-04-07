@@ -7,6 +7,8 @@ defmodule Lastfm.Archive do
   upon various storage implementation such as file systems and databases.
   """
 
+  @archive Application.get_env(:lastfm_archive, :type, LastFm.FileArchive)
+
   @derive Jason.Encoder
   @enforce_keys [:creator]
   defstruct [
@@ -45,7 +47,7 @@ defmodule Lastfm.Archive do
           source: binary(),
           temporal: {integer, integer},
           title: binary(),
-          type: binary()
+          type: atom()
         }
 
   @doc """
@@ -61,7 +63,7 @@ defmodule Lastfm.Archive do
   @doc """
   Write scrobbles data to an existing archive.
   """
-  @callback write(t(), scrobbles, options) :: {:ok, t()} | {:error, term()}
+  @callback write(t(), scrobbles, options) :: :ok | {:error, term()}
 
   @doc """
   Data struct containing new and some default metadata of an archive.
@@ -79,7 +81,16 @@ defmodule Lastfm.Archive do
       format: "application/json",
       identifier: lastfm_user,
       source: "http://ws.audioscrobbler.com/2.0",
-      title: "Lastfm archive of #{lastfm_user}"
+      title: "Lastfm archive of #{lastfm_user}",
+      type: @archive
     }
+  end
+end
+
+defimpl Jason.Encoder, for: Tuple do
+  def encode(data, options) when is_tuple(data) do
+    data
+    |> Tuple.to_list()
+    |> Jason.Encoder.List.encode(options)
   end
 end
