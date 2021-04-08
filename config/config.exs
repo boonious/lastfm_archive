@@ -4,7 +4,7 @@ import Config
 config :lastfm_archive,
   api: %{api_key: "", endpoint: "", method: ""},
   data_dir: "./lastfm_data/",
-  interval: 500,
+  interval: 1000,
   lastfm_client: Lastfm.Extract,
   per_page: 200,
   type: Lastfm.FileArchive,

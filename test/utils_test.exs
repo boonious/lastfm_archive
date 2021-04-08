@@ -2,78 +2,32 @@ defmodule LastfmArchive.UtilsTest do
   use ExUnit.Case, async: true
   alias LastfmArchive.Utils
 
-  describe "build_time_ranges/1" do
-    setup do
-      {:ok, first_scrobble_date, 0} = DateTime.from_iso8601("2009-06-23T18:50:07Z")
-      {:ok, last_scrobble_date, 0} = DateTime.from_iso8601("2011-05-13T11:06:25Z")
+  test "build_time_range/1 provides daily time range" do
+    {:ok, from, 0} = DateTime.from_iso8601("2010-12-23T18:50:07Z")
+    {:ok, to, 0} = DateTime.from_iso8601("2011-01-13T11:06:25Z")
 
-      unix_time_ranges =
-        Utils.build_time_ranges({DateTime.to_unix(first_scrobble_date), DateTime.to_unix(last_scrobble_date)})
+    time_ranges = Utils.build_time_range({DateTime.to_unix(from), DateTime.to_unix(to)})
 
-      date_ranges =
-        Enum.map(unix_time_ranges, fn {from, to} -> {DateTime.from_unix!(from), DateTime.from_unix!(to)} end)
+    for day <- Date.range(Date.from_erl!({2010, 12, 23}), Date.from_erl!({2011, 1, 13})) do
+      {:ok, from, _} = DateTime.from_iso8601("#{day}T00:00:00Z")
+      {:ok, to, _} = DateTime.from_iso8601("#{day}T23:59:59Z")
 
-      %{date_ranges: date_ranges}
+      assert {DateTime.to_unix(from), DateTime.to_unix(to)} in time_ranges
     end
+  end
 
-    test "provides yearly time ranges for older scrobbles", %{date_ranges: date_ranges} do
-      assert {~U[2009-01-01 00:00:00Z], ~U[2009-12-31 23:59:59Z]} in date_ranges
-      assert {~U[2010-01-01 00:00:00Z], ~U[2010-12-31 23:59:59Z]} in date_ranges
-      refute {~U[2011-01-01 00:00:00Z], ~U[2011-12-31 23:59:59Z]} in date_ranges
-    end
+  test "build_time_range/1 provides year time range" do
+    assert {1_609_459_200, 1_640_995_199} == Utils.build_time_range(2021)
+  end
 
-    test "provides to-up-last-month time range for this year scrobbles", %{date_ranges: date_ranges} do
-      assert {~U[2011-01-01 00:00:00Z], ~U[2011-04-30 23:59:59Z]} in date_ranges
-    end
+  test "year_range/1 from first and latest scrobble times" do
+    {:ok, from, 0} = DateTime.from_iso8601("2008-12-23T18:50:07Z")
+    {:ok, to, 0} = DateTime.from_iso8601("2021-01-13T11:06:25Z")
 
-    test "provides daily time range for the latest scrobbles", %{date_ranges: date_ranges} do
-      for day <- Date.range(Date.from_erl!({2011, 5, 1}), Date.from_erl!({2011, 5, 13})) do
-        {:ok, from, _} = DateTime.from_iso8601("#{day}T00:00:00Z")
-        {:ok, to, _} = DateTime.from_iso8601("#{day}T23:59:59Z")
+    year_range = Utils.year_range({DateTime.to_unix(from), DateTime.to_unix(to)})
 
-        assert {from, to} in date_ranges
-      end
-    end
-
-    test "does not provide to-up-last-month time range when last scrobble date is in January" do
-      {:ok, first_scrobble_date, 0} = DateTime.from_iso8601("2010-06-23T18:50:07Z")
-      {:ok, last_scrobble_date, 0} = DateTime.from_iso8601("2011-01-04T11:06:25Z")
-
-      unix_time_ranges =
-        Utils.build_time_ranges({DateTime.to_unix(first_scrobble_date), DateTime.to_unix(last_scrobble_date)})
-
-      date_ranges =
-        Enum.map(unix_time_ranges, fn {from, to} -> {DateTime.from_unix!(from), DateTime.from_unix!(to)} end)
-
-      refute {~U[2011-01-01 00:00:00Z], ~U[2011-01-31 23:59:59Z]} in date_ranges
-
-      assert [
-               {~U[2010-01-01 00:00:00Z], ~U[2010-12-31 23:59:59Z]},
-               {~U[2011-01-01 00:00:00Z], ~U[2011-01-01 23:59:59Z]},
-               {~U[2011-01-02 00:00:00Z], ~U[2011-01-02 23:59:59Z]},
-               {~U[2011-01-03 00:00:00Z], ~U[2011-01-03 23:59:59Z]},
-               {~U[2011-01-04 00:00:00Z], ~U[2011-01-04 23:59:59Z]}
-             ] == date_ranges
-    end
-
-    test "does not provide yearly time range without previous year scrobbles" do
-      {:ok, first_scrobble_date, 0} = DateTime.from_iso8601("2021-02-05T18:50:07Z")
-      {:ok, last_scrobble_date, 0} = DateTime.from_iso8601("2021-03-03T11:06:25Z")
-
-      unix_time_ranges =
-        Utils.build_time_ranges({DateTime.to_unix(first_scrobble_date), DateTime.to_unix(last_scrobble_date)})
-
-      date_ranges =
-        Enum.map(unix_time_ranges, fn {from, to} -> {DateTime.from_unix!(from), DateTime.from_unix!(to)} end)
-
-      refute {~U[2020-01-01 00:00:00Z], ~U[2020-12-31 23:59:59Z]} in date_ranges
-
-      assert [
-               {~U[2021-01-01 00:00:00Z], ~U[2021-02-28 23:59:59Z]},
-               {~U[2021-03-01 00:00:00Z], ~U[2021-03-01 23:59:59Z]},
-               {~U[2021-03-02 00:00:00Z], ~U[2021-03-02 23:59:59Z]},
-               {~U[2021-03-03 00:00:00Z], ~U[2021-03-03 23:59:59Z]}
-             ] == date_ranges
+    for year <- 2008..2021 do
+      assert year in year_range
     end
   end
 end

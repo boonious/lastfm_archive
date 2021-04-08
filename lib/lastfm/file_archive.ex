@@ -13,39 +13,39 @@ defmodule Lastfm.FileArchive do
   @impl true
   def create(%Archive{creator: creator} = archive, options) when creator != nil and is_binary(creator) do
     overwrite? = Keyword.get(options, :overwrite, @overwrite)
-    metadata_path = Utils.metadata_path(creator, options)
+    metadata = Utils.metadata(creator, options)
 
-    case @file_io.read(metadata_path) do
+    case @file_io.read(metadata) do
       {:ok, data} ->
-        maybe_reset({struct(Archive, Jason.decode!(data, keys: :atoms!)), metadata_path}, overwrite?: overwrite?)
+        maybe_reset({struct(Archive, Jason.decode!(data, keys: :atoms!)), metadata}, overwrite?: overwrite?)
 
       {:error, :enoent} ->
-        create({archive, metadata_path})
+        create({archive, metadata})
     end
   end
 
   def create(_archive, _options), do: {:error, :einval}
 
-  def create({archive, metadata_path}) do
-    @file_io.mkdir_p(metadata_path |> Path.dirname())
+  def create({archive, metadata}) do
+    @file_io.mkdir_p(metadata |> Path.dirname())
 
-    case @file_io.write(metadata_path, Jason.encode!(archive)) do
+    case @file_io.write(metadata, Jason.encode!(archive)) do
       :ok -> {:ok, archive}
       error -> error
     end
   end
 
-  defp maybe_reset({archive, metadata_path}, overwrite?: true) do
-    create({%{archive | created: DateTime.utc_now(), date: nil, modified: nil}, metadata_path})
+  defp maybe_reset({archive, metadata}, overwrite?: true) do
+    create({%{archive | created: DateTime.utc_now(), date: nil, modified: nil}, metadata})
   end
 
-  defp maybe_reset({_archive, _metadata_path}, overwrite?: false), do: {:error, :already_created}
+  defp maybe_reset({_archive, _metadata}, overwrite?: false), do: {:error, :already_created}
 
   @impl true
   def describe(archive_id, options \\ []) do
-    metadata_path = Utils.metadata_path(archive_id, options)
+    metadata = Utils.metadata(archive_id, options)
 
-    case @file_io.read(metadata_path) do
+    case @file_io.read(metadata) do
       {:ok, data} ->
         metadata = Jason.decode!(data, keys: :atoms!)
         type = String.to_existing_atom(metadata.type)
@@ -61,18 +61,18 @@ defmodule Lastfm.FileArchive do
   def write(archive, scrobbles, options \\ [])
 
   def write(%Archive{creator: creator}, scrobbles, options) when is_map(scrobbles) do
-    metadata_path = Utils.metadata_path(creator, options)
+    metadata = Utils.metadata(creator, options)
     path = Keyword.get(options, :filepath)
 
     cond do
       path == nil or path == "" ->
         raise "please provide a valid :filepath option"
 
-      !@file_io.exists?(metadata_path) ->
+      !@file_io.exists?(metadata) ->
         raise "attempt to write to a non existing archive"
 
       true ->
-        archive_dir = Path.dirname(metadata_path)
+        archive_dir = Path.dirname(metadata)
         to = Path.join(archive_dir, "#{path}.gz")
         to_dir = Path.dirname(to)
         unless @file_io.exists?(to_dir), do: @file_io.mkdir_p(to_dir)
