@@ -32,7 +32,7 @@ defmodule LastfmArchive1Test do
 
       Lastfm.FileArchiveMock
       |> expect(:describe, fn ^user, _options -> {:error, test_archive} end)
-      |> expect(:create, fn ^test_archive, _options -> {:ok, test_archive} end)
+      |> expect(:update_metadata, fn ^test_archive, _options -> {:ok, test_archive} end)
       |> stub(:write, fn ^test_archive, _data, _options -> :ok end)
 
       Lastfm.ClientMock

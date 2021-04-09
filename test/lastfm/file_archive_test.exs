@@ -10,13 +10,12 @@ defmodule Lastfm.FileArchiveTest do
 
   setup :verify_on_exit!
 
-  describe "create/2" do
-    test "new empty file archive, writes and returns metadata" do
+  describe "update_metadata/2" do
+    test "of file archive, writes and returns metadata" do
       new_archive = test_file_archive("a_user")
       archive_metadata = Jason.encode!(new_archive)
 
       Lastfm.FileIOMock
-      |> expect(:read, fn "new_archive/a_user/.archive" -> {:error, :enoent} end)
       |> expect(:mkdir_p, fn "new_archive/a_user" -> :ok end)
       |> expect(:write, fn "new_archive/a_user/.archive", ^archive_metadata -> :ok end)
 
@@ -32,27 +31,14 @@ defmodule Lastfm.FileArchiveTest do
                  title: "Lastfm archive of a_user",
                  type: @archive
                }
-             } = FileArchive.create(new_archive, data_dir: "new_archive")
-    end
-
-    test "does not create new file archive if one already exists" do
-      existing_archive = test_file_archive("a_user")
-
-      Lastfm.FileIOMock
-      |> expect(:read, fn "existing_archive/a_user/.archive" -> {:ok, "{\"creator\": \"lastfm_user\"}"} end)
-      |> expect(:mkdir_p, 0, fn "existing_archive/a_user" -> :ok end)
-      |> expect(:write, 0, fn "existing_archive/a_user/.archive", _ -> :ok end)
-
-      assert {:error, :already_created} == FileArchive.create(existing_archive, data_dir: "existing_archive")
+             } = FileArchive.update_metadata(new_archive, data_dir: "new_archive")
     end
 
     test "reset an existing archive with 'overwrite' option" do
       earlier_created_datetime = DateTime.add(DateTime.utc_now(), -3600, :second)
       existing_archive = test_file_archive("a_user", earlier_created_datetime)
-      archive_metadata = Jason.encode!(existing_archive)
 
       Lastfm.FileIOMock
-      |> expect(:read, fn "existing_archive/a_user/.archive" -> {:ok, archive_metadata} end)
       |> expect(:mkdir_p, fn "existing_archive/a_user" -> :ok end)
       |> expect(:write, fn "existing_archive/a_user/.archive", _ -> :ok end)
 
@@ -69,7 +55,7 @@ defmodule Lastfm.FileArchiveTest do
                  modified: nil,
                  date: nil
                }
-             } = FileArchive.create(existing_archive, data_dir: "existing_archive", overwrite: true)
+             } = FileArchive.update_metadata(existing_archive, data_dir: "existing_archive", reset: true)
 
       assert DateTime.compare(earlier_created_datetime, created) == :lt
     end

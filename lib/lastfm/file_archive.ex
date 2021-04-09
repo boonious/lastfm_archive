@@ -4,29 +4,21 @@ defmodule Lastfm.FileArchive do
   alias Lastfm.Archive
   alias LastfmArchive.Utils
 
-  @overwrite Application.get_env(:lastfm_archive, :overwrite, false)
+  @reset Application.get_env(:lastfm_archive, :reset, false)
   @file_io Application.get_env(:lastfm_archive, :file_io)
 
   @type archive :: Archive.t()
   @type options :: Archive.options()
 
   @impl true
-  def create(%Archive{creator: creator} = archive, options) when creator != nil and is_binary(creator) do
-    overwrite? = Keyword.get(options, :overwrite, @overwrite)
+  def update_metadata(%Archive{creator: creator} = archive, options) when creator != nil and is_binary(creator) do
     metadata = Utils.metadata(creator, options)
-
-    case @file_io.read(metadata) do
-      {:ok, data} ->
-        maybe_reset({struct(Archive, Jason.decode!(data, keys: :atoms!)), metadata}, overwrite?: overwrite?)
-
-      {:error, :enoent} ->
-        create({archive, metadata})
-    end
+    maybe_reset({archive, metadata}, reset?: Keyword.get(options, :reset, @reset))
   end
 
-  def create(_archive, _options), do: {:error, :einval}
+  def update_metadata(_archive, _options), do: {:error, :einval}
 
-  def create({archive, metadata}) do
+  defp write_metadata({archive, metadata}) do
     @file_io.mkdir_p(metadata |> Path.dirname())
 
     case @file_io.write(metadata, Jason.encode!(archive)) do
@@ -35,11 +27,11 @@ defmodule Lastfm.FileArchive do
     end
   end
 
-  defp maybe_reset({archive, metadata}, overwrite?: true) do
-    create({%{archive | created: DateTime.utc_now(), date: nil, modified: nil}, metadata})
+  defp maybe_reset({archive, metadata}, reset?: true) do
+    write_metadata({%{archive | created: DateTime.utc_now(), date: nil, modified: nil}, metadata})
   end
 
-  defp maybe_reset({_archive, _metadata}, overwrite?: false), do: {:error, :already_created}
+  defp maybe_reset({archive, metadata}, reset?: false), do: write_metadata({archive, metadata})
 
   @impl true
   def describe(archive_id, options \\ []) do
@@ -48,13 +40,28 @@ defmodule Lastfm.FileArchive do
     case @file_io.read(metadata) do
       {:ok, data} ->
         metadata = Jason.decode!(data, keys: :atoms!)
+
         type = String.to_existing_atom(metadata.type)
-        {:ok, created, _} = DateTime.from_iso8601(metadata.created)
-        {:ok, struct(Archive, %{metadata | type: type, created: created})}
+        {created, time_range, date} = parse_dates(metadata)
+
+        {:ok, struct(Archive, %{metadata | type: type, created: created, temporal: time_range, date: date})}
 
       {:error, :enoent} ->
         {:error, Archive.new(archive_id)}
     end
+  end
+
+  defp parse_dates(%{created: created, date: nil, temporal: nil}) do
+    {:ok, created, _} = DateTime.from_iso8601(created)
+    {created, nil, nil}
+  end
+
+  defp parse_dates(%{created: created, date: date, temporal: temporal}) do
+    {:ok, created, _} = DateTime.from_iso8601(created)
+    [from, to] = temporal
+    date = Date.from_iso8601!(date)
+
+    {created, {from, to}, date}
   end
 
   @impl true

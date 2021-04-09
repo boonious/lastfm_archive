@@ -53,7 +53,7 @@ defmodule Lastfm.Archive do
   @doc """
   Creates a new and empty archive and records metadata.
   """
-  @callback create(t(), options) :: {:ok, t()} | {:error, term()}
+  @callback update_metadata(t(), options) :: {:ok, t()} | {:error, term()}
 
   @doc """
   Describes the status of an existing archive.

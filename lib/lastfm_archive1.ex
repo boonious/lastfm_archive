@@ -15,8 +15,8 @@ defmodule LastfmArchive1 do
   @default_opts %{
     interval: Application.get_env(:lastfm_archive, :interval, 500),
     per_page: Application.get_env(:lastfm_archive, :per_page, 200),
-    overwrite: Application.get_env(:lastfm_archive, :overwrite, false),
-    daily: Application.get_env(:lastfm_archive, :daily, false)
+    reset: Application.get_env(:lastfm_archive, :reset, false),
+    data_dir: Application.get_env(:lastfm_archive, :data_dir, "./archive_data/")
   }
 
   @api Application.get_env(:lastfm_archive, :lastfm_client)
@@ -72,7 +72,7 @@ defmodule LastfmArchive1 do
     with {total, registered_time} <- @api.info(user, %{client | method: "user.getinfo"}),
          {_, last_scrobble_time} <- @api.playcount(user, {registered_time, now}, client),
          archive <- update_archive(archive, total, {registered_time, last_scrobble_time}),
-         {:ok, archive} <- @archive.create(archive, options) do
+         {:ok, archive} <- @archive.update_metadata(archive, options) do
       Utils.display_progress(archive)
       metadata = Utils.metadata(user, options)
 
