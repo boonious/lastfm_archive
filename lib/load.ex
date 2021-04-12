@@ -3,7 +3,8 @@ defmodule LastfmArchive.Load do
   This module provides functions for loading Lastfm data into databases and search engines.
 
   """
-  @default_data_dir "./lastfm_data/"
+
+  alias LastfmArchive.Utils
 
   @doc """
   Ping a Solr core/collection endpoint to check if it is running.
@@ -167,10 +168,8 @@ defmodule LastfmArchive.Load do
   # e.g. into a generic read function under a separate IO module
   @spec read(binary, binary) :: {:ok, list(binary)} | {:error, :file.posix()}
   def read(user, filename) do
-    data_dir = Application.get_env(:lastfm_archive, :data_dir) || @default_data_dir
-    user_data_dir = Path.join(data_dir, user)
-    file_path = Path.join(user_data_dir, filename)
-
+    file_path = Path.join(Utils.user_dir(user, []), filename)
+    IO.inspect file_path
     {status, file_io} = File.open(file_path, [:read, :compressed, :utf8])
 
     resp =

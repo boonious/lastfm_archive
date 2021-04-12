@@ -61,7 +61,9 @@ defmodule LastfmArchive.Transform do
   # id,name,scrobble_date,date_iso,mbid,url,artist,artist_mbid,artist_url,album,album_mbid
   defp _transform(user, track, index) do
     id = "#{user}_#{track["date"]["uts"]}_#{index |> to_string}"
-    date_s = track["date"]["uts"] |> DateTime.from_unix!() |> DateTime.to_iso8601()
+
+    uts = if is_binary(track["date"]["uts"]), do: String.to_integer(track["date"]["uts"]), else: track["date"]["uts"]
+    date_s = uts |> DateTime.from_unix!() |> DateTime.to_iso8601()
 
     track_info = [id, track["name"] |> String.trim(), track["date"]["uts"], date_s, track["mbid"], track["url"]]
     artist_info = [track["artist"]["name"], track["artist"]["mbid"], track["artist"]["url"]]
@@ -91,6 +93,10 @@ defmodule LastfmArchive.Transform do
 
     if is_pid(file_io), do: File.close(file_io)
     resp
+  end
+
+  defp initial_index(%{"page" => page, "perPage" => per_page}) when is_binary(page) and is_binary(per_page) do
+    (String.to_integer(page) - 1) * String.to_integer(per_page) + 1
   end
 
   defp initial_index(info), do: (info["page"] - 1) * info["perPage"] + 1
