@@ -10,7 +10,10 @@ config :lastfm_archive,
   type: Lastfm.FileArchive,
   user: ""
 
-config :lastfm_archive, file_io: Elixir.File
+config :lastfm_archive,
+  cache: LastfmArchive.Cache,
+  file_io: Elixir.File,
+  path_io: Elixir.Path
 
 # optional: Solr endpoint for Lastfm data loading
 config :hui, :lastfm_archive,

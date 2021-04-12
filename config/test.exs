@@ -10,4 +10,7 @@ config :lastfm_archive,
   type: Lastfm.FileArchiveMock,
   user: "test_user"
 
-config :lastfm_archive, file_io: Lastfm.FileIOMock
+config :lastfm_archive,
+  cache: LastfmArchive.CacheMock,
+  file_io: Lastfm.FileIOMock,
+  path_io: Lastfm.PathIOMock

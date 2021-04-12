@@ -34,8 +34,8 @@ defmodule Lastfm.FileArchive do
   defp maybe_reset({archive, metadata}, reset?: false), do: write_metadata({archive, metadata})
 
   @impl true
-  def describe(archive_id, options \\ []) do
-    metadata = Utils.metadata(archive_id, options)
+  def describe(user, options \\ []) do
+    metadata = Utils.metadata(user, options)
 
     case @file_io.read(metadata) do
       {:ok, data} ->
@@ -47,7 +47,7 @@ defmodule Lastfm.FileArchive do
         {:ok, struct(Archive, %{metadata | type: type, created: created, temporal: time_range, date: date})}
 
       {:error, :enoent} ->
-        {:error, Archive.new(archive_id)}
+        {:ok, Archive.new(user)}
     end
   end
 

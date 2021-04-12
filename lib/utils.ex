@@ -31,12 +31,7 @@ defmodule LastfmArchive.Utils do
 
   def data_dir(options \\ []), do: Keyword.get(options, :data_dir, @data_dir)
   def user_dir(user, options \\ []), do: Path.join([data_dir(options), user])
-
-  def sync_result_cache(year, id, options) do
-    Path.join([data_dir(options), id, ".#{year}"])
-  end
-
-  def metadata(id, options), do: Path.join([data_dir(options), id, @metadata_file])
+  def metadata(user, options), do: Path.join([data_dir(options), user, @metadata_file])
 
   def display_progress(archive) do
     IO.puts("Archiving #{archive.extent} scrobbles for #{archive.creator}")
@@ -49,5 +44,12 @@ defmodule LastfmArchive.Utils do
     IO.puts("#{from_date}")
     IO.puts("#{playcount} scrobble(s)")
     IO.puts("#{pages} page(s)")
+  end
+
+  def display_skip_message({from, _to}, playcount) do
+    from_date = DateTime.from_unix!(from) |> DateTime.to_date()
+
+    IO.puts("\n")
+    IO.puts("Skipping #{from_date}, previously synced: #{playcount} scrobble(s)")
   end
 end

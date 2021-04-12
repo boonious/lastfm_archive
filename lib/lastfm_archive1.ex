@@ -10,7 +10,7 @@ defmodule LastfmArchive1 do
   """
 
   alias Lastfm.Archive
-  alias LastfmArchive.Utils
+  alias LastfmArchive.{Cache, Utils}
 
   @default_opts %{
     interval: Application.get_env(:lastfm_archive, :interval, 500),
@@ -21,13 +21,13 @@ defmodule LastfmArchive1 do
 
   @api Application.get_env(:lastfm_archive, :lastfm_client)
   @archive Application.get_env(:lastfm_archive, :type, Lastfm.FileArchive)
-  @file_io Application.get_env(:lastfm_archive, :file_io)
+  @cache Application.get_env(:lastfm_archive, :cache, LastfmArchive.Cache)
 
   @type archive :: Archive.t()
   @type time_range :: {integer, integer}
 
   @doc """
-  Sync scrobbled tracks for the default user.
+  Sync scrobbled tracks for the default user specified in configuration.
 
   ### Example
 
@@ -37,8 +37,6 @@ defmodule LastfmArchive1 do
 
   The first sync downloads all scrobbles and creates an archive on local filesystem. Subsequent sync calls
   download the latest scrobbles starting from the previous date of sync.
-
-  See `archive/0` for further details on how to configured a default user.
   """
   @spec sync :: :ok | {:error, :file.posix()}
   def sync do
@@ -56,16 +54,16 @@ defmodule LastfmArchive1 do
   ```
 
   The first sync downloads all scrobbles and creates an archive on local filesystem. Subsequent sync calls
-  download only the latest scrobbles starting from the previous date of sync. The date of sync is logged in
-  a `.lastfm_archive` file in the user archive data directory.
-
+  download only the latest scrobbles starting from the previous date of sync.
   """
   @spec sync(binary, keyword) :: :ok | {:error, :file.posix()}
-  def sync(user, options \\ []), do: @archive.describe(user, options) |> maybe_sync_archive(options)
+  def sync(user, options \\ []) do
+    @cache.load(user, @cache, options)
+    {:ok, archive} = @archive.describe(user, options)
+    sync_archive(archive, options)
+  end
 
-  defp maybe_sync_archive({:ok, archive}, options), do: sync_archive(archive, options)
-
-  defp maybe_sync_archive({:error, %{identifier: user} = archive}, options) do
+  def sync_archive(%{identifier: user} = archive, options) do
     client = %Lastfm.Client{method: "user.getrecenttracks"}
     now = DateTime.utc_now() |> DateTime.to_unix()
 
@@ -74,22 +72,14 @@ defmodule LastfmArchive1 do
          archive <- update_archive(archive, total, {registered_time, last_scrobble_time}),
          {:ok, archive} <- @archive.update_metadata(archive, options) do
       Utils.display_progress(archive)
-      metadata = Utils.metadata(user, options)
 
       for year <- Utils.year_range(archive.temporal) do
         {from, to} = Utils.build_time_range(year)
-
-        sync_results =
-          case @file_io.read(Utils.sync_result_cache(year, user, options)) do
-            {:ok, cache} -> sync_archive(archive, {from, to, cache |> :erlang.binary_to_term()}, options)
-            _ -> sync_archive(archive, {from, to, %{}}, options)
-          end
-
-        @file_io.write(Utils.sync_result_cache(year, user, options), sync_results |> :erlang.term_to_binary())
-        @file_io.write(metadata, %{archive | modified: DateTime.utc_now()} |> Jason.encode!())
+        sync_archive(archive, {from, to, Cache.get({user, year})}, options)
+        @cache.serialise(user, @cache, options)
       end
 
-      :ok
+      @archive.update_metadata(%{archive | modified: DateTime.utc_now()}, options)
     else
       error -> error
     end
@@ -104,25 +94,22 @@ defmodule LastfmArchive1 do
     }
   end
 
-  @spec sync_archive(archive, keyword) :: map
   def sync_archive(archive, time_range, options \\ [])
 
   def sync_archive(%Archive{extent: 0}, _year_time_range, _options), do: :ok
 
-  def sync_archive(archive = %Archive{modified: nil}, {from, to, cache}, options) do
+  def sync_archive(archive, {from, to, cache}, options) do
     client = %Lastfm.Client{method: "user.getrecenttracks"}
     options = Map.merge(@default_opts, Enum.into(options, @default_opts))
-
+    year = DateTime.from_unix!(from).year
     time_ranges = Utils.build_time_range({from, to})
 
-    for time_range <- time_ranges, within_range?(time_range, archive.temporal), into: %{} do
-      case Map.get(cache, time_range) do
-        {playcount, sync_results} ->
-          IO.puts("\n")
-          IO.puts("Skipping, previous playcount #{playcount}")
-          {time_range, {playcount, sync_results}}
+    for time_range <- time_ranges, within_range?(time_range, archive.temporal) do
+      case Map.get(cache, time_range, %{}) do
+        {playcount, _sync_results} ->
+          Utils.display_skip_message(time_range, playcount)
 
-        _ ->
+        %{} ->
           :timer.sleep(options.interval)
 
           {playcount, _} = @api.playcount(archive.identifier, time_range, client)
@@ -131,9 +118,11 @@ defmodule LastfmArchive1 do
           Utils.display_progress(time_range, playcount, pages)
           sync_results = sync_archive(archive, time_range, pages, options)
 
-          {time_range, {playcount, sync_results}}
+          @cache.put({archive.identifier, year}, time_range, {playcount, sync_results}, @cache)
       end
     end
+
+    :ok
   end
 
   defp within_range?({from, to}, {registered_time, last_scrobble_time}) do

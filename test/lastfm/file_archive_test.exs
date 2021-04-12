@@ -86,7 +86,7 @@ defmodule Lastfm.FileArchiveTest do
 
     test "return error if file archive does not exist" do
       Lastfm.FileIOMock |> expect(:read, fn _ -> {:error, :enoent} end)
-      assert {:error, _new_archive_to_created} = FileArchive.describe("non_existig_archive_id")
+      assert {:ok, _new_archive_to_created} = FileArchive.describe("non_existig_archive_id")
     end
   end
 

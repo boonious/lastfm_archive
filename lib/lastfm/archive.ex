@@ -26,9 +26,8 @@ defmodule Lastfm.Archive do
     :type
   ]
 
-  @type archive_id :: binary()
   @type options :: keyword()
-  @type lastfm_user :: binary()
+  @type user :: binary()
   @type scrobbles :: map()
 
   @typedoc """
@@ -58,7 +57,7 @@ defmodule Lastfm.Archive do
   @doc """
   Describes the status of an existing archive.
   """
-  @callback describe(archive_id, options) :: {:ok, t()} | {:error, term()}
+  @callback describe(user, options) :: {:ok, t()} | {:error, term()}
 
   @doc """
   Write scrobbles data to an existing archive.
@@ -72,16 +71,16 @@ defmodule Lastfm.Archive do
   based on the outcomes of archiving, i.e. the implementation of the
   callbacks of this behaviour.
   """
-  @spec new(lastfm_user) :: t()
-  def new(lastfm_user) do
+  @spec new(user) :: t()
+  def new(user) do
     %__MODULE__{
       created: DateTime.utc_now(),
-      creator: lastfm_user,
-      description: "Lastfm archive of #{lastfm_user}, extracted from Lastfm API",
+      creator: user,
+      description: "Lastfm archive of #{user}, extracted from Lastfm API",
       format: "application/json",
-      identifier: lastfm_user,
+      identifier: user,
       source: "http://ws.audioscrobbler.com/2.0",
-      title: "Lastfm archive of #{lastfm_user}",
+      title: "Lastfm archive of #{user}",
       type: @archive
     }
   end
