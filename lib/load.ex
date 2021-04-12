@@ -6,6 +6,8 @@ defmodule LastfmArchive.Load do
 
   alias LastfmArchive.Utils
 
+  @file_io Application.get_env(:lastfm_archive, :file_io)
+
   @doc """
   Ping a Solr core/collection endpoint to check if it is running.
 
@@ -124,10 +126,8 @@ defmodule LastfmArchive.Load do
   """
   @spec load_solr(Hui.URL.t(), binary, binary) :: {:ok, Hui.Http.t()} | {:error, :enoent}
   def load_solr(url, user, filename) do
-    {status, resp} = read(user, filename)
-
-    case status do
-      :ok ->
+    case read(user, filename) do
+      {:ok, resp} ->
         [header | scrobbles] = resp
 
         solr_docs =
@@ -139,8 +139,8 @@ defmodule LastfmArchive.Load do
 
         Hui.update(url, solr_docs)
 
-      :error ->
-        {:error, resp}
+      error ->
+        error
     end
   end
 
@@ -169,19 +169,13 @@ defmodule LastfmArchive.Load do
   @spec read(binary, binary) :: {:ok, list(binary)} | {:error, :file.posix()}
   def read(user, filename) do
     file_path = Path.join(Utils.user_dir(user, []), filename)
-    IO.inspect file_path
-    {status, file_io} = File.open(file_path, [:read, :compressed, :utf8])
 
-    resp =
-      case status do
-        :ok ->
-          {:ok, IO.read(file_io, :all) |> String.split("\n")}
+    case @file_io.read(file_path) do
+      {:ok, gzip_data} ->
+        {:ok, gzip_data |> :zlib.gunzip() |> String.split("\n")}
 
-        :error ->
-          {:error, file_io}
-      end
-
-    if is_pid(file_io), do: File.close(file_io)
-    resp
+      error ->
+        error
+    end
   end
 end

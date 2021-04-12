@@ -27,6 +27,8 @@ defmodule LastfmArchive do
   @cache Application.get_env(:lastfm_archive, :cache, LastfmArchive.Cache)
   @tsv_file_header "id\tname\tscrobble_date\tscrobble_date_iso\tmbid\turl\tartist\tartist_mbid\tartist_url\talbum\talbum_mbid"
 
+  @path_io Application.get_env(:lastfm_archive, :path_io)
+
   @type archive :: Archive.t()
   @type time_range :: {integer, integer}
   @type solr_url :: atom | Hui.URL.t()
@@ -267,9 +269,9 @@ defmodule LastfmArchive do
 
   # return all archive file paths in a list
   defp ls_archive_files(user) do
-    archive_file_wildcard = Path.join(Utils.user_dir(user), "**/*.gz")
-    archive_files = :filelib.wildcard(archive_file_wildcard |> to_charlist)
-    archive_files |> Enum.map(&(String.split(&1 |> to_string, user <> "/") |> tl |> hd))
+    Path.join(Utils.user_dir(user), "**/*.gz")
+    |> @path_io.wildcard([])
+    |> Enum.map(&(String.split(&1 |> to_string, user <> "/") |> tl |> hd))
   end
 
   @doc """
