@@ -108,14 +108,15 @@ defmodule Lastfm.ExtractTest do
       }
     end
 
-    test "returns count of a user given a time range", %{bypass: bypass, api: api, time_range: time_range} do
+    test "returns count and last scrobble data of a user given a time range", context do
       count = 12
+      last_scobble_time = 1_618_328_464
 
-      Bypass.expect(bypass, fn conn ->
+      Bypass.expect(context.bypass, fn conn ->
         params = Plug.Conn.fetch_query_params(conn) |> Map.fetch!(:query_params)
         authorization_header = conn.req_headers |> Enum.find(&(elem(&1, 0) == "authorization")) |> elem(1)
 
-        assert "Bearer #{api.api_key}" == authorization_header
+        assert "Bearer #{context.api.api_key}" == authorization_header
 
         assert %{
                  "api_key" => "12345",
@@ -125,10 +126,26 @@ defmodule Lastfm.ExtractTest do
                  "to" => "1199145599"
                } = params
 
-        Plug.Conn.resp(conn, 200, recent_tracks("a_lastfm_user", count))
+        Plug.Conn.resp(conn, 200, recent_tracks("a_lastfm_user", count, last_scobble_time))
       end)
 
-      assert {^count, _} = Extract.playcount("a_lastfm_user", time_range, api)
+      assert {^count, ^last_scobble_time} = Extract.playcount("a_lastfm_user", context.time_range, context.api)
+    end
+
+    test "returns 0 count and nil last scrobble time when playcount is 0", context do
+      Bypass.expect(context.bypass, fn conn ->
+        Plug.Conn.resp(conn, 200, recent_tracks_zero_count())
+      end)
+
+      assert {0, nil} = Extract.playcount("a_lastfm_user", context.time_range, context.api)
+    end
+
+    test "returns 0 count and nil last scrobble time when Lastfm returns `now_playing` track", context do
+      Bypass.expect(context.bypass, fn conn ->
+        Plug.Conn.resp(conn, 200, recent_tracks_zero_count_now_playing())
+      end)
+
+      assert {0, nil} = Extract.playcount("a_lastfm_user", context.time_range, context.api)
     end
 
     test "returns error tuple on API error response", context do

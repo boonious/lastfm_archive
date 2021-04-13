@@ -53,7 +53,11 @@ defmodule Lastfm.Extract do
   defp handle_response(%{"recenttracks" => _} = resp, :playcount) do
     {
       resp["recenttracks"]["@attr"]["total"] |> format(),
-      resp["recenttracks"]["track"] |> Enum.find(& &1["date"]) |> get_in(["date", "uts"]) |> format()
+      resp["recenttracks"]["track"]
+      |> List.wrap
+      |> Enum.find(& &1["date"])
+      |> get_in(["date", "uts"])
+      |> format()
     }
   end
 
@@ -63,7 +67,7 @@ defmodule Lastfm.Extract do
 
   defp format(number) when is_integer(number), do: number
   defp format(number) when is_binary(number), do: number |> String.to_integer()
-  defp format(nil), do: 0
+  defp format(nil), do: nil
 
   defp get(url, key) do
     :httpc.request(:get, {to_charlist(url), [{'Authorization', to_charlist("Bearer #{key}")}]}, [], [])
