@@ -21,6 +21,7 @@ defmodule Fixtures.Archive do
     }
   end
 
+  def gzip_data(), do: File.read!("test/fixtures/200_34.gz")
   def tsv_gzip_data(), do: File.read!("test/fixtures/2018.tsv.gz")
 
   def solr_add_docs(), do: File.read!("test/fixtures/solr_add_docs.json")

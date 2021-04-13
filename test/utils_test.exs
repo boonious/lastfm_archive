@@ -1,5 +1,9 @@
 defmodule LastfmArchive.UtilsTest do
   use ExUnit.Case, async: true
+
+  import Mox
+  import Fixtures.Archive
+
   alias LastfmArchive.Utils
 
   test "build_time_range/1 provides daily time range" do
@@ -29,5 +33,22 @@ defmodule LastfmArchive.UtilsTest do
     for year <- 2008..2021 do
       assert year in year_range
     end
+  end
+
+  test "read/2 file from the archive for a given user and file location" do
+    test_user = "load_test_user"
+    tsv_file = Path.join(Utils.user_dir("load_test_user"), "tsv/2018.tsv.gz")
+    non_existing_file = Path.join(Utils.user_dir("load_test_user"), "non_existing_file.tsv.gz")
+
+    Lastfm.FileIOMock
+    |> expect(:read, fn ^non_existing_file -> {:error, :enoent} end)
+    |> expect(:read, fn ^tsv_file -> {:ok, tsv_gzip_data()} end)
+
+    assert {:error, :enoent} = Utils.read(test_user, "non_existing_file.tsv.gz")
+    assert {:ok, resp} = Utils.read(test_user, "tsv/2018.tsv.gz")
+
+    [header | scrobbles] = resp |> String.split("\n")
+    assert header == LastfmArchive.Transform.tsv_headers()
+    assert length(scrobbles) > 0
   end
 end

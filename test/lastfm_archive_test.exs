@@ -52,9 +52,4 @@ defmodule LastfmArchiveTest do
 
     capture_io(fn -> LastfmArchive.sync(user) end)
   end
-
-  test "tsv_file_header" do
-    assert LastfmArchive.tsv_file_header() ==
-             "id\tname\tscrobble_date\tscrobble_date_iso\tmbid\turl\tartist\tartist_mbid\tartist_url\talbum\talbum_mbid"
-  end
 end

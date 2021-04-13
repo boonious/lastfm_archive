@@ -4,8 +4,10 @@ defmodule LastfmArchive.Transform do
 
   """
 
-  @default_data_dir "./lastfm_data/"
+  alias LastfmArchive.Utils
+
   @default_delimiter "\t"
+  @tsv_headers "id\tname\tscrobble_date\tscrobble_date_iso\tmbid\turl\tartist\tartist_mbid\tartist_url\talbum\talbum_mbid"
 
   @doc """
   Transform a downloaded raw JSON page into a list of tab-delimited track data.
@@ -35,21 +37,23 @@ defmodule LastfmArchive.Transform do
   def transform(user, filename, mode \\ :tsv)
 
   def transform(user, filename, :tsv) do
-    {status, tracks_data} = read(user, filename)
+    case Utils.read(user, filename) do
+      {:ok, resp} ->
+        tracks = resp |> Jason.decode!()
+        index = initial_index(tracks["recenttracks"]["@attr"])
 
-    case status do
-      :ok ->
-        index = initial_index(tracks_data["recenttracks"]["@attr"])
-        [track | tracks] = tracks_data["recenttracks"]["track"]
+        [track | rest] = tracks["recenttracks"]["track"]
 
         if track["@attr"]["nowplaying"],
-          do: _transform(user, tracks, index, []),
-          else: _transform(user, [track | tracks], index, [])
+          do: _transform(user, rest, index, [@tsv_headers]),
+          else: _transform(user, tracks, index, [@tsv_headers])
 
-      :error ->
-        {:error, tracks_data}
+      error ->
+        error
     end
   end
+
+  def tsv_headers(), do: @tsv_headers
 
   defp _transform(_user, [], _index, acc), do: acc
 
@@ -69,30 +73,6 @@ defmodule LastfmArchive.Transform do
     artist_info = [track["artist"]["name"], track["artist"]["mbid"], track["artist"]["url"]]
     album_info = [track["album"]["#text"], track["album"]["mbid"]]
     Enum.join(track_info ++ artist_info ++ album_info, @default_delimiter)
-  end
-
-  @doc """
-  Read and parse a raw Lastfm JSON file from the archive for a Lastfm user.
-  """
-  @spec read(binary, binary) :: {:ok, map} | {:error, :file.posix()}
-  def read(user, filename) do
-    data_dir = Application.get_env(:lastfm_archive, :data_dir) || @default_data_dir
-    user_data_dir = Path.join(data_dir, user)
-    file_path = Path.join(user_data_dir, filename)
-
-    {status, file_io} = File.open(file_path, [:read, :compressed, :utf8])
-
-    resp =
-      case status do
-        :ok ->
-          {:ok, IO.read(file_io, :line) |> Jason.decode!()}
-
-        :error ->
-          {:error, file_io}
-      end
-
-    if is_pid(file_io), do: File.close(file_io)
-    resp
   end
 
   defp initial_index(%{"page" => page, "perPage" => per_page}) when is_binary(page) and is_binary(per_page) do

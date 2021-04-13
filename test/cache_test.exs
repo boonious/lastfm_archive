@@ -21,6 +21,10 @@ defmodule LastfmArchive.CacheTest do
     assert {@ticks_before_serialise, %{}} == Cache.state(@cache)
   end
 
+  test "state/0 returns current state of app cache" do
+    assert {60, %{}} == Cache.state()
+  end
+
   test "state/1 returns current state", %{cache: cache} do
     :sys.replace_state(@cache, fn _state -> {60, cache} end)
     assert {60, ^cache} = Cache.state(@cache)

@@ -25,9 +25,9 @@ defmodule LastfmArchive do
   @api Application.get_env(:lastfm_archive, :lastfm_client)
   @archive Application.get_env(:lastfm_archive, :type, Lastfm.FileArchive)
   @cache Application.get_env(:lastfm_archive, :cache, LastfmArchive.Cache)
-  @tsv_file_header "id\tname\tscrobble_date\tscrobble_date_iso\tmbid\turl\tartist\tartist_mbid\tartist_url\talbum\talbum_mbid"
 
   @path_io Application.get_env(:lastfm_archive, :path_io)
+  @file_io Application.get_env(:lastfm_archive, :file_io)
 
   @type archive :: Archive.t()
   @type time_range :: {integer, integer}
@@ -234,13 +234,12 @@ defmodule LastfmArchive do
         if is_nil(x), do: x, else: x |> hd
       end)
 
-    tsv_dir = Path.join([Utils.user_dir(user), "tsv"])
-    unless File.exists?(tsv_dir), do: File.mkdir_p(tsv_dir)
+    :ok = Utils.create_tsv_dir(user)
 
     for {year, archive_files} <- archive_file_batches, year != nil do
       tsv_filepath = Path.join([Utils.user_dir(user), "tsv", "#{year}.tsv.gz"])
 
-      if File.exists?(tsv_filepath) do
+      if @file_io.exists?(tsv_filepath) do
         IO.puts("\nTSV file archive exists, skipping #{year} scrobbles.")
       else
         IO.puts("\nCreating TSV file archive for #{year} scrobbles.")
@@ -251,20 +250,10 @@ defmodule LastfmArchive do
     :ok
   end
 
-  @doc false
-  def tsv_file_header, do: @tsv_file_header
-
   defp write_tsv(user, tsv_filepath, archive_files) do
-    {:ok, tsv_file} = File.open(tsv_filepath, [:write, :compressed, :utf8])
-
-    IO.puts(tsv_file, @tsv_file_header)
-
     for archive_file <- archive_files, String.match?(archive_file, ~r/^\d{4}/) do
-      tsv_rows = LastfmArchive.Transform.transform(user, archive_file)
-      for row <- tsv_rows, do: IO.puts(tsv_file, row)
+      @file_io.write(tsv_filepath, LastfmArchive.Transform.transform(user, archive_file), [:compressed])
     end
-
-    File.close(tsv_file)
   end
 
   # return all archive file paths in a list

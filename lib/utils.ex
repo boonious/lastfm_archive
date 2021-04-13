@@ -4,6 +4,8 @@ defmodule LastfmArchive.Utils do
   @data_dir Application.get_env(:lastfm_archive, :data_dir, "./archive_data/")
   @metadata_file ".archive"
 
+  @file_io Application.get_env(:lastfm_archive, :file_io)
+
   @doc """
   Generate {from, to} daily time ranges for querying LastFM API based on
   the first and last scrobble unix timestamps.
@@ -51,5 +53,32 @@ defmodule LastfmArchive.Utils do
 
     IO.puts("\n")
     IO.puts("Skipping #{from_date}, previously synced: #{playcount} scrobble(s)")
+  end
+
+  @doc """
+  Read and unzip a file from the archive of a Lastfm user.
+
+  ### Example
+
+  ```
+    LastfmArchive.Load.read "a_lastfm_user", "tsv/2007.tsv.gz"
+  ```
+  """
+  def read(user, filename) do
+    file_path = Path.join(user_dir(user, []), filename)
+
+    case @file_io.read(file_path) do
+      {:ok, gzip_data} ->
+        {:ok, gzip_data |> :zlib.gunzip()}
+
+      error ->
+        error
+    end
+  end
+
+  def create_tsv_dir(user) do
+    dir = Path.join(user_dir(user, []), "tsv")
+    unless @file_io.exists?(dir), do: @file_io.mkdir_p(dir)
+    :ok
   end
 end

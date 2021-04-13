@@ -9,6 +9,8 @@ defmodule LoadTest do
 
   @expected_solr_fields_path Path.join(["solr", "fields.json"])
 
+  setup :verify_on_exit!
+
   setup do
     [bypass: Bypass.open()]
   end
@@ -84,22 +86,6 @@ defmodule LoadTest do
     end)
 
     assert {:error, %Hui.Error{reason: :einit}} = LastfmArchive.Load.check_solr_schema(url)
-  end
-
-  test "read and parse TSV file into scrobble list from the archive, for a given user, file location" do
-    test_user = "load_test_user"
-    tsv_file = Path.join(Utils.user_dir("load_test_user"), "tsv/2018.tsv.gz")
-    non_existing_file = Path.join(Utils.user_dir("load_test_user"), "non_existing_file.tsv.gz")
-
-    Lastfm.FileIOMock
-    |> expect(:read, fn ^non_existing_file -> {:error, :enoent} end)
-    |> expect(:read, fn ^tsv_file -> {:ok, tsv_gzip_data()} end)
-
-    assert {:error, :enoent} = LastfmArchive.Load.read(test_user, "non_existing_file.tsv.gz")
-    assert {:ok, [header | scrobbles]} = LastfmArchive.Load.read(test_user, "tsv/2018.tsv.gz")
-
-    assert header == LastfmArchive.tsv_file_header()
-    assert length(scrobbles) > 0
   end
 
   test "load a TSV file from the archive into Solr for a given user", %{bypass: bypass} do
