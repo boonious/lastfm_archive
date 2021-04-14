@@ -24,7 +24,7 @@ defmodule LastfmArchiveTest do
     capture_io(fn -> LastfmArchive.sync(user) end)
   end
 
-  test "sync/1 scrobbles to a new file archive" do
+  test "sync/2 scrobbles to a new file archive" do
     user = "a_lastfm_user"
 
     total_scrobbles = 400

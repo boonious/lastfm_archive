@@ -1,65 +1,44 @@
 # Lastfm Archive [![Build Status](https://api.travis-ci.com/boonious/lastfm_archive.svg?branch=master)](https://travis-ci.com/boonious/lastfm_archive) [![Hex pm](http://img.shields.io/hexpm/v/lastfm_archive.svg?style=flat)](https://hex.pm/packages/lastfm_archive) [![Coverage Status](https://coveralls.io/repos/github/boonious/lastfm_archive/badge.svg)](https://coveralls.io/github/boonious/lastfm_archive?branch=master)
 
-A tool for creating local Last.fm scrobble file archive, Solr archive and analytics.
+A tool for creating local Last.fm scrobble file archive and analytics.
 
 The software is currently experimental and in preliminary development. It should
 eventually provide capability to perform ETL and analytic tasks on Lastfm scrobble data.
 
 ## Current Usage
 
-Download and create a file archive of Lastfm scrobble tracks via [Elixir](https://elixir-lang.org)
-applications or [interactive Elixir](https://elixir-lang.org/getting-started/introduction.html#interactive-mode)
-(invoking `iex -S mix` command line action while in software home directory).
+Download and create a file archive of Lastfm scrobble tracks via an [Elixir](https://elixir-lang.org)
+application or [interactive Elixir](https://elixir-lang.org/getting-started/introduction.html#interactive-mode)
+by invoking `iex -S mix` command line action while in software home directory.
  
 ```elixir
   # archive all data of a default user specified in configuration
-  LastfmArchive.archive
   LastfmArchive.sync # subsequent calls download only latest scrobbles
 
   # archive all data of any Lastfm user
   # the data is stored in directory named after the user
-  LastfmArchive.archive("a_lastfm_user")
-  LastfmArchive.sync("a_lastfm_user") # subsequent calls download only latest scrobbles
-
-  # archive a data subset
-  LastfmArchive.archive("a_lastfm_user", :past_month)
-
-  # data from year 2016
-  LastfmArchive.archive("a_lastfm_user", 2016)
-
-  # with Date struct
-  LastfmArchive.archive("a_lastfm_user", ~D[2018-10-31])
-
-  # with Date.Range struct and archiving options
-  d1 = ~D[2018-01-01]
-  d2 = d1 |> Date.add(7)
-  LastfmArchive.archive("a_lastfm_user", Date.range(d1, d2), daily: true, overwrite: true)
-
+  LastfmArchive.sync("a_lastfm_user")
 ```
 
-Older scrobbles are archived on a yearly basis, whereas the latest (current year) scrobbles
-are extracted on a daily basis to ensure data immutability and updatability.
+Scrobbles are extracted snd stored in the file archive on a daily basis.
+The software has a built-in cache to remember and resume from the previous
+downloads.
 
 The data is currently in raw Lastfm `recenttracks` JSON format,
 chunked into 200-track (max) `gzip` compressed pages and stored within directories
-corresponding to the years or days when tracks were scrobbled.
+corresponding to the days when tracks were scrobbled. The file archive in a main 
+directory specified in configuration - see below.
 
-See [`archive/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#archive/2),
-[`archive/3`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#archive/3) for more details
-and archiving options.
-
-The data is written to a main directory specified in configuration - see below.
-
+## Other Usage
 To generate a TSV file archive from downloaded data:
 
 ```elixir
-  # transform all data of a user into to TSV files
+  # transform all existing data in a file archive into TSV files
   LastfmArchive.transform_archive("a_lastfm_user")
 ```
 
 See [`transform_archive/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#transform_archive/2).
 
-### Loading data into Solr
 
 To load all transformed TSV data from the archive into Solr:
 
@@ -70,9 +49,6 @@ To load all transformed TSV data from the archive into Solr:
   url = %Hui.URL{url: "http://localhost:8983/solr/lastfm_archive", handler: "update", headers: headers}
 
   LastfmArchive.load_archive("a_lastfm_user", url)
-
-  # use Solr endpoint from config setting - Configuration below
-  LastfmArchive.load_archive("a_lastfm_user", :lastfm_archive)
 ```
 
 The function finds TSV files from the archive and send them to
@@ -93,7 +69,7 @@ to your list of dependencies in `mix.exs`:
 ```elixir
   def deps do
     [
-      {:lastfm_archive, "~> 0.8"}
+      {:lastfm_archive, "~> 0.9"}
     ]
   end
 ```
@@ -114,7 +90,7 @@ You also need to specify an `api-key` in the config, so that the application can
     user: "default_user", # the default user
     data_dir: "./lastfm_data/", # main directory for multiple archives
     per_page: 200, # 200 is max no. of tracks per call permitted by Lastfm API 
-    interval: 500 # milliseconds between requests cf. Lastfm's max 5 reqs/s rate limit
+    interval: 1000 # milliseconds between requests cf. Lastfm's max 5 reqs/s rate limit
 
 
   # optional: Solr endpoint for Lastfm data loading
@@ -125,7 +101,7 @@ You also need to specify an `api-key` in the config, so that the application can
 
 ```
 
-See [`archive/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#archive/2)
+See [`sync/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#sync/2)
 for other configurable archiving options, e.g. `interval`, `per_page`.
 
 See [`Hui`](https://hexdocs.pm/hui/readme.html#content) for more details on Solr configuration.

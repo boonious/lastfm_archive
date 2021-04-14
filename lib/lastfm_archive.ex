@@ -115,6 +115,7 @@ defmodule LastfmArchive do
     client = %Lastfm.Client{method: "user.getrecenttracks"}
     now = DateTime.utc_now() |> DateTime.to_unix()
 
+    # TODO: handles Last.fm API errors
     with {total, registered_time} <- @api.info(user, %{client | method: "user.getinfo"}),
          {_, last_scrobble_time} <- @api.playcount(user, {registered_time, now}, client),
          archive <- update_archive(archive, total, {registered_time, last_scrobble_time}),

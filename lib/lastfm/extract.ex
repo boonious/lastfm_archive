@@ -54,7 +54,7 @@ defmodule Lastfm.Extract do
     {
       resp["recenttracks"]["@attr"]["total"] |> format(),
       resp["recenttracks"]["track"]
-      |> List.wrap
+      |> List.wrap()
       |> Enum.find(& &1["date"])
       |> get_in(["date", "uts"])
       |> format()

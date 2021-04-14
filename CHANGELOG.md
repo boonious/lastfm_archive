@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.0 (2021-04-14)
+
+* Create an `Archive` behaviour with `FileArchive` implementation
+* Extract and store scrobbles in daily chunks
+* Extensive refactoring: simpler LastfmArchive functions core, deprecate `archive` functions
+* Rewrite tests with mocks, eliminate file writes during tests
+* Implement a GenServer simple tick-based (auto) cache memoization to prevent repetitive API calls to Last.fm
+
 ## 0.8.0 (2021-01-04)
 
 * Update Elixir/Erlang versions and dependencies
@@ -12,15 +20,15 @@
 
 ## 0.7.2 (2019-02-25)
 
-* Fix the issue of Lastfm changing the date/count data type in JSON back and forth (string <-> integer).
+* Fix the issue of Last.fm changing the date/count data type in JSON back and forth (string <-> integer).
 
 ## 0.7.1 (2019-01-14)
 
-* Patches as per Lastfm API JSON data format changes: uts timestamp, play counts info are now returned as integers instead of strings.
+* Patches as per Last.fm API JSON data format changes: uts timestamp, play counts info are now returned as integers instead of strings.
 
 ## 0.7.0 (2019-01-11)
 
-* `sync/0`, `sync/1`: sync and keep tracks of scrobbles for a default and Lastfm users, via delta archiving (download latest scrobbles)
+* `sync/0`, `sync/1`: sync and keep tracks of scrobbles for a default and Last.fm users, via delta archiving (download latest scrobbles)
 
 ## 0.6.0 (2018-11-10)
 
@@ -29,7 +37,7 @@
 
 ## 0.5.0 (2018-11-05)
 
-* `transform_archive/2`: transform downloaded raw Lastfm archive and create a TSV file archive
+* `transform_archive/2`: transform downloaded raw Last.fm archive and create a TSV file archive
 *  Underpinning functions to read, parse and transform raw Lastfm JSON data into TSV files
 
 ## 0.4.1 (2018-11-01)
