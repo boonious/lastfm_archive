@@ -1,9 +1,15 @@
 defmodule LoadTest do
   use ExUnit.Case, async: true
+
   import ExUnit.CaptureIO
+  import Mox
+  import Fixtures.Archive
+
+  alias LastfmArchive.Utils
 
   @expected_solr_fields_path Path.join(["solr", "fields.json"])
-  @test_data_dir Application.get_env(:lastfm_archive, :data_dir)
+
+  setup :verify_on_exit!
 
   setup do
     [bypass: Bypass.open()]
@@ -37,9 +43,8 @@ defmodule LoadTest do
     expected_fields = File.read!(@expected_solr_fields_path) |> Jason.decode!()
 
     Bypass.expect(bypass, fn conn ->
-      schema_response = File.read!(Path.join(["test", "data", "schema_response.json"]))
       assert conn.path_info == ["schema"]
-      Plug.Conn.resp(conn, 200, schema_response)
+      Plug.Conn.resp(conn, 200, solr_schema_response())
     end)
 
     {status, fields} = LastfmArchive.Load.check_solr_schema(url)
@@ -54,9 +59,8 @@ defmodule LoadTest do
     expected_fields = File.read!(@expected_solr_fields_path) |> Jason.decode!()
 
     Bypass.expect(bypass, fn conn ->
-      schema_response = File.read!(Path.join(["test", "data", "schema_response.json"]))
       assert conn.path_info == ["schema"]
-      Plug.Conn.resp(conn, 200, schema_response)
+      Plug.Conn.resp(conn, 200, solr_schema_response())
     end)
 
     {status, fields} = LastfmArchive.Load.check_solr_schema(:lastfm_ping_test2)
@@ -77,41 +81,28 @@ defmodule LoadTest do
     url = "http://localhost:#{bypass.port}/"
 
     Bypass.expect(bypass, fn conn ->
-      schema_response = File.read!(Path.join(["test", "data", "schema_response_missing_fields.json"]))
       assert conn.path_info == ["schema"]
-      Plug.Conn.resp(conn, 200, schema_response)
+      Plug.Conn.resp(conn, 200, solr_missing_fields_response())
     end)
 
     assert {:error, %Hui.Error{reason: :einit}} = LastfmArchive.Load.check_solr_schema(url)
   end
 
-  test "read and parse TSV file into scrobble list from the archive, for a given user, file location" do
-    test_user = "load_test_user"
-    File.cp_r("test/data/#{Application.get_env(:lastfm_archive, :user)}", "#{@test_data_dir}/#{test_user}")
-    on_exit(fn -> File.rm_rf(Path.join(@test_data_dir, "#{test_user}")) end)
-
-    assert {:error, :enoent} = LastfmArchive.Load.read(test_user, "non_existing_file.tsv.gz")
-    assert {:ok, [header | scrobbles]} = LastfmArchive.Load.read(test_user, "tsv/2018.tsv.gz")
-
-    assert header == LastfmArchive.tsv_file_header()
-    assert length(scrobbles) > 0
-  end
-
   test "load a TSV file from the archive into Solr for a given user", %{bypass: bypass} do
     test_user = "load_test_user"
+    tsv_file = Path.join(Utils.user_dir("load_test_user"), "tsv/2018.tsv.gz")
+
     bypass_url = "http://localhost:#{bypass.port}/"
     headers = [{"Content-type", "application/json"}]
     url = %Hui.URL{url: "#{bypass_url}", handler: "update", headers: headers}
 
-    expected_solr_docs = File.read!(Path.join(["test", "data", "update_solr_docs1.json"]))
-
-    File.cp_r("test/data/#{Application.get_env(:lastfm_archive, :user)}", "#{@test_data_dir}/#{test_user}")
-    on_exit(fn -> File.rm_rf(Path.join(@test_data_dir, "#{test_user}")) end)
+    Lastfm.FileIOMock
+    |> expect(:read, fn ^tsv_file -> {:ok, tsv_gzip_data()} end)
 
     Bypass.expect(bypass, fn conn ->
       {:ok, body, conn} = Plug.Conn.read_body(conn)
       assert conn.method == "POST"
-      assert body == expected_solr_docs
+      assert body == solr_add_docs()
 
       Plug.Conn.resp(conn, 200, "{}")
     end)
@@ -130,23 +121,19 @@ defmodule LoadTest do
               status: 200,
               url: _
             }} = LastfmArchive.Load.load_solr(url, test_user, "tsv/2018.tsv.gz")
-
-    assert {:error, :enoent} = LastfmArchive.Load.load_solr(url, test_user, "not_available_file.tsv.gz")
   end
 
-  test "load_archive/2: load all TSV data from the archive into Solr for a given user, via %Hui.URL{}", %{
-    bypass: bypass
-  } do
+  test "load_archive/2: load all TSV archive data into Solr via %Hui.URL{}", %{bypass: bypass} do
     test_user = "load_test_user"
-    File.cp_r("test/data/#{Application.get_env(:lastfm_archive, :user)}", "#{@test_data_dir}/#{test_user}")
-    on_exit(fn -> File.rm_rf(Path.join(@test_data_dir, "#{test_user}")) end)
+    tsv_wildcard_path = Path.join(Utils.user_dir("load_test_user"), "**/*.gz")
+    tsv_file = Path.join([Utils.user_dir("load_test_user"), "tsv", "2018.tsv.gz"])
 
     bypass_url = "http://localhost:#{bypass.port}/"
     headers = [{"Content-type", "application/json"}]
     url = %Hui.URL{url: "#{bypass_url}", handler: "update", headers: headers}
 
-    schema_response = File.read!(Path.join(["test", "data", "schema_response.json"]))
-    expected_solr_docs = File.read!(Path.join(["test", "data", "update_solr_docs1.json"]))
+    Lastfm.PathIOMock |> expect(:wildcard, fn ^tsv_wildcard_path, _options -> [tsv_file] end)
+    Lastfm.FileIOMock |> expect(:read, fn ^tsv_file -> {:ok, tsv_gzip_data()} end)
 
     Bypass.expect(bypass, fn conn ->
       case conn.method do
@@ -155,40 +142,41 @@ defmodule LoadTest do
 
         "POST" ->
           {:ok, body, _conn} = Plug.Conn.read_body(conn)
-          assert body == expected_solr_docs
+          assert body == solr_add_docs()
       end
 
-      Plug.Conn.resp(conn, 200, schema_response)
+      Plug.Conn.resp(conn, 200, solr_schema_response())
     end)
 
     capture_io(fn -> LastfmArchive.load_archive(test_user, url) end)
   end
 
-  test "load_archive/2: load all TSV data from the archive into Solr for a given user, via URL config key", %{
-    bypass: bypass
-  } do
+  test "load_archive/2: load all TSV archive data into Solr via URL config key", %{bypass: bypass} do
     test_user = "load_test_user"
-    File.cp_r("test/data/#{Application.get_env(:lastfm_archive, :user)}", "#{@test_data_dir}/#{test_user}")
-    on_exit(fn -> File.rm_rf(Path.join(@test_data_dir, "#{test_user}")) end)
+    tsv_wildcard_path = Path.join(Utils.user_dir("load_test_user"), "**/*.gz")
+    tsv_file = Path.join([Utils.user_dir("load_test_user"), "tsv", "2018.tsv.gz"])
 
     bypass_url = "http://localhost:#{bypass.port}/"
     headers = [{"Content-type", "application/json"}]
 
-    Application.put_env(:hui, :test_url1, url: bypass_url, headers: headers, handler: "update")
+    Application.put_env(:hui, :test_url, url: bypass_url, headers: headers, handler: "update")
 
-    schema_response = File.read!(Path.join(["test", "data", "schema_response.json"]))
+    Lastfm.PathIOMock |> expect(:wildcard, fn ^tsv_wildcard_path, _options -> [tsv_file] end)
+    Lastfm.FileIOMock |> expect(:read, fn ^tsv_file -> {:ok, tsv_gzip_data()} end)
 
     Bypass.expect(bypass, fn conn ->
       if conn.method == "GET" do
         assert conn.path_info == ["schema"] or conn.path_info == ["admin", "ping"]
       end
 
-      Plug.Conn.resp(conn, 200, schema_response)
+      Plug.Conn.resp(conn, 200, solr_schema_response())
     end)
 
-    capture_io(fn -> LastfmArchive.load_archive(test_user, :test_url1) end)
+    capture_io(fn -> LastfmArchive.load_archive(test_user, :test_url) end)
+  end
 
-    # test malformed URL
+  test "load_archive/2 handles malformed URLs" do
+    test_user = "load_test_user"
     assert {:error, %Hui.Error{reason: :einval}} == LastfmArchive.load_archive(test_user, :not_valid_url_config_key)
     assert {:error, %Hui.Error{reason: :einval}} == LastfmArchive.load_archive(test_user, nil)
     assert {:error, %Hui.Error{reason: :einval}} == LastfmArchive.load_archive(test_user, "http://binary_url")
