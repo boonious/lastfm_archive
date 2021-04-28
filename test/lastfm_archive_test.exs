@@ -46,9 +46,9 @@ defmodule LastfmArchiveTest do
     |> stub(:update_metadata, fn _updated_archive, _options -> {:ok, test_archive} end)
 
     Lastfm.ClientMock
-    |> expect(:info, fn ^user, _api -> {total_scrobbles, registered_time} end)
-    |> expect(:playcount, fn ^user, _time_range, _api -> {total_scrobbles, last_scrobble_time} end)
-    |> stub(:playcount, fn ^user, _time_range, _api -> {daily_playcount, 0} end)
+    |> expect(:info, fn ^user, _api -> {:ok, {total_scrobbles, registered_time}} end)
+    |> expect(:playcount, fn ^user, _time_range, _api -> {:ok, {total_scrobbles, last_scrobble_time}} end)
+    |> stub(:playcount, fn ^user, _time_range, _api -> {:ok, {daily_playcount, 0}} end)
 
     capture_io(fn -> LastfmArchive.sync(user) end)
   end

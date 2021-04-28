@@ -45,23 +45,29 @@ defmodule Lastfm.Extract do
 
   defp handle_response(%{"user" => _} = resp, _type) do
     {
-      resp["user"]["playcount"] |> format(),
-      resp["user"]["registered"]["unixtime"] |> format()
+      :ok,
+      {
+        resp["user"]["playcount"] |> format(),
+        resp["user"]["registered"]["unixtime"] |> format()
+      }
     }
   end
 
   defp handle_response(%{"recenttracks" => _} = resp, :playcount) do
     {
-      resp["recenttracks"]["@attr"]["total"] |> format(),
-      resp["recenttracks"]["track"]
-      |> List.wrap()
-      |> Enum.find(& &1["date"])
-      |> get_in(["date", "uts"])
-      |> format()
+      :ok,
+      {
+        resp["recenttracks"]["@attr"]["total"] |> format(),
+        resp["recenttracks"]["track"]
+        |> List.wrap()
+        |> Enum.find(& &1["date"])
+        |> get_in(["date", "uts"])
+        |> format()
+      }
     }
   end
 
-  defp handle_response(%{"recenttracks" => _} = resp, _type), do: resp
+  defp handle_response(%{"recenttracks" => _} = resp, _type), do: {:ok, resp}
   defp handle_response(%{"error" => _, "message" => message}, _type), do: {:error, message}
   defp handle_response({:error, reason}, _type), do: {:error, reason}
 

@@ -116,8 +116,8 @@ defmodule LastfmArchive do
     now = DateTime.utc_now() |> DateTime.to_unix()
 
     # TODO: handles Last.fm API errors
-    with {total, registered_time} <- @api.info(user, %{client | method: "user.getinfo"}),
-         {_, last_scrobble_time} <- @api.playcount(user, {registered_time, now}, client),
+    with {:ok, {total, registered_time}} <- @api.info(user, %{client | method: "user.getinfo"}),
+         {:ok, {_, last_scrobble_time}} <- @api.playcount(user, {registered_time, now}, client),
          archive <- update_archive(archive, total, {registered_time, last_scrobble_time}),
          {:ok, archive} <- @archive.update_metadata(archive, options) do
       Utils.display_progress(archive)
@@ -152,7 +152,7 @@ defmodule LastfmArchive do
         %{} ->
           :timer.sleep(options.interval)
 
-          {playcount, _} = @api.playcount(archive.identifier, time_range, client)
+          {:ok, {playcount, _}} = @api.playcount(archive.identifier, time_range, client)
           pages = (playcount / options.per_page) |> :math.ceil() |> round
 
           Utils.display_progress(time_range, playcount, pages)
@@ -177,7 +177,7 @@ defmodule LastfmArchive do
       page_num = page |> to_string |> String.pad_leading(3, "0")
       path = Path.join([page_dir, "#{options.per_page}_#{page_num}"])
 
-      scrobbles =
+      {:ok, scrobbles} =
         @api.scrobbles(user, {page - 1, options.per_page, from, to}, %Lastfm.Client{
           method: "user.getrecenttracks"
         })
