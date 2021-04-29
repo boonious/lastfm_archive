@@ -120,6 +120,13 @@ defmodule Lastfm.FileArchiveTest do
       assert :ok == FileArchive.write(test_file_archive(context.id), context.data, filepath: context.path)
     end
 
+    test "handles scrobble retrieval errors from Last.fm API" do
+      api_error_message = "Operation failed - Something went wrong"
+
+      assert {:error, ^api_error_message} =
+               FileArchive.write(test_file_archive("test_user"), {:error, api_error_message})
+    end
+
     test "does not write to non existing archive",
          context = %{id: id, data_json: data_json, metadata: metadata, full_path: full_path} do
       Lastfm.FileIOMock

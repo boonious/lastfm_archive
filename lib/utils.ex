@@ -55,6 +55,13 @@ defmodule LastfmArchive.Utils do
     IO.puts("Skipping #{from_date}, previously synced: #{playcount} scrobble(s)")
   end
 
+  def display_api_error_message({from, _to}, reason) do
+    from_date = DateTime.from_unix!(from) |> DateTime.to_date()
+
+    IO.puts("\n")
+    IO.puts("Last.fm API error while syncing #{from_date}: #{reason}")
+  end
+
   @doc """
   Read and unzip a file from the archive of a Lastfm user.
 

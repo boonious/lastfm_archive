@@ -86,4 +86,6 @@ defmodule Lastfm.FileArchive do
         @file_io.write(to, scrobbles |> Jason.encode!(), [:compressed])
     end
   end
+
+  def write(_archive, {:error, api_message}, _options), do: {:error, api_message}
 end

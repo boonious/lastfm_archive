@@ -52,7 +52,7 @@ defmodule LastfmArchive do
 
   ```
 
-  See `sync/1` for further details and archiving options.
+  See `sync/2` for further details and archiving options.
   """
   @spec sync :: :ok | {:error, :file.posix()}
   def sync do
@@ -115,7 +115,6 @@ defmodule LastfmArchive do
     client = %Lastfm.Client{method: "user.getrecenttracks"}
     now = DateTime.utc_now() |> DateTime.to_unix()
 
-    # TODO: handles Last.fm API errors
     with {:ok, {total, registered_time}} <- @api.info(user, %{client | method: "user.getinfo"}),
          {:ok, {_, last_scrobble_time}} <- @api.playcount(user, {registered_time, now}, client),
          archive <- update_archive(archive, total, {registered_time, last_scrobble_time}),
@@ -152,13 +151,16 @@ defmodule LastfmArchive do
         %{} ->
           :timer.sleep(options.interval)
 
-          {:ok, {playcount, _}} = @api.playcount(archive.identifier, time_range, client)
-          pages = (playcount / options.per_page) |> :math.ceil() |> round
+          with {:ok, {playcount, _}} <- @api.playcount(archive.identifier, time_range, client) do
+            pages = (playcount / options.per_page) |> :math.ceil() |> round
 
-          Utils.display_progress(time_range, playcount, pages)
-          sync_results = sync_archive(archive, time_range, pages, options)
+            Utils.display_progress(time_range, playcount, pages)
+            sync_results = sync_archive(archive, time_range, pages, options)
 
-          @cache.put({archive.identifier, year}, time_range, {playcount, sync_results}, @cache)
+            @cache.put({archive.identifier, year}, time_range, {playcount, sync_results}, @cache)
+          else
+            {:error, reason} -> Utils.display_api_error_message(time_range, reason)
+          end
       end
     end
 
@@ -176,18 +178,14 @@ defmodule LastfmArchive do
 
       page_num = page |> to_string |> String.pad_leading(3, "0")
       path = Path.join([page_dir, "#{options.per_page}_#{page_num}"])
+      api = %Lastfm.Client{method: "user.getrecenttracks"}
 
-      {:ok, scrobbles} =
-        @api.scrobbles(user, {page - 1, options.per_page, from, to}, %Lastfm.Client{
-          method: "user.getrecenttracks"
-        })
-
-      case @archive.write(archive, scrobbles, filepath: path) do
-        :ok ->
-          IO.write(".")
-          :ok
-
-        _error ->
+      with {:ok, scrobbles} <- @api.scrobbles(user, {page - 1, options.per_page, from, to}, api),
+           :ok <- @archive.write(archive, scrobbles, filepath: path) do
+        IO.write(".")
+        :ok
+      else
+        {:error, _reason} ->
           IO.write("x")
           {:error, %{user: user, page: page - 1, from: from, to: to, per_page: options.per_page}}
       end
