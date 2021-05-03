@@ -138,38 +138,47 @@ defmodule LastfmArchive do
   defp sync_archive(%Archive{extent: 0}, _year_time_range, _options), do: :ok
 
   defp sync_archive(archive, {from, to, cache}, options) do
-    client = %Lastfm.Client{method: "user.getrecenttracks"}
     options = Map.merge(@default_opts, Enum.into(options, @default_opts))
-    year = DateTime.from_unix!(from).year
     time_ranges = Utils.build_time_range({from, to})
 
     for time_range <- time_ranges, within_range?(time_range, archive.temporal) do
-      case Map.get(cache, time_range, %{}) do
-        {playcount, _sync_results} ->
-          Utils.display_skip_message(time_range, playcount)
-
+      with {playcount, previous_results} <- Map.get(cache, time_range, %{}),
+           true <- previous_results |> Enum.all?(&(&1 == :ok)) do
+        Utils.display_skip_message(time_range, playcount)
+      else
+        # new daily sync
         %{} ->
-          :timer.sleep(options.interval)
+          sync_archive_daily(archive, time_range, options)
 
-          with {:ok, {playcount, _}} <- @api.playcount(archive.identifier, time_range, client) do
-            pages = (playcount / options.per_page) |> :math.ceil() |> round
-
-            Utils.display_progress(time_range, playcount, pages)
-            sync_results = sync_archive(archive, time_range, pages, options)
-
-            @cache.put({archive.identifier, year}, time_range, {playcount, sync_results}, @cache)
-          else
-            {:error, reason} -> Utils.display_api_error_message(time_range, reason)
-          end
+        # redo previous erroneous syncs
+        false ->
+          sync_archive_daily(archive, time_range, options)
       end
     end
 
     :ok
   end
 
-  defp sync_archive(_archive, _time_range, 0, _options), do: [:ok]
+  defp sync_archive_daily(archive, {from, _to} = time_range, options) do
+    :timer.sleep(options.interval)
+    client = %Lastfm.Client{method: "user.getrecenttracks"}
+    year = DateTime.from_unix!(from).year
 
-  defp sync_archive(archive = %{identifier: user}, {from, to}, pages, options) do
+    with {:ok, {playcount, _}} <- @api.playcount(archive.identifier, time_range, client) do
+      pages = (playcount / options.per_page) |> :math.ceil() |> round
+
+      Utils.display_progress(time_range, playcount, pages)
+      sync_results = sync_archive_daily(archive, time_range, pages, options)
+
+      @cache.put({archive.identifier, year}, time_range, {playcount, sync_results}, @cache)
+    else
+      {:error, reason} -> Utils.display_api_error_message(time_range, reason)
+    end
+  end
+
+  defp sync_archive_daily(_archive, _time_range, 0, _options), do: [:ok]
+
+  defp sync_archive_daily(archive = %{identifier: user}, {from, to}, pages, options) do
     from_date = DateTime.from_unix!(from) |> DateTime.to_date()
     page_dir = Date.to_string(from_date) |> String.replace("-", "/")
 
