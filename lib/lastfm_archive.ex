@@ -122,7 +122,7 @@ defmodule LastfmArchive do
       Utils.display_progress(archive)
 
       for year <- Utils.year_range(archive.temporal) do
-        {from, to} = Utils.build_time_range(year)
+        {from, to} = Utils.build_time_range(year, archive)
         sync_archive(archive, {from, to, Cache.get({user, year})}, options)
         @cache.serialise(user, @cache, options)
       end
@@ -141,7 +141,7 @@ defmodule LastfmArchive do
     options = Map.merge(@default_opts, Enum.into(options, @default_opts))
     time_ranges = Utils.build_time_range({from, to})
 
-    for time_range <- time_ranges, within_range?(time_range, archive.temporal) do
+    for time_range <- time_ranges do
       with {playcount, previous_results} <- Map.get(cache, time_range, %{}),
            true <- previous_results |> Enum.all?(&(&1 == :ok)) do
         Utils.display_skip_message(time_range, playcount)
@@ -208,10 +208,6 @@ defmodule LastfmArchive do
         extent: total,
         date: last_scrobble_time |> DateTime.from_unix!() |> DateTime.to_date()
     }
-  end
-
-  defp within_range?({from, to}, {registered_time, last_scrobble_time}) do
-    from < last_scrobble_time and to > registered_time
   end
 
   @doc """

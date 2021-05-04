@@ -7,20 +7,26 @@ defmodule LastfmArchive.Utils do
   @file_io Application.get_env(:lastfm_archive, :file_io)
 
   @doc """
-  Generate {from, to} daily time ranges for querying LastFM API based on
+  Generate {from, to} daily time ranges for querying Last.fm API based on
   the first and last scrobble unix timestamps.
   """
   def build_time_range({from, to}) do
     from = DateTime.from_unix!(from) |> DateTime.to_date()
     to = DateTime.from_unix!(to) |> DateTime.to_date()
-    Enum.map(Date.range(from, to), &build_time_range("#{&1}T00:00:00Z", "#{&1}T23:59:59Z"))
+    Enum.map(Date.range(from, to), &iso8601_to_unix("#{&1}T00:00:00Z", "#{&1}T23:59:59Z"))
   end
 
-  def build_time_range(year) when is_integer(year) do
-    build_time_range("#{year}-01-01T00:00:00Z", "#{year}-12-31T23:59:59Z")
+  def build_time_range(year, %Lastfm.Archive{} = archive) when is_integer(year) do
+    {from, to} = iso8601_to_unix("#{year}-01-01T00:00:00Z", "#{year}-12-31T23:59:59Z")
+    {registered_time, last_scrobble_time} = archive.temporal
+
+    from = if from <= registered_time, do: registered_time, else: from
+    to = if to >= last_scrobble_time, do: last_scrobble_time, else: to
+
+    {from, to}
   end
 
-  defp build_time_range(from, to) do
+  defp iso8601_to_unix(from, to) do
     {:ok, from, _} = DateTime.from_iso8601(from)
     {:ok, to, _} = DateTime.from_iso8601(to)
 
