@@ -107,4 +107,33 @@ defmodule LastfmArchiveTest do
     sync_message = capture_io(fn -> LastfmArchive.sync(user) end)
     assert sync_message =~ "x"
   end
+
+  test "do not cache sync/2 of today's scrobbles" do
+    registered_time = (DateTime.utc_now() |> DateTime.to_unix()) - 100
+    last_scrobble_time = DateTime.utc_now() |> DateTime.to_unix()
+    total_scrobbles = 2
+
+    test_archive = %{
+      Archive.new("a_lastfm_user")
+      | temporal: {registered_time, last_scrobble_time},
+        extent: total_scrobbles,
+        date: Date.utc_today(),
+        type: FileArchive
+    }
+
+    Lastfm.FileArchiveMock
+    |> expect(:describe, fn _user, _options -> {:ok, test_archive} end)
+    |> expect(:update_metadata, fn _archive, _options -> {:ok, test_archive} end)
+    |> stub(:update_metadata, fn _updated_archive, _options -> {:ok, test_archive} end)
+
+    Lastfm.ClientMock
+    |> expect(:info, fn _user, _api -> {:ok, {total_scrobbles, registered_time}} end)
+    |> expect(:playcount, fn _user, _time_range, _api -> {:ok, {total_scrobbles, last_scrobble_time}} end)
+    |> stub(:playcount, fn _user, _time_range, _api -> {:ok, {total_scrobbles, 0}} end)
+
+    LastfmArchive.CacheMock
+    |> expect(:put, 0, fn {_user, _year}, {_from, _to}, {^total_scrobbles, [:ok]}, _cache -> :ok end)
+
+    capture_io(fn -> LastfmArchive.sync("a_lastfm_user") end)
+  end
 end

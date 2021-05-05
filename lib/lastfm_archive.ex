@@ -170,7 +170,10 @@ defmodule LastfmArchive do
       Utils.display_progress(time_range, playcount, pages)
       sync_results = sync_archive_daily(archive, time_range, pages, options)
 
-      @cache.put({archive.identifier, year}, time_range, {playcount, sync_results}, @cache)
+      # don't cache results of the always partial sync of today's scrobbles
+      unless today?(time_range) do
+        @cache.put({archive.identifier, year}, time_range, {playcount, sync_results}, @cache)
+      end
     else
       {:error, reason} -> Utils.display_api_error_message(time_range, reason)
     end
@@ -199,6 +202,10 @@ defmodule LastfmArchive do
           {:error, %{user: user, page: page - 1, from: from, to: to, per_page: options.per_page}}
       end
     end
+  end
+
+  defp today?({from, _to}) do
+    DateTime.from_unix!(from) |> DateTime.to_date() |> Kernel.==(Date.utc_today())
   end
 
   defp update_archive(archive, total, {registered_time, last_scrobble_time}) do
