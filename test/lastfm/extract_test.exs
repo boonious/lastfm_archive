@@ -37,7 +37,7 @@ defmodule Lastfm.ExtractTest do
         Plug.Conn.resp(conn, 200, recent_tracks(user, count))
       end)
 
-      assert %{"recenttracks" => %{"@attr" => %{"user" => ^user, "total" => ^count}}} =
+      assert {:ok, %{"recenttracks" => %{"@attr" => %{"user" => ^user, "total" => ^count}}}} =
                Extract.scrobbles("a_lastfm_user", params, api)
     end
 
@@ -78,7 +78,7 @@ defmodule Lastfm.ExtractTest do
         Plug.Conn.resp(conn, 200, user_info("a_lastfm_user", 1234, 1_472_601_600))
       end)
 
-      Extract.info("a_lastfm_user", api)
+      assert {:ok, {1234, 1_472_601_600}} == Extract.info("a_lastfm_user", api)
     end
 
     test "returns error tuple on API error response", %{bypass: bypass, api: api} do
@@ -129,7 +129,7 @@ defmodule Lastfm.ExtractTest do
         Plug.Conn.resp(conn, 200, recent_tracks("a_lastfm_user", count, last_scobble_time))
       end)
 
-      assert {^count, ^last_scobble_time} = Extract.playcount("a_lastfm_user", context.time_range, context.api)
+      assert {:ok, {^count, ^last_scobble_time}} = Extract.playcount("a_lastfm_user", context.time_range, context.api)
     end
 
     test "returns 0 count and nil last scrobble time when playcount is 0", context do
@@ -137,7 +137,7 @@ defmodule Lastfm.ExtractTest do
         Plug.Conn.resp(conn, 200, recent_tracks_zero_count())
       end)
 
-      assert {0, nil} = Extract.playcount("a_lastfm_user", context.time_range, context.api)
+      assert {:ok, {0, nil}} = Extract.playcount("a_lastfm_user", context.time_range, context.api)
     end
 
     test "returns 0 count and nil last scrobble time when Lastfm returns `now_playing` track", context do
@@ -145,7 +145,7 @@ defmodule Lastfm.ExtractTest do
         Plug.Conn.resp(conn, 200, recent_tracks_zero_count_now_playing())
       end)
 
-      assert {0, nil} = Extract.playcount("a_lastfm_user", context.time_range, context.api)
+      assert {:ok, {0, nil}} = Extract.playcount("a_lastfm_user", context.time_range, context.api)
     end
 
     test "returns error tuple on API error response", context do

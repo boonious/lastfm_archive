@@ -21,7 +21,14 @@ defmodule LastfmArchive.UtilsTest do
   end
 
   test "build_time_range/1 provides year time range" do
-    assert {1_609_459_200, 1_640_995_199} == Utils.build_time_range(2021)
+    {:ok, registered_date, 0} = DateTime.from_iso8601("2018-01-13T11:06:25Z")
+    {:ok, last_scrobble_date, 0} = DateTime.from_iso8601("2021-05-04T12:55:25Z")
+
+    assert {1_577_836_800, 1_609_459_199} ==
+             Utils.build_time_range(2020, %Lastfm.Archive{
+               creator: "a_lastfm_user",
+               temporal: {DateTime.to_unix(registered_date), DateTime.to_unix(last_scrobble_date)}
+             })
   end
 
   test "year_range/1 from first and latest scrobble times" do
