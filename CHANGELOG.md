@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.1 (2021-05-05)
+
+* `sync/2` handles request errors from Last.fm API
+* caches errors during sync so that subsequent syncs or API requests can be made to archive the missing scrobbles
+* do not cache sync results of today's scrobbles as it's a always partial sync
+
 ## 0.9.0 (2021-04-14)
 
 * Create an `Archive` behaviour with `FileArchive` implementation

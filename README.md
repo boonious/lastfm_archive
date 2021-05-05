@@ -20,9 +20,10 @@ by invoking `iex -S mix` command line action while in software home directory.
   LastfmArchive.sync("a_lastfm_user")
 ```
 
-Scrobbles are extracted snd stored in the file archive on a daily basis.
+Scrobbles are extracted and stored in the file archive on a daily basis (granularity).
 The software has a built-in cache to remember and resume from the previous
-downloads.
+downloads. It skips already downloaded scrobbles and does not make further 
+requests to Last.fm API.
 
 The data is currently in raw Lastfm `recenttracks` JSON format,
 chunked into 200-track (max) `gzip` compressed pages and stored within directories
