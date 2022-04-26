@@ -16,18 +16,18 @@ defmodule LastfmArchive do
   alias LastfmArchive.{Cache, Utils}
 
   @default_opts %{
-    interval: Application.get_env(:lastfm_archive, :interval, 500),
-    per_page: Application.get_env(:lastfm_archive, :per_page, 200),
-    reset: Application.get_env(:lastfm_archive, :reset, false),
-    data_dir: Application.get_env(:lastfm_archive, :data_dir, "./archive_data/")
+    interval: Application.compile_env(:lastfm_archive, :interval, 500),
+    per_page: Application.compile_env(:lastfm_archive, :per_page, 200),
+    reset: Application.compile_env(:lastfm_archive, :reset, false),
+    data_dir: Application.compile_env(:lastfm_archive, :data_dir, "./archive_data/")
   }
 
-  @api Application.get_env(:lastfm_archive, :lastfm_client)
-  @archive Application.get_env(:lastfm_archive, :type, Lastfm.FileArchive)
-  @cache Application.get_env(:lastfm_archive, :cache, LastfmArchive.Cache)
+  @api Application.compile_env(:lastfm_archive, :lastfm_client)
+  @archive Application.compile_env(:lastfm_archive, :type, Lastfm.FileArchive)
+  @cache Application.compile_env(:lastfm_archive, :cache, LastfmArchive.Cache)
 
-  @path_io Application.get_env(:lastfm_archive, :path_io)
-  @file_io Application.get_env(:lastfm_archive, :file_io)
+  @path_io Application.compile_env(:lastfm_archive, :path_io)
+  @file_io Application.compile_env(:lastfm_archive, :file_io)
 
   @type archive :: Archive.t()
   @type time_range :: {integer, integer}
@@ -164,9 +164,8 @@ defmodule LastfmArchive do
     client = %Lastfm.Client{method: "user.getrecenttracks"}
     year = DateTime.from_unix!(from).year
 
-    with {:ok, {playcount, _}} <- @api.playcount(archive.identifier, time_range, client) do
-      pages = (playcount / options.per_page) |> :math.ceil() |> round
-
+    with {:ok, {playcount, _}} <- @api.playcount(archive.identifier, time_range, client),
+         pages <- pages(playcount, options.per_page) do
       Utils.display_progress(time_range, playcount, pages)
       sync_results = sync_archive_daily(archive, time_range, pages, options)
 
@@ -181,7 +180,7 @@ defmodule LastfmArchive do
 
   defp sync_archive_daily(_archive, _time_range, 0, _options), do: [:ok]
 
-  defp sync_archive_daily(archive = %{identifier: user}, {from, to}, pages, options) do
+  defp sync_archive_daily(%{identifier: user} = archive, {from, to}, pages, options) do
     from_date = DateTime.from_unix!(from) |> DateTime.to_date()
     page_dir = Date.to_string(from_date) |> String.replace("-", "/")
 
@@ -202,6 +201,10 @@ defmodule LastfmArchive do
           {:error, %{user: user, page: page - 1, from: from, to: to, per_page: options.per_page}}
       end
     end
+  end
+
+  defp pages(playcount, per_page) do
+    (playcount / per_page) |> :math.ceil() |> round
   end
 
   defp today?({from, _to}) do

@@ -8,8 +8,8 @@ defmodule LastfmArchive.Cache do
   @cache_file_wildcard @cache_file_prefix <> "????"
   @ticks_before_serialise 60
 
-  @file_io Application.get_env(:lastfm_archive, :file_io)
-  @path_io Application.get_env(:lastfm_archive, :path_io)
+  @file_io Application.compile_env(:lastfm_archive, :file_io)
+  @path_io Application.compile_env(:lastfm_archive, :path_io)
 
   @callback load(binary, keyword, GenServer.server()) :: map()
   @callback put({binary, integer}, {integer, integer}, tuple, GenServer.server()) :: :ok
@@ -100,8 +100,10 @@ defmodule LastfmArchive.Cache do
 
   @impl true
   def handle_call({:put, {user, year}, {from, to}, value}, _from, {0, state}) do
+    path = Path.join([Utils.user_dir(user, []), "#{@cache_file_prefix}#{year}"])
+
     @file_io.write(
-      Path.join([Utils.user_dir(user, []), "#{@cache_file_prefix}#{year}"]),
+      path,
       Map.get(state, {user, year}, %{}) |> :erlang.term_to_binary()
     )
 

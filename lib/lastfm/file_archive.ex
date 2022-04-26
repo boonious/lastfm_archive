@@ -1,11 +1,13 @@
 defmodule Lastfm.FileArchive do
+  @moduledoc false
+
   @behaviour Lastfm.Archive
 
   alias Lastfm.Archive
   alias LastfmArchive.Utils
 
-  @reset Application.get_env(:lastfm_archive, :reset, false)
-  @file_io Application.get_env(:lastfm_archive, :file_io)
+  @reset Application.compile_env(:lastfm_archive, :reset, false)
+  @file_io Application.compile_env(:lastfm_archive, :file_io)
 
   @type archive :: Archive.t()
   @type options :: Archive.options()
@@ -19,7 +21,9 @@ defmodule Lastfm.FileArchive do
   def update_metadata(_archive, _options), do: {:error, :einval}
 
   defp write_metadata({archive, metadata}) do
-    @file_io.mkdir_p(metadata |> Path.dirname())
+    metadata
+    |> Path.dirname()
+    |> @file_io.mkdir_p()
 
     case @file_io.write(metadata, Jason.encode!(archive)) do
       :ok -> {:ok, archive}

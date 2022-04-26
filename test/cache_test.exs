@@ -77,16 +77,16 @@ defmodule LastfmArchive.CacheTest do
   test "put/4 cache value for a user year" do
     assert %{} == Cache.get({"a_user", 2006}, @cache)
 
-    Cache.put({"a_user", 2006}, {1_138_752_000, 1_138_838_399}, {12345, [:ok]}, @cache)
-    assert %{{1_138_752_000, 1_138_838_399} => {12345, [:ok]}} == Cache.get({"a_user", 2006}, @cache)
+    Cache.put({"a_user", 2006}, {1_138_752_000, 1_138_838_399}, {12_345, [:ok]}, @cache)
+    assert %{{1_138_752_000, 1_138_838_399} => {12_345, [:ok]}} == Cache.get({"a_user", 2006}, @cache)
   end
 
   test "successive put/4 causing auto-serialisation of cache to file" do
     Lastfm.FileIOMock |> expect(:write, fn _to_path, _file_binary -> :ok end)
 
     # put counts > 2 `ticks` configured for the test cache
-    Cache.put({"a_user", 2006}, {1_138_752_000, 1_138_838_399}, {12345, [:ok]}, @cache)
-    Cache.put({"a_user", 2006}, {1_138_752_000, 1_138_838_399}, {12345, [:ok]}, @cache)
-    Cache.put({"a_user", 2006}, {1_138_752_000, 1_138_838_399}, {12345, [:ok]}, @cache)
+    Cache.put({"a_user", 2006}, {1_138_752_000, 1_138_838_399}, {12_345, [:ok]}, @cache)
+    Cache.put({"a_user", 2006}, {1_138_752_000, 1_138_838_399}, {12_345, [:ok]}, @cache)
+    Cache.put({"a_user", 2006}, {1_138_752_000, 1_138_838_399}, {12_345, [:ok]}, @cache)
   end
 end

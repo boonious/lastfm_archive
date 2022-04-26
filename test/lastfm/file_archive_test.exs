@@ -6,7 +6,7 @@ defmodule Lastfm.FileArchiveTest do
 
   alias Lastfm.{Archive, FileArchive}
 
-  @archive Application.get_env(:lastfm_archive, :type)
+  @archive Application.compile_env(:lastfm_archive, :type)
 
   setup :verify_on_exit!
 

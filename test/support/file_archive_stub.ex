@@ -1,7 +1,9 @@
 defmodule Lastfm.FileArchiveStub do
+  @moduledoc false
+
   @behaviour Lastfm.Archive
 
-  @default_user Application.get_env(:lastfm_archive, :user)
+  @default_user Application.compile_env(:lastfm_archive, :user)
 
   def describe(@default_user, _options), do: {:ok, test_archive(@default_user)}
   def describe(_user, _options), do: {:ok, Lastfm.Archive.new("a_lastfm_user")}

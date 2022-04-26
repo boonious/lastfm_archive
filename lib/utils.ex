@@ -1,10 +1,10 @@
 defmodule LastfmArchive.Utils do
   @moduledoc false
 
-  @data_dir Application.get_env(:lastfm_archive, :data_dir, "./archive_data/")
+  @data_dir Application.compile_env(:lastfm_archive, :data_dir, "./archive_data/")
   @metadata_file ".archive"
 
-  @file_io Application.get_env(:lastfm_archive, :file_io)
+  @file_io Application.compile_env(:lastfm_archive, :file_io)
 
   @doc """
   Generate {from, to} daily time ranges for querying Last.fm API based on
