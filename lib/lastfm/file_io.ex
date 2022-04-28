@@ -1,4 +1,6 @@
 defmodule Lastfm.FileIO do
+  @moduledoc false
+
   @callback read(Path.t()) :: {:ok, binary()} | {:error, File.posix()}
   @callback read!(Path.t()) :: binary()
 

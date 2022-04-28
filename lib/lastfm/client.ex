@@ -3,7 +3,7 @@ defmodule Lastfm.Client do
   A behaviour module for retrieving data from Lastfm via its API.
   """
 
-  @api Application.get_env(:lastfm_archive, :api)
+  @api Application.compile_env(:lastfm_archive, :api)
 
   defstruct api_key: @api[:api_key] || "",
             endpoint: @api[:endpoint] || "",

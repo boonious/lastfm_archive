@@ -7,7 +7,7 @@ defmodule Lastfm.Archive do
   upon various storage implementation such as file systems and databases.
   """
 
-  @archive Application.get_env(:lastfm_archive, :type, LastFm.FileArchive)
+  @archive Application.compile_env(:lastfm_archive, :type, LastFm.FileArchive)
 
   @derive Jason.Encoder
   @enforce_keys [:creator]

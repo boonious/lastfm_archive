@@ -42,6 +42,7 @@ defmodule LastfmArchive.MixProject do
   defp deps do
     [
       {:bypass, "~> 2.1", only: :test},
+      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.14", only: :test},
       {:ex_doc, "~> 0.24", only: :dev, runtime: false},
       {:hammox, "~> 0.5", only: :test},

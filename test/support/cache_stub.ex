@@ -1,4 +1,6 @@
 defmodule LastfmArchive.CacheStub do
+  @moduledoc false
+
   @behaviour LastfmArchive.Cache
 
   def load(_user, _cache, _options), do: %{}

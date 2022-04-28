@@ -1,4 +1,6 @@
 defmodule Lastfm.ClientStub do
+  @moduledoc false
+
   @behaviour Lastfm.Client
 
   @registered_time DateTime.from_iso8601("2021-04-01T18:50:07Z") |> elem(1) |> DateTime.to_unix()
