@@ -9,7 +9,7 @@ defmodule LastfmArchive.MixProject do
     [
       app: :lastfm_archive,
       version: "0.9.1",
-      elixir: "~> 1.11",
+      elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -42,12 +42,12 @@ defmodule LastfmArchive.MixProject do
   defp deps do
     [
       {:bypass, "~> 2.1", only: :test},
-      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.14", only: :test},
-      {:ex_doc, "~> 0.24", only: :dev, runtime: false},
-      {:hammox, "~> 0.5", only: :test},
-      {:hui, "~> 0.10"},
-      {:jason, "~> 1.2"}
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.16", only: :test},
+      {:ex_doc, "~> 0.29", only: :dev, runtime: false},
+      {:hammox, "~> 0.7", only: :test},
+      {:hui, "0.10.4"},
+      {:jason, "~> 1.4"}
     ]
   end
 
