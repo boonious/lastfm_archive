@@ -1,6 +1,6 @@
-defmodule Lastfm.Client do
+defmodule LastfmArchive.Behaviour.LastfmClient do
   @moduledoc """
-  A behaviour module for retrieving data from Lastfm via its API.
+  Behaviour and data struct for retrieving data from Lastfm API.
   """
 
   @api Application.compile_env(:lastfm_archive, :api)

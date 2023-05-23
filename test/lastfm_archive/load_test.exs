@@ -1,4 +1,4 @@
-defmodule LoadTest do
+defmodule LastfmArchive.LoadTest do
   use ExUnit.Case, async: true
 
   import ExUnit.CaptureIO
@@ -96,7 +96,7 @@ defmodule LoadTest do
     headers = [{"Content-type", "application/json"}]
     url = %Hui.URL{url: "#{bypass_url}", handler: "update", headers: headers}
 
-    Lastfm.FileIOMock
+    LastfmArchive.FileIOMock
     |> expect(:read, fn ^tsv_file -> {:ok, tsv_gzip_data()} end)
 
     Bypass.expect(bypass, fn conn ->
@@ -132,8 +132,8 @@ defmodule LoadTest do
     headers = [{"Content-type", "application/json"}]
     url = %Hui.URL{url: "#{bypass_url}", handler: "update", headers: headers}
 
-    Lastfm.PathIOMock |> expect(:wildcard, fn ^tsv_wildcard_path, _options -> [tsv_file] end)
-    Lastfm.FileIOMock |> expect(:read, fn ^tsv_file -> {:ok, tsv_gzip_data()} end)
+    LastfmArchive.PathIOMock |> expect(:wildcard, fn ^tsv_wildcard_path, _options -> [tsv_file] end)
+    LastfmArchive.FileIOMock |> expect(:read, fn ^tsv_file -> {:ok, tsv_gzip_data()} end)
 
     Bypass.expect(bypass, fn conn ->
       case conn.method do
@@ -161,8 +161,8 @@ defmodule LoadTest do
 
     Application.put_env(:hui, :test_url, url: bypass_url, headers: headers, handler: "update")
 
-    Lastfm.PathIOMock |> expect(:wildcard, fn ^tsv_wildcard_path, _options -> [tsv_file] end)
-    Lastfm.FileIOMock |> expect(:read, fn ^tsv_file -> {:ok, tsv_gzip_data()} end)
+    LastfmArchive.PathIOMock |> expect(:wildcard, fn ^tsv_wildcard_path, _options -> [tsv_file] end)
+    LastfmArchive.FileIOMock |> expect(:read, fn ^tsv_file -> {:ok, tsv_gzip_data()} end)
 
     Bypass.expect(bypass, fn conn ->
       if conn.method == "GET" do

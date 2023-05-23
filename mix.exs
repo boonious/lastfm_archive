@@ -2,7 +2,7 @@ defmodule LastfmArchive.MixProject do
   use Mix.Project
 
   @description """
-    A tool for creating local Last.fm scrobble file archive, Solr archive and analytics
+    A tool for creating local Last.fm scrobble file archive and analytics.
   """
 
   def project do

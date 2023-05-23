@@ -1,13 +1,13 @@
-defmodule Lastfm.Archive do
+defmodule LastfmArchive.Behaviour.Archive do
   @moduledoc """
-  A behaviour module for implementing a Lastfm archive.
+  Behaviour of a Lastfm archive.
 
   The module also provides a struct that keeps metadata about the archive.
   An archive contains scrobbles data retrieved from Lastfm API. It can be based
   upon various storage implementation such as file systems and databases.
   """
 
-  @archive Application.compile_env(:lastfm_archive, :type, LastFm.FileArchive)
+  @archive Application.compile_env(:lastfm_archive, :type, LastFmArchive.FileArchive)
 
   @derive Jason.Encoder
   @enforce_keys [:creator]
@@ -50,12 +50,12 @@ defmodule Lastfm.Archive do
         }
 
   @doc """
-  Creates a new and empty archive and records metadata.
+  Creates a new archive and writes metadata to file.
   """
   @callback update_metadata(t(), options) :: {:ok, t()} | {:error, term()}
 
   @doc """
-  Describes the status of an existing archive.
+  Returns metadata of an existing archive.
   """
   @callback describe(user, options) :: {:ok, t()} | {:error, term()}
 

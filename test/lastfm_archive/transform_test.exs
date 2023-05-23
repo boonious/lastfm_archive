@@ -1,4 +1,4 @@
-defmodule TransformTest do
+defmodule LastfmArchive.TransformTest do
   use ExUnit.Case, async: false
 
   import ExUnit.CaptureIO
@@ -13,7 +13,7 @@ defmodule TransformTest do
     test_user = "transform_test_user"
     gzip_path = Path.join(Utils.user_dir(test_user), "200_34.gz")
 
-    Lastfm.FileIOMock |> expect(:read, fn ^gzip_path -> {:ok, gzip_data()} end)
+    LastfmArchive.FileIOMock |> expect(:read, fn ^gzip_path -> {:ok, gzip_data()} end)
     [headers | tracks] = LastfmArchive.Transform.transform(test_user, "200_34.gz")
 
     assert length(tracks) > 0
@@ -29,9 +29,9 @@ defmodule TransformTest do
     tsv_dir = Path.join(Utils.user_dir(test_user), "tsv")
     tsv_write_path = Path.join([Utils.user_dir(test_user), "tsv", "2007.tsv.gz"])
 
-    Lastfm.PathIOMock |> expect(:wildcard, fn ^gzip_wildcard_path, _options -> [gzip_path] end)
+    LastfmArchive.PathIOMock |> expect(:wildcard, fn ^gzip_wildcard_path, _options -> [gzip_path] end)
 
-    Lastfm.FileIOMock
+    LastfmArchive.FileIOMock
     |> expect(:exists?, fn ^tsv_dir -> false end)
     |> expect(:exists?, fn ^tsv_write_path -> false end)
     |> expect(:mkdir_p, fn ^tsv_dir -> :ok end)
@@ -49,8 +49,8 @@ defmodule TransformTest do
     gzip_wildcard_path = Path.join(Utils.user_dir(test_user), "**/*.gz")
     gzip_path = Path.join([Utils.user_dir(test_user), "2007", "200_34.gz"])
 
-    Lastfm.PathIOMock |> expect(:wildcard, 1, fn ^gzip_wildcard_path, _options -> [gzip_path] end)
-    Lastfm.FileIOMock |> stub(:exists?, fn _path -> true end)
+    LastfmArchive.PathIOMock |> expect(:wildcard, 1, fn ^gzip_wildcard_path, _options -> [gzip_path] end)
+    LastfmArchive.FileIOMock |> stub(:exists?, fn _path -> true end)
 
     assert capture_io(fn -> LastfmArchive.transform_archive(test_user) end) ==
              "\nTSV file archive exists, skipping 2007 scrobbles.\n"

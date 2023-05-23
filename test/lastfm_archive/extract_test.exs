@@ -1,8 +1,9 @@
-defmodule Lastfm.ExtractTest do
+defmodule LastfmArchive.ExtractTest do
   use ExUnit.Case, async: true
 
   import Fixtures.Lastfm
-  alias Lastfm.{Client, Extract}
+  alias LastfmArchive.Behaviour.LastfmClient
+  alias LastfmArchive.Extract
 
   describe "scrobbles/3" do
     setup do
@@ -10,7 +11,11 @@ defmodule Lastfm.ExtractTest do
 
       %{
         bypass: bypass,
-        api: %Client{api_key: "12345", endpoint: "http://localhost:#{bypass.port}/", method: "user.getrecenttracks"},
+        api: %LastfmClient{
+          api_key: "12345",
+          endpoint: "http://localhost:#{bypass.port}/",
+          method: "user.getrecenttracks"
+        },
         params: {1, 1, 1_167_609_600, 1_199_145_599}
       }
     end
@@ -63,7 +68,7 @@ defmodule Lastfm.ExtractTest do
 
       %{
         bypass: bypass,
-        api: %Client{api_key: "12345", endpoint: "http://localhost:#{bypass.port}/", method: "user.getinfo"}
+        api: %LastfmClient{api_key: "12345", endpoint: "http://localhost:#{bypass.port}/", method: "user.getinfo"}
       }
     end
 
@@ -103,7 +108,11 @@ defmodule Lastfm.ExtractTest do
 
       %{
         bypass: bypass,
-        api: %Client{api_key: "12345", endpoint: "http://localhost:#{bypass.port}/", method: "user.getrecenttracks"},
+        api: %LastfmClient{
+          api_key: "12345",
+          endpoint: "http://localhost:#{bypass.port}/",
+          method: "user.getrecenttracks"
+        },
         time_range: {1_167_609_600, 1_199_145_599}
       }
     end

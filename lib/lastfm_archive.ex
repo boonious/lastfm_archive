@@ -12,7 +12,8 @@ defmodule LastfmArchive do
 
   """
 
-  alias Lastfm.Archive
+  alias LastfmArchive.Behaviour.Archive
+  alias LastfmArchive.Behaviour.LastfmClient
   alias LastfmArchive.{Cache, Utils}
 
   @default_opts %{
@@ -23,7 +24,7 @@ defmodule LastfmArchive do
   }
 
   @api Application.compile_env(:lastfm_archive, :lastfm_client)
-  @archive Application.compile_env(:lastfm_archive, :type, Lastfm.FileArchive)
+  @archive Application.compile_env(:lastfm_archive, :type, LastfmArchive.FileArchive)
   @cache Application.compile_env(:lastfm_archive, :cache, LastfmArchive.Cache)
 
   @path_io Application.compile_env(:lastfm_archive, :path_io)
@@ -86,7 +87,7 @@ defmodule LastfmArchive do
 
   - `:overwrite` - default `false` (not available currently), if sets to true
   the system will (re)fetch and overwrite any previously downloaded
-  data. Use this option to refresh the file archive. Otherwise (false), 
+  data. Use this option to refresh the file archive. Otherwise (false),
   the system will not be making calls to Lastfm to check and re-fetch data
   if existing data chunks / pages are found. This speeds up archive updating
 
@@ -112,7 +113,7 @@ defmodule LastfmArchive do
   end
 
   defp sync_archive(%{identifier: user} = archive, options) do
-    client = %Lastfm.Client{method: "user.getrecenttracks"}
+    client = %LastfmClient{method: "user.getrecenttracks"}
     now = DateTime.utc_now() |> DateTime.to_unix()
 
     with {:ok, {total, registered_time}} <- @api.info(user, %{client | method: "user.getinfo"}),
@@ -161,7 +162,7 @@ defmodule LastfmArchive do
 
   defp sync_archive_daily(archive, {from, _to} = time_range, options) do
     :timer.sleep(options.interval)
-    client = %Lastfm.Client{method: "user.getrecenttracks"}
+    client = %LastfmClient{method: "user.getrecenttracks"}
     year = DateTime.from_unix!(from).year
 
     with {:ok, {playcount, _}} <- @api.playcount(archive.identifier, time_range, client),
@@ -189,7 +190,7 @@ defmodule LastfmArchive do
 
       page_num = page |> to_string |> String.pad_leading(3, "0")
       path = Path.join([page_dir, "#{options.per_page}_#{page_num}"])
-      api = %Lastfm.Client{method: "user.getrecenttracks"}
+      api = %LastfmClient{method: "user.getrecenttracks"}
 
       with {:ok, scrobbles} <- @api.scrobbles(user, {page - 1, options.per_page, from, to}, api),
            :ok <- @archive.write(archive, scrobbles, filepath: path) do
@@ -230,7 +231,7 @@ defmodule LastfmArchive do
   ```
 
   The function only transforms downloaded archive data on local filesystem. It does not fetch data from Lastfm,
-  which can be done via `archive/2`, `archive/3`. 
+  which can be done via `archive/2`, `archive/3`.
 
   The TSV files are created on a yearly basis and stored in `gzip` compressed format.
   They are stored in a `tsv` directory within either the default `./lastfm_data/`

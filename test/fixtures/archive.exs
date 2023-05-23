@@ -1,5 +1,5 @@
 defmodule Fixtures.Archive do
-  alias Lastfm.Archive
+  alias LastfmArchive.Behaviour.Archive
 
   @default_user Application.compile_env(:lastfm_archive, :user)
   @registered_time DateTime.from_iso8601("2021-04-01T18:50:07Z") |> elem(1) |> DateTime.to_unix()
@@ -13,7 +13,7 @@ defmodule Fixtures.Archive do
 
   defp test_archive(user) do
     %{
-      Lastfm.Archive.new(user)
+      Archive.new(user)
       | temporal: {@registered_time, @latest_scrobble_time},
         extent: 400,
         date: ~D[2021-04-03],
