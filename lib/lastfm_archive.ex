@@ -61,10 +61,7 @@ defmodule LastfmArchive do
   See `sync/2` for further details and archiving options.
   """
   @spec sync :: :ok | {:error, :file.posix()}
-  def sync do
-    user = System.get_env("LB_LFM_USER") || Application.get_env(:lastfm_archive, :user) || raise "User not found"
-    sync(user)
-  end
+  def sync, do: LastfmClient.default_user() |> sync()
 
   @doc """
   Sync scrobbles for a Lastfm user.
@@ -118,7 +115,7 @@ defmodule LastfmArchive do
   end
 
   defp sync_archive(%{identifier: user} = archive, options) do
-    client = %LastfmClient{method: "user.getrecenttracks"}
+    client = LastfmClient.new("user.getrecenttracks")
     now = DateTime.utc_now() |> DateTime.to_unix()
 
     with {:ok, {total, registered_time}} <- @api.info(user, %{client | method: "user.getinfo"}),
@@ -129,7 +126,7 @@ defmodule LastfmArchive do
 
       for year <- Utils.year_range(archive.temporal) do
         {from, to} = Utils.build_time_range(year, archive)
-        sync_archive(archive, {from, to, Cache.get({user, year})}, options)
+        sync_archive(archive, {from, to, Cache.get({user, year})}, client, options)
         @cache.serialise(user, @cache, options)
       end
 
@@ -139,11 +136,9 @@ defmodule LastfmArchive do
     end
   end
 
-  defp sync_archive(archive, time_range, options \\ [])
+  defp sync_archive(%Archive{extent: 0}, _year_time_range, _client, _options), do: :ok
 
-  defp sync_archive(%Archive{extent: 0}, _year_time_range, _options), do: :ok
-
-  defp sync_archive(archive, {from, to, cache}, options) do
+  defp sync_archive(archive, {from, to, cache}, client, options) do
     options = Map.merge(@default_opts, Enum.into(options, @default_opts))
     time_ranges = Utils.build_time_range({from, to})
 
@@ -154,26 +149,25 @@ defmodule LastfmArchive do
       else
         # new daily sync
         %{} ->
-          sync_archive_daily(archive, time_range, options)
+          sync_archive_daily(archive, time_range, client, options)
 
         # redo previous erroneous syncs
         false ->
-          sync_archive_daily(archive, time_range, options)
+          sync_archive_daily(archive, time_range, client, options)
       end
     end
 
     :ok
   end
 
-  defp sync_archive_daily(archive, {from, _to} = time_range, options) do
+  defp sync_archive_daily(archive, {from, _to} = time_range, client, options) do
     :timer.sleep(options.interval)
-    client = %LastfmClient{method: "user.getrecenttracks"}
     year = DateTime.from_unix!(from).year
 
     with {:ok, {playcount, _}} <- @api.playcount(archive.identifier, time_range, client),
          pages <- pages(playcount, options.per_page) do
       Utils.display_progress(time_range, playcount, pages)
-      sync_results = sync_archive_daily(archive, time_range, pages, options)
+      sync_results = sync_archive_daily(archive, time_range, pages, client, options)
 
       # don't cache results of the always partial sync of today's scrobbles
       unless today?(time_range) do
@@ -184,9 +178,9 @@ defmodule LastfmArchive do
     end
   end
 
-  defp sync_archive_daily(_archive, _time_range, 0, _options), do: [:ok]
+  defp sync_archive_daily(_archive, _time_range, 0, _client, _options), do: [:ok]
 
-  defp sync_archive_daily(%{identifier: user} = archive, {from, to}, pages, options) do
+  defp sync_archive_daily(%{identifier: user} = archive, {from, to}, pages, client, options) do
     from_date = DateTime.from_unix!(from) |> DateTime.to_date()
     page_dir = Date.to_string(from_date) |> String.replace("-", "/")
 
@@ -195,9 +189,8 @@ defmodule LastfmArchive do
 
       page_num = page |> to_string |> String.pad_leading(3, "0")
       path = Path.join([page_dir, "#{options.per_page}_#{page_num}"])
-      api = %LastfmClient{method: "user.getrecenttracks"}
 
-      with {:ok, scrobbles} <- @api.scrobbles(user, {page - 1, options.per_page, from, to}, api),
+      with {:ok, scrobbles} <- @api.scrobbles(user, {page - 1, options.per_page, from, to}, client),
            :ok <- @archive.write(archive, scrobbles, filepath: path) do
         IO.write(".")
         :ok

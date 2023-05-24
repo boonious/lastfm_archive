@@ -6,11 +6,9 @@ defmodule LastfmArchive.LastfmClient do
   @behaviour LastfmArchive.Behaviour.LastfmClient
 
   @api Application.compile_env(:lastfm_archive, :api)
-  @default_user System.get_env("LB_LFM_USER") || Application.compile_env(:lastfm_archive, :user)
+  @config_user Application.compile_env(:lastfm_archive, :user)
 
-  defstruct api_key: System.get_env("LB_LFM_API_KEY") || @api[:api_key] || "",
-            endpoint: @api[:endpoint] || "",
-            method: @api[:method] || ""
+  defstruct [:api_key, :endpoint, :method]
 
   @type t :: %__MODULE__{
           api_key: binary,
@@ -18,13 +16,23 @@ defmodule LastfmArchive.LastfmClient do
           method: binary
         }
 
+  def default_user, do: System.get_env("LB_LFM_USER") || @config_user
+
+  def new(method) do
+    %__MODULE__{
+      api_key: System.get_env("LB_LFM_API_KEY") || @api[:api_key] || "",
+      endpoint: System.get_env("LB_LFM_API_ENDPOINT") || @api[:endpoint] || "",
+      method: method
+    }
+  end
+
   @doc """
   Returns the total playcount and earliest scrobble date for a user.
   """
   @impl true
-  def info(user \\ @default_user, api \\ %__MODULE__{method: "user.getinfo"}) do
-    "#{api.endpoint}2.0/?method=#{api.method}&user=#{user}&api_key=#{api.api_key}&format=json"
-    |> get(api.api_key)
+  def info(user \\ default_user(), client \\ new("user.getinfo")) do
+    "#{client.endpoint}2.0/?method=#{client.method}&user=#{user}&api_key=#{client.api_key}&format=json"
+    |> get(client.api_key)
     |> handle_response(:info)
   end
 
@@ -34,17 +42,13 @@ defmodule LastfmArchive.LastfmClient do
   See Lastfm API [documentation](https://www.last.fm/api/show/user.getRecentTracks) for more details.
   """
   @impl true
-  def scrobbles(
-        user \\ @default_user,
-        page_params \\ {1, 1, nil, nil},
-        api \\ %__MODULE__{method: "user.getrecenttracks"}
-      )
+  def scrobbles(user \\ default_user(), page_params \\ {1, 1, nil, nil}, client \\ new("user.getrecenttracks"))
 
-  def scrobbles(user, {page, limit, from, to}, api) do
+  def scrobbles(user, {page, limit, from, to}, client) do
     extra_query = [limit: limit, page: page, from: from, to: to, extended: 1] |> encode() |> Enum.join()
 
-    "#{api.endpoint}2.0/?method=#{api.method}&user=#{user}&api_key=#{api.api_key}&format=json#{extra_query}"
-    |> get(api.api_key)
+    "#{client.endpoint}2.0/?method=#{client.method}&user=#{user}&api_key=#{client.api_key}&format=json#{extra_query}"
+    |> get(client.api_key)
     |> handle_response(:scrobbles)
   end
 
@@ -52,11 +56,11 @@ defmodule LastfmArchive.LastfmClient do
   Returns the playcount of a user for a given time range.
   """
   @impl true
-  def playcount(user \\ @default_user, {from, to} \\ {nil, nil}, api \\ %__MODULE__{method: "user.getrecenttracks"}) do
+  def playcount(user \\ default_user(), {from, to} \\ {nil, nil}, client \\ new("user.getrecenttracks")) do
     extra_query = [limit: 1, page: 1, from: from, to: to] |> encode() |> Enum.join()
 
-    "#{api.endpoint}2.0/?method=#{api.method}&user=#{user}&api_key=#{api.api_key}&format=json#{extra_query}"
-    |> get(api.api_key)
+    "#{client.endpoint}2.0/?method=#{client.method}&user=#{user}&api_key=#{client.api_key}&format=json#{extra_query}"
+    |> get(client.api_key)
     |> handle_response(:playcount)
   end
 
