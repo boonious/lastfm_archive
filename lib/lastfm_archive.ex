@@ -13,7 +13,7 @@ defmodule LastfmArchive do
   """
 
   alias LastfmArchive.Behaviour.Archive
-  alias LastfmArchive.Behaviour.LastfmClient
+  alias LastfmArchive.LastfmClient
   alias LastfmArchive.{Cache, Utils}
 
   @default_opts %{
@@ -33,6 +33,11 @@ defmodule LastfmArchive do
   @type archive :: Archive.t()
   @type time_range :: {integer, integer}
   @type solr_url :: atom | Hui.URL.t()
+
+  @doc """
+  Returns the total playcount and registered, i.e. earliest scrobble time for a user.
+  """
+  defdelegate info, to: LastfmArchive.LastfmClient
 
   @doc """
   Sync scrobbles of a default user specified in configuration.
@@ -57,7 +62,7 @@ defmodule LastfmArchive do
   """
   @spec sync :: :ok | {:error, :file.posix()}
   def sync do
-    user = Application.get_env(:lastfm_archive, :user) || raise "User not found in configuration"
+    user = System.get_env("LB_LFM_USER") || Application.get_env(:lastfm_archive, :user) || raise "User not found"
     sync(user)
   end
 

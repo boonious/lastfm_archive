@@ -1,9 +1,7 @@
-defmodule LastfmArchive.ExtractTest do
+defmodule LastfmArchive.LastfmClientTest do
   use ExUnit.Case, async: true
-
   import Fixtures.Lastfm
-  alias LastfmArchive.Behaviour.LastfmClient
-  alias LastfmArchive.Extract
+  alias LastfmArchive.LastfmClient
 
   describe "scrobbles/3" do
     setup do
@@ -43,7 +41,7 @@ defmodule LastfmArchive.ExtractTest do
       end)
 
       assert {:ok, %{"recenttracks" => %{"@attr" => %{"user" => ^user, "total" => ^count}}}} =
-               Extract.scrobbles("a_lastfm_user", params, api)
+               LastfmClient.scrobbles("a_lastfm_user", params, api)
     end
 
     test "returns error tuple on API error response", %{bypass: bypass, api: api, params: params} do
@@ -53,12 +51,12 @@ defmodule LastfmArchive.ExtractTest do
         Plug.Conn.resp(conn, 200, "{\"error\":3,\"message\":\"#{message}\"}")
       end)
 
-      assert {:error, message} == Extract.scrobbles("a_lastfm_user", params, api)
+      assert {:error, message} == LastfmClient.scrobbles("a_lastfm_user", params, api)
     end
 
     test "return error tuple when Lastfm API is down", %{bypass: bypass, api: api, params: params} do
       Bypass.down(bypass)
-      assert {:error, {:failed_connect, _message}} = Extract.scrobbles("a_lastfm_user", params, api)
+      assert {:error, {:failed_connect, _message}} = LastfmClient.scrobbles("a_lastfm_user", params, api)
     end
   end
 
@@ -83,7 +81,7 @@ defmodule LastfmArchive.ExtractTest do
         Plug.Conn.resp(conn, 200, user_info("a_lastfm_user", 1234, 1_472_601_600))
       end)
 
-      assert {:ok, {1234, 1_472_601_600}} == Extract.info("a_lastfm_user", api)
+      assert {:ok, {1234, 1_472_601_600}} == LastfmClient.info("a_lastfm_user", api)
     end
 
     test "returns error tuple on API error response", %{bypass: bypass, api: api} do
@@ -93,12 +91,12 @@ defmodule LastfmArchive.ExtractTest do
         Plug.Conn.resp(conn, 200, "{\"error\":3,\"message\":\"#{message}\"}")
       end)
 
-      assert {:error, message} == Extract.info("a_lastfm_user", api)
+      assert {:error, message} == LastfmClient.info("a_lastfm_user", api)
     end
 
     test "returns error tuple when Lastfm API is down", %{bypass: bypass, api: api} do
       Bypass.down(bypass)
-      assert {:error, {:failed_connect, _message}} = Extract.info("a_lastfm_user", api)
+      assert {:error, {:failed_connect, _message}} = LastfmClient.info("a_lastfm_user", api)
     end
   end
 
@@ -138,7 +136,8 @@ defmodule LastfmArchive.ExtractTest do
         Plug.Conn.resp(conn, 200, recent_tracks("a_lastfm_user", count, last_scobble_time))
       end)
 
-      assert {:ok, {^count, ^last_scobble_time}} = Extract.playcount("a_lastfm_user", context.time_range, context.api)
+      assert {:ok, {^count, ^last_scobble_time}} =
+               LastfmClient.playcount("a_lastfm_user", context.time_range, context.api)
     end
 
     test "returns 0 count and nil last scrobble time when playcount is 0", context do
@@ -146,7 +145,7 @@ defmodule LastfmArchive.ExtractTest do
         Plug.Conn.resp(conn, 200, recent_tracks_zero_count())
       end)
 
-      assert {:ok, {0, nil}} = Extract.playcount("a_lastfm_user", context.time_range, context.api)
+      assert {:ok, {0, nil}} = LastfmClient.playcount("a_lastfm_user", context.time_range, context.api)
     end
 
     test "returns 0 count and nil last scrobble time when Lastfm returns `now_playing` track", context do
@@ -154,7 +153,7 @@ defmodule LastfmArchive.ExtractTest do
         Plug.Conn.resp(conn, 200, recent_tracks_zero_count_now_playing())
       end)
 
-      assert {:ok, {0, nil}} = Extract.playcount("a_lastfm_user", context.time_range, context.api)
+      assert {:ok, {0, nil}} = LastfmClient.playcount("a_lastfm_user", context.time_range, context.api)
     end
 
     test "returns error tuple on API error response", context do
@@ -164,12 +163,12 @@ defmodule LastfmArchive.ExtractTest do
         Plug.Conn.resp(conn, 200, "{\"error\":3,\"message\":\"#{message}\"}")
       end)
 
-      assert {:error, message} == Extract.playcount("a_lastfm_user", context.time_range, context.api)
+      assert {:error, message} == LastfmClient.playcount("a_lastfm_user", context.time_range, context.api)
     end
 
     test "returns error tuple when Lastfm API is down", %{bypass: bypass, api: api, time_range: time_range} do
       Bypass.down(bypass)
-      assert {:error, {:failed_connect, _message}} = Extract.playcount("a_lastfm_user", time_range, api)
+      assert {:error, {:failed_connect, _message}} = LastfmClient.playcount("a_lastfm_user", time_range, api)
     end
   end
 end
