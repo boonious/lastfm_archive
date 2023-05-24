@@ -1,5 +1,7 @@
 defmodule LastfmArchive.Cache do
-  @moduledoc false
+  @moduledoc """
+  GenServer storing archiving state to ensure scrobbles are fetched only once.
+  """
 
   use GenServer
   alias LastfmArchive.Utils

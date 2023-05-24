@@ -2,12 +2,12 @@ import Config
 
 # Lastfm user for the archive
 config :lastfm_archive,
-  api: %{api_key: "", endpoint: "", method: ""},
+  api: %{api_key: "", endpoint: "http://ws.audioscrobbler.com/", method: ""},
   data_dir: "./lastfm_data/",
   interval: 1000,
-  lastfm_client: Lastfm.Extract,
+  lastfm_client: LastfmArchive.LastfmClient,
   per_page: 200,
-  type: Lastfm.FileArchive,
+  type: LastfmArchive.FileArchive,
   user: ""
 
 config :lastfm_archive,

@@ -48,9 +48,9 @@ defmodule LastfmArchive.CacheTest do
   end
 
   test "load/3 cache from file for a user", %{cache: cache} do
-    Lastfm.PathIOMock |> expect(:wildcard, fn _, _ -> [".cache_2006"] end)
+    LastfmArchive.PathIOMock |> expect(:wildcard, fn _, _ -> [".cache_2006"] end)
 
-    Lastfm.FileIOMock
+    LastfmArchive.FileIOMock
     |> expect(:read!, fn _ -> cache[{"a_user", 2006}] |> :erlang.term_to_binary() end)
 
     assert ^cache = Cache.load("a_user", @cache)
@@ -61,7 +61,7 @@ defmodule LastfmArchive.CacheTest do
     file_binary = cache[{"a_user", 2006}] |> :erlang.term_to_binary()
     to_path = Path.join([Application.get_env(:lastfm_archive, :data_dir), "a_user", ".cache_2006"])
 
-    Lastfm.FileIOMock
+    LastfmArchive.FileIOMock
     |> expect(:write, fn ^to_path, ^file_binary -> :ok end)
 
     Cache.serialise("a_user", @cache)
@@ -82,7 +82,7 @@ defmodule LastfmArchive.CacheTest do
   end
 
   test "successive put/4 causing auto-serialisation of cache to file" do
-    Lastfm.FileIOMock |> expect(:write, fn _to_path, _file_binary -> :ok end)
+    LastfmArchive.FileIOMock |> expect(:write, fn _to_path, _file_binary -> :ok end)
 
     # put counts > 2 `ticks` configured for the test cache
     Cache.put({"a_user", 2006}, {1_138_752_000, 1_138_838_399}, {12_345, [:ok]}, @cache)

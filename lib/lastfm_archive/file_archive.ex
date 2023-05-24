@@ -1,9 +1,9 @@
-defmodule Lastfm.FileArchive do
+defmodule LastfmArchive.FileArchive do
   @moduledoc false
 
-  @behaviour Lastfm.Archive
+  @behaviour LastfmArchive.Behaviour.Archive
 
-  alias Lastfm.Archive
+  alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.Utils
 
   @reset Application.compile_env(:lastfm_archive, :reset, false)
@@ -13,9 +13,8 @@ defmodule Lastfm.FileArchive do
   @type options :: Archive.options()
 
   @impl true
-  def update_metadata(%Archive{creator: creator} = archive, options) when creator != nil and is_binary(creator) do
-    metadata = Utils.metadata(creator, options)
-    maybe_reset({archive, metadata}, reset?: Keyword.get(options, :reset, @reset))
+  def update_metadata(%Archive{creator: creator} = metadata, options) when creator != nil and is_binary(creator) do
+    maybe_reset({metadata, Utils.metadata_filepath(creator, options)}, reset?: Keyword.get(options, :reset, @reset))
   end
 
   def update_metadata(_archive, _options), do: {:error, :einval}
@@ -39,9 +38,9 @@ defmodule Lastfm.FileArchive do
 
   @impl true
   def describe(user, options \\ []) do
-    metadata = Utils.metadata(user, options)
+    metadata_filepath = Utils.metadata_filepath(user, options)
 
-    case @file_io.read(metadata) do
+    case @file_io.read(metadata_filepath) do
       {:ok, data} ->
         metadata = Jason.decode!(data, keys: :atoms!)
 
@@ -72,18 +71,18 @@ defmodule Lastfm.FileArchive do
   def write(archive, scrobbles, options \\ [])
 
   def write(%Archive{creator: creator}, scrobbles, options) when is_map(scrobbles) do
-    metadata = Utils.metadata(creator, options)
+    metadata_filepath = Utils.metadata_filepath(creator, options)
     path = Keyword.get(options, :filepath)
 
     cond do
       path == nil or path == "" ->
         raise "please provide a valid :filepath option"
 
-      !@file_io.exists?(metadata) ->
+      !@file_io.exists?(metadata_filepath) ->
         raise "attempt to write to a non existing archive"
 
       true ->
-        archive_dir = Path.dirname(metadata)
+        archive_dir = Path.dirname(metadata_filepath)
         to = Path.join(archive_dir, "#{path}.gz")
         to_dir = Path.dirname(to)
         unless @file_io.exists?(to_dir), do: @file_io.mkdir_p(to_dir)

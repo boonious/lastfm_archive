@@ -1,6 +1,8 @@
 defmodule LastfmArchive.Utils do
   @moduledoc false
 
+  alias LastfmArchive.Behaviour.Archive
+
   @data_dir Application.compile_env(:lastfm_archive, :data_dir, "./archive_data/")
   @metadata_file ".archive"
 
@@ -16,7 +18,7 @@ defmodule LastfmArchive.Utils do
     Enum.map(Date.range(from, to), &iso8601_to_unix("#{&1}T00:00:00Z", "#{&1}T23:59:59Z"))
   end
 
-  def build_time_range(year, %Lastfm.Archive{} = archive) when is_integer(year) do
+  def build_time_range(year, %Archive{} = archive) when is_integer(year) do
     {from, to} = iso8601_to_unix("#{year}-01-01T00:00:00Z", "#{year}-12-31T23:59:59Z")
     {registered_time, last_scrobble_time} = archive.temporal
 
@@ -39,7 +41,7 @@ defmodule LastfmArchive.Utils do
 
   def data_dir(options \\ []), do: Keyword.get(options, :data_dir, @data_dir)
   def user_dir(user, options \\ []), do: Path.join([data_dir(options), user])
-  def metadata(user, options), do: Path.join([data_dir(options), user, @metadata_file])
+  def metadata_filepath(user, options), do: Path.join([data_dir(options), user, @metadata_file])
 
   def display_progress(archive) do
     IO.puts("Archiving #{archive.extent} scrobbles for #{archive.creator}")

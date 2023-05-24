@@ -5,14 +5,16 @@ defmodule LastfmArchiveTest do
   import Mox
   import Fixtures.Archive
 
-  alias Lastfm.{Archive, FileArchive}
+  alias LastfmArchive.Behaviour.Archive
+  alias LastfmArchive.FileArchive
+  alias LastfmArchive.LastfmClientMock
 
   setup :set_mox_global
   setup :verify_on_exit!
 
   setup do
-    stub_with(Lastfm.ClientMock, Lastfm.ClientStub)
-    stub_with(Lastfm.FileArchiveMock, Lastfm.FileArchiveStub)
+    stub_with(LastfmClientMock, LastfmArchive.LastfmClientStub)
+    stub_with(LastfmArchive.FileArchiveMock, LastfmArchive.FileArchiveStub)
     stub_with(LastfmArchive.CacheMock, LastfmArchive.CacheStub)
 
     total_scrobbles = 400
@@ -32,7 +34,7 @@ defmodule LastfmArchiveTest do
 
   test "sync scrobbles to a new file archive" do
     user = Application.get_env(:lastfm_archive, :user)
-    Lastfm.FileArchiveMock |> expect(:describe, fn ^user, _options -> {:ok, test_file_archive()} end)
+    LastfmArchive.FileArchiveMock |> expect(:describe, fn ^user, _options -> {:ok, test_file_archive()} end)
     capture_io(fn -> LastfmArchive.sync(user) end)
   end
 
@@ -41,12 +43,12 @@ defmodule LastfmArchiveTest do
     {registered_time, last_scrobble_time} = archive.temporal
     total_scrobbles = archive.extent
 
-    Lastfm.FileArchiveMock
+    LastfmArchive.FileArchiveMock
     |> expect(:describe, fn ^user, _options -> {:ok, archive} end)
     |> expect(:update_metadata, fn ^archive, _options -> {:ok, archive} end)
     |> stub(:update_metadata, fn _updated_archive, _options -> {:ok, archive} end)
 
-    Lastfm.ClientMock
+    LastfmClientMock
     |> expect(:info, fn ^user, _api -> {:ok, {total_scrobbles, registered_time}} end)
     |> expect(:playcount, fn ^user, _time_range, _api -> {:ok, {total_scrobbles, last_scrobble_time}} end)
     |> stub(:playcount, fn ^user, _time_range, _api -> {:ok, {daily_playcount, 0}} end)
@@ -55,7 +57,7 @@ defmodule LastfmArchiveTest do
   end
 
   test "sync/2 handles initial user info API call error", %{user: user} do
-    Lastfm.ClientMock
+    LastfmClientMock
     |> stub(:info, fn ^user, _api -> {:error, "Last.fm API: something went wrong"} end)
     |> expect(:playcount, 0, fn ^user, _time_range, _api -> {:ok, {0, 0}} end)
 
@@ -63,7 +65,7 @@ defmodule LastfmArchiveTest do
   end
 
   test "sync/2 handles initial total playcount API call error", %{user: user} do
-    Lastfm.ClientMock
+    LastfmClientMock
     |> expect(:info, 1, fn ^user, _api -> {:ok, {0, 0}} end)
     |> stub(:playcount, fn ^user, _time_range, _api -> {:error, "Last.fm API: something went wrong"} end)
 
@@ -75,9 +77,9 @@ defmodule LastfmArchiveTest do
     total_scrobbles = archive.extent
     api_error = "Operation failed - Most likely the backend service failed. Please try again."
 
-    Lastfm.FileArchiveMock |> stub(:update_metadata, fn _archive, _options -> {:ok, archive} end)
+    LastfmArchive.FileArchiveMock |> stub(:update_metadata, fn _archive, _options -> {:ok, archive} end)
 
-    Lastfm.ClientMock
+    LastfmClientMock
     |> expect(:info, fn ^user, _api -> {:ok, {total_scrobbles, registered_time}} end)
     |> expect(:playcount, fn ^user, _time_range, _api -> {:ok, {total_scrobbles, last_scrobble_time}} end)
     |> stub(:playcount, fn ^user, _time_range, _api -> {:error, api_error} end)
@@ -93,9 +95,9 @@ defmodule LastfmArchiveTest do
     total_scrobbles = archive.extent
     api_error = "Operation failed - Most likely the backend service failed. Please try again."
 
-    Lastfm.FileArchiveMock |> stub(:update_metadata, fn _archive, _options -> {:ok, archive} end)
+    LastfmArchive.FileArchiveMock |> stub(:update_metadata, fn _archive, _options -> {:ok, archive} end)
 
-    Lastfm.ClientMock
+    LastfmClientMock
     |> expect(:info, fn ^user, _api -> {:ok, {total_scrobbles, registered_time}} end)
     |> expect(:playcount, fn ^user, _time_range, _api -> {:ok, {total_scrobbles, last_scrobble_time}} end)
     |> stub(:playcount, fn ^user, _time_range, _api -> {:ok, {daily_playcount, 0}} end)
@@ -121,12 +123,12 @@ defmodule LastfmArchiveTest do
         type: FileArchive
     }
 
-    Lastfm.FileArchiveMock
+    LastfmArchive.FileArchiveMock
     |> expect(:describe, fn _user, _options -> {:ok, test_archive} end)
     |> expect(:update_metadata, fn _archive, _options -> {:ok, test_archive} end)
     |> stub(:update_metadata, fn _updated_archive, _options -> {:ok, test_archive} end)
 
-    Lastfm.ClientMock
+    LastfmClientMock
     |> expect(:info, fn _user, _api -> {:ok, {total_scrobbles, registered_time}} end)
     |> expect(:playcount, fn _user, _time_range, _api -> {:ok, {total_scrobbles, last_scrobble_time}} end)
     |> stub(:playcount, fn _user, _time_range, _api -> {:ok, {total_scrobbles, 0}} end)

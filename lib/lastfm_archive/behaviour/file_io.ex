@@ -1,4 +1,4 @@
-defmodule Lastfm.FileIO do
+defmodule LastfmArchive.Behaviour.FileIO do
   @moduledoc false
 
   @callback read(Path.t()) :: {:ok, binary()} | {:error, File.posix()}

@@ -1,15 +1,28 @@
-defmodule Lastfm.Extract do
+defmodule LastfmArchive.LastfmClient do
   @moduledoc """
-  This module implements Lastfm.Client behaviour for extracting data from Lastfm API.
+  Client for extracting Lastfm user info and scrobbles data via the official API.
   """
 
-  @behaviour Lastfm.Client
+  @behaviour LastfmArchive.Behaviour.LastfmClient
+
+  @api Application.compile_env(:lastfm_archive, :api)
+  @default_user System.get_env("LB_LFM_USER") || Application.compile_env(:lastfm_archive, :user)
+
+  defstruct api_key: System.get_env("LB_LFM_API_KEY") || @api[:api_key] || "",
+            endpoint: @api[:endpoint] || "",
+            method: @api[:method] || ""
+
+  @type t :: %__MODULE__{
+          api_key: binary,
+          endpoint: binary,
+          method: binary
+        }
 
   @doc """
   Returns the total playcount and earliest scrobble date for a user.
   """
   @impl true
-  def info(user, api \\ %Lastfm.Client{method: "user.getinfo"}) do
+  def info(user \\ @default_user, api \\ %__MODULE__{method: "user.getinfo"}) do
     "#{api.endpoint}2.0/?method=#{api.method}&user=#{user}&api_key=#{api.api_key}&format=json"
     |> get(api.api_key)
     |> handle_response(:info)
@@ -21,7 +34,11 @@ defmodule Lastfm.Extract do
   See Lastfm API [documentation](https://www.last.fm/api/show/user.getRecentTracks) for more details.
   """
   @impl true
-  def scrobbles(user, page_params \\ {1, 1, nil, nil}, api \\ %Lastfm.Client{method: "user.getrecenttracks"})
+  def scrobbles(
+        user \\ @default_user,
+        page_params \\ {1, 1, nil, nil},
+        api \\ %__MODULE__{method: "user.getrecenttracks"}
+      )
 
   def scrobbles(user, {page, limit, from, to}, api) do
     extra_query = [limit: limit, page: page, from: from, to: to, extended: 1] |> encode() |> Enum.join()
@@ -35,7 +52,7 @@ defmodule Lastfm.Extract do
   Returns the playcount of a user for a given time range.
   """
   @impl true
-  def playcount(user, {from, to} \\ {nil, nil}, api \\ %Lastfm.Client{method: "user.getrecenttracks"}) do
+  def playcount(user \\ @default_user, {from, to} \\ {nil, nil}, api \\ %__MODULE__{method: "user.getrecenttracks"}) do
     extra_query = [limit: 1, page: 1, from: from, to: to] |> encode() |> Enum.join()
 
     "#{api.endpoint}2.0/?method=#{api.method}&user=#{user}&api_key=#{api.api_key}&format=json#{extra_query}"

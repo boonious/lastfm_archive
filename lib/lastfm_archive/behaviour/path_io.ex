@@ -1,4 +1,4 @@
-defmodule Lastfm.PathIO do
+defmodule LastfmArchive.Behaviour.PathIO do
   @moduledoc false
 
   @callback wildcard(Path.t(), keyword) :: [binary]

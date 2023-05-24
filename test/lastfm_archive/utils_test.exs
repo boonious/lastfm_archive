@@ -5,6 +5,7 @@ defmodule LastfmArchive.UtilsTest do
   import Fixtures.Archive
 
   alias LastfmArchive.Utils
+  alias LastfmArchive.Behaviour.Archive
 
   test "build_time_range/1 provides daily time range" do
     {:ok, from, 0} = DateTime.from_iso8601("2010-12-23T18:50:07Z")
@@ -25,7 +26,7 @@ defmodule LastfmArchive.UtilsTest do
     {:ok, last_scrobble_date, 0} = DateTime.from_iso8601("2021-05-04T12:55:25Z")
 
     assert {1_577_836_800, 1_609_459_199} ==
-             Utils.build_time_range(2020, %Lastfm.Archive{
+             Utils.build_time_range(2020, %Archive{
                creator: "a_lastfm_user",
                temporal: {DateTime.to_unix(registered_date), DateTime.to_unix(last_scrobble_date)}
              })
@@ -47,7 +48,7 @@ defmodule LastfmArchive.UtilsTest do
     tsv_file = Path.join(Utils.user_dir("load_test_user"), "tsv/2018.tsv.gz")
     non_existing_file = Path.join(Utils.user_dir("load_test_user"), "non_existing_file.tsv.gz")
 
-    Lastfm.FileIOMock
+    LastfmArchive.FileIOMock
     |> expect(:read, fn ^non_existing_file -> {:error, :enoent} end)
     |> expect(:read, fn ^tsv_file -> {:ok, tsv_gzip_data()} end)
 

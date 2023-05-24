@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.2 (2023-05-24)
+
+* `info/0` returns total play count and first date of scrobble for default user
+* update Lastfm client to use LiveBook system env vars (`LB_LFM_USER` and `LB_LFM_API_KEY`) along with config values 
+* rename modules and tests in idiomatic namespaces
+* bump dependencies, Elixir / Erlang versions
+* Github Actions CI
+
 ## 0.9.1 (2021-05-05)
 
 * `sync/2` handles request errors from Last.fm API
