@@ -96,4 +96,33 @@ defmodule LastfmArchive.Utils do
     unless @file_io.exists?(dir), do: @file_io.mkdir_p(dir)
     :ok
   end
+
+  @doc """
+  Write scrobbles (map) data to a file in the archive of a Lastfm user.
+  """
+  def write(archive, scrobbles, options \\ [])
+
+  def write(%Archive{creator: creator}, scrobbles, options) when is_map(scrobbles) do
+    with metadata <- get_metadata(creator, options),
+         path <- get_filepath(options) do
+      archive_dir = Path.dirname(metadata)
+      to = Path.join(archive_dir, "#{path}.gz")
+      to_dir = Path.dirname(to)
+
+      unless @file_io.exists?(to_dir), do: @file_io.mkdir_p(to_dir)
+      @file_io.write(to, scrobbles |> Jason.encode!(), [:compressed])
+    end
+  end
+
+  def write(_archive, {:error, api_message}, _options), do: {:error, api_message}
+
+  defp get_metadata(creator, options) do
+    metadata = metadata_filepath(creator, options)
+    if @file_io.exists?(metadata), do: metadata, else: raise("attempt to write to a non existing archive")
+  end
+
+  defp get_filepath(options) do
+    path = Keyword.get(options, :filepath)
+    if path != nil and path != "", do: path, else: raise("please provide a valid :filepath option")
+  end
 end

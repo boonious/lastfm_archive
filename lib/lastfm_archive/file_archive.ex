@@ -67,28 +67,8 @@ defmodule LastfmArchive.FileArchive do
     {created, {from, to}, date}
   end
 
+  defdelegate write(archive, scrobbles), to: Utils
+
   @impl true
-  def write(archive, scrobbles, options \\ [])
-
-  def write(%Archive{creator: creator}, scrobbles, options) when is_map(scrobbles) do
-    metadata_filepath = Utils.metadata_filepath(creator, options)
-    path = Keyword.get(options, :filepath)
-
-    cond do
-      path == nil or path == "" ->
-        raise "please provide a valid :filepath option"
-
-      !@file_io.exists?(metadata_filepath) ->
-        raise "attempt to write to a non existing archive"
-
-      true ->
-        archive_dir = Path.dirname(metadata_filepath)
-        to = Path.join(archive_dir, "#{path}.gz")
-        to_dir = Path.dirname(to)
-        unless @file_io.exists?(to_dir), do: @file_io.mkdir_p(to_dir)
-        @file_io.write(to, scrobbles |> Jason.encode!(), [:compressed])
-    end
-  end
-
-  def write(_archive, {:error, api_message}, _options), do: {:error, api_message}
+  defdelegate write(archive, scrobbles, options), to: Utils
 end

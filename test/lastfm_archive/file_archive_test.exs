@@ -140,8 +140,10 @@ defmodule LastfmArchive.FileArchiveTest do
     end
 
     test "does not write to archive without a filepath option",
-         context = %{id: id, data_json: data_json, full_path: full_path} do
-      LastfmArchive.FileIOMock |> expect(:write, 0, fn ^full_path, ^data_json, [:compressed] -> true end)
+         context = %{id: id, data_json: data_json, metadata: metadata, full_path: full_path} do
+      LastfmArchive.FileIOMock
+      |> expect(:exists?, fn ^metadata -> true end)
+      |> expect(:write, 0, fn ^full_path, ^data_json, [:compressed] -> true end)
 
       assert_raise RuntimeError, "please provide a valid :filepath option", fn ->
         FileArchive.write(test_file_archive(id), context.data)
@@ -149,8 +151,10 @@ defmodule LastfmArchive.FileArchiveTest do
     end
 
     test "does not write to archive on empty or nil filepath",
-         context = %{id: id, data_json: data_json, full_path: full_path} do
-      LastfmArchive.FileIOMock |> expect(:write, 0, fn ^full_path, ^data_json, [:compressed] -> true end)
+         context = %{id: id, data_json: data_json, metadata: metadata, full_path: full_path} do
+      LastfmArchive.FileIOMock
+      |> expect(:exists?, 2, fn ^metadata -> true end)
+      |> expect(:write, 0, fn ^full_path, ^data_json, [:compressed] -> true end)
 
       assert_raise RuntimeError, "please provide a valid :filepath option", fn ->
         FileArchive.write(test_file_archive(id), context.data, filepath: nil)
