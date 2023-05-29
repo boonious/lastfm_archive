@@ -10,8 +10,8 @@ defmodule LastfmArchive.Cache do
   @cache_file_wildcard @cache_file_prefix <> "????"
   @ticks_before_serialise 60
 
-  @file_io Application.compile_env(:lastfm_archive, :file_io)
-  @path_io Application.compile_env(:lastfm_archive, :path_io)
+  @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
+  @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
 
   @callback load(binary, keyword, GenServer.server()) :: map()
   @callback put({binary, integer}, {integer, integer}, tuple, GenServer.server()) :: :ok

@@ -17,18 +17,18 @@ defmodule LastfmArchive do
   alias LastfmArchive.{Cache, Utils}
 
   @default_opts %{
-    interval: Application.compile_env(:lastfm_archive, :interval, 500),
+    interval: Application.compile_env(:lastfm_archive, :interval, 1000),
     per_page: Application.compile_env(:lastfm_archive, :per_page, 200),
     reset: Application.compile_env(:lastfm_archive, :reset, false),
     data_dir: Application.compile_env(:lastfm_archive, :data_dir, "./archive_data/")
   }
 
-  @api Application.compile_env(:lastfm_archive, :lastfm_client)
+  @api Application.compile_env(:lastfm_archive, :lastfm_client, LastfmArchive.LastfmClient)
   @archive Application.compile_env(:lastfm_archive, :type, LastfmArchive.FileArchive)
   @cache Application.compile_env(:lastfm_archive, :cache, LastfmArchive.Cache)
 
-  @path_io Application.compile_env(:lastfm_archive, :path_io)
-  @file_io Application.compile_env(:lastfm_archive, :file_io)
+  @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
+  @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
 
   @type archive :: Archive.t()
   @type time_range :: {integer, integer}

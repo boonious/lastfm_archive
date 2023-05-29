@@ -7,7 +7,7 @@ defmodule LastfmArchive.FileArchive do
   alias LastfmArchive.Utils
 
   @reset Application.compile_env(:lastfm_archive, :reset, false)
-  @file_io Application.compile_env(:lastfm_archive, :file_io)
+  @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
 
   @type archive :: Archive.t()
   @type options :: Archive.options()

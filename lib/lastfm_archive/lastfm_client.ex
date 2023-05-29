@@ -5,7 +5,12 @@ defmodule LastfmArchive.LastfmClient do
 
   @behaviour LastfmArchive.Behaviour.LastfmClient
 
-  @api Application.compile_env(:lastfm_archive, :api)
+  @api Application.compile_env(:lastfm_archive, :api, %{
+         api_key: "",
+         endpoint: "http://ws.audioscrobbler.com/",
+         method: "user.getrecenttracks"
+       })
+
   @config_user Application.compile_env(:lastfm_archive, :user)
 
   defstruct [:api_key, :endpoint, :method]
