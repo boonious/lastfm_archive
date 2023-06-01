@@ -26,6 +26,7 @@ defmodule LastfmArchive.Behaviour.Archive do
     :type
   ]
 
+  @type client :: LastfmArchive.LastfmClient.t()
   @type options :: keyword()
   @type user :: binary()
   @type scrobbles :: map()
@@ -42,7 +43,7 @@ defmodule LastfmArchive.Behaviour.Archive do
           extent: integer(),
           format: binary(),
           identifier: binary(),
-          modified: DateTime.t(),
+          modified: nil | DateTime.t(),
           source: binary(),
           temporal: {integer, integer},
           title: binary(),
@@ -50,7 +51,7 @@ defmodule LastfmArchive.Behaviour.Archive do
         }
 
   @doc """
-  Creates a new archive and writes metadata to file.
+  Writes latest metadata to file.
   """
   @callback update_metadata(t(), options) :: {:ok, t()} | {:error, term()}
 
@@ -60,9 +61,12 @@ defmodule LastfmArchive.Behaviour.Archive do
   @callback describe(user, options) :: {:ok, t()} | {:error, term()}
 
   @doc """
-  Write scrobbles data to an existing archive.
+  Archives all scrobbles data for a Lastfm user.
   """
-  @callback write(t(), scrobbles, options) :: :ok | {:error, term()}
+  @callback archive(t(), options, client) :: {:ok, t()} | {:error, term()}
+
+  @doc false
+  def impl, do: Application.get_env(:lastfm_archive, :type, LastfmArchive.FileArchive)
 
   @doc """
   Data struct containing new and some default metadata of an archive.
@@ -82,6 +86,15 @@ defmodule LastfmArchive.Behaviour.Archive do
       source: "http://ws.audioscrobbler.com/2.0",
       title: "Lastfm archive of #{user}",
       type: @archive
+    }
+  end
+
+  def new(archive, total, registered_time, last_scrobble_time) do
+    %{
+      archive
+      | temporal: {registered_time, last_scrobble_time},
+        extent: total,
+        date: last_scrobble_time |> DateTime.from_unix!() |> DateTime.to_date()
     }
   end
 end

@@ -35,13 +35,25 @@ defmodule LastfmArchive.Utils do
     {DateTime.to_unix(from), DateTime.to_unix(to)}
   end
 
-  def year_range({from, to}) do
-    DateTime.from_unix!(from).year..DateTime.from_unix!(to).year
-  end
+  def year_range({from, to}), do: DateTime.from_unix!(from).year..DateTime.from_unix!(to).year
 
   def data_dir(options \\ []), do: Keyword.get(options, :data_dir, @data_dir)
   def user_dir(user, options \\ []), do: Path.join([data_dir(options), user])
+
   def metadata_filepath(user, options), do: Path.join([data_dir(options), user, @metadata_file])
+  def num_pages(playcount, per_page), do: (playcount / per_page) |> :math.ceil() |> round
+
+  # returns 2021/12/31/200_001 type paths
+  def page_path(datetime, page, per_page) do
+    page_num = page |> to_string() |> String.pad_leading(3, "0")
+
+    datetime
+    |> DateTime.from_unix!()
+    |> DateTime.to_date()
+    |> Date.to_string()
+    |> String.replace("-", "/")
+    |> Path.join("#{per_page}_#{page_num}")
+  end
 
   def display_progress(archive) do
     IO.puts("Archiving #{archive.extent} scrobbles for #{archive.creator}")
@@ -103,23 +115,20 @@ defmodule LastfmArchive.Utils do
   def write(archive, scrobbles, options \\ [])
 
   def write(%Archive{creator: creator}, scrobbles, options) when is_map(scrobbles) do
-    with metadata <- get_metadata(creator, options),
+    with metadata_filepath <- metadata_filepath(creator, options),
          path <- get_filepath(options) do
-      archive_dir = Path.dirname(metadata)
-      to = Path.join(archive_dir, "#{path}.gz")
-      to_dir = Path.dirname(to)
+      full_path =
+        metadata_filepath
+        |> Path.dirname()
+        |> Path.join("#{path}.gz")
 
-      unless @file_io.exists?(to_dir), do: @file_io.mkdir_p(to_dir)
-      @file_io.write(to, scrobbles |> Jason.encode!(), [:compressed])
+      full_path_dir = Path.dirname(full_path)
+      unless @file_io.exists?(full_path_dir), do: @file_io.mkdir_p(full_path_dir)
+      @file_io.write(full_path, scrobbles |> Jason.encode!(), [:compressed])
     end
   end
 
   def write(_archive, {:error, api_message}, _options), do: {:error, api_message}
-
-  defp get_metadata(creator, options) do
-    metadata = metadata_filepath(creator, options)
-    if @file_io.exists?(metadata), do: metadata, else: raise("attempt to write to a non existing archive")
-  end
 
   defp get_filepath(options) do
     path = Keyword.get(options, :filepath)

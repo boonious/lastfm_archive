@@ -1,4 +1,5 @@
 defmodule Fixtures.Lastfm do
+  @moduledoc false
   def user_info(user, count, registered) do
     ~s"""
        {

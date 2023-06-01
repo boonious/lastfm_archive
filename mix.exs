@@ -29,7 +29,7 @@ defmodule LastfmArchive.MixProject do
     ]
   end
 
-  defp elixirc_paths(:test), do: ["test/support", "lib"]
+  defp elixirc_paths(:test), do: ["test/support", "test/fixtures", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
   def application do

@@ -8,5 +8,5 @@ defmodule LastfmArchive.Behaviour.FileIO do
   @callback exists?(Path.t()) :: boolean()
 
   @callback write(Path.t(), iodata()) :: :ok | {:error, File.posix()}
-  @callback write(Path.t(), iodata(), keyword()) :: :ok | {:error, File.posix()}
+  @callback write(Path.t(), iodata(), list()) :: :ok | {:error, File.posix()}
 end

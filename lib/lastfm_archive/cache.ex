@@ -13,9 +13,10 @@ defmodule LastfmArchive.Cache do
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
 
-  @callback load(binary, keyword, GenServer.server()) :: map()
+  @callback get(tuple, GenServer.server()) :: map()
+  @callback load(binary, GenServer.server(), keyword) :: map()
   @callback put({binary, integer}, {integer, integer}, tuple, GenServer.server()) :: :ok
-  @callback serialise(binary, keyword, GenServer.server()) :: term
+  @callback serialise(binary, GenServer.server(), keyword) :: term
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: Keyword.get(opts, :name, __MODULE__))
@@ -37,12 +38,8 @@ defmodule LastfmArchive.Cache do
 
   def serialise(user, server \\ __MODULE__, options \\ []), do: GenServer.call(server, {:serialise, user, options})
 
-  @spec get(tuple, GenServer.server()) :: map() | tuple()
   def get(key, server \\ __MODULE__)
-
-  def get({user, year}, server) do
-    GenServer.call(server, {:get, {user, year}})
-  end
+  def get({user, year}, server), do: GenServer.call(server, {:get, {user, year}})
 
   def put({user, year}, {from, to}, value, server \\ __MODULE__) do
     GenServer.call(server, {:put, {user, year}, {from, to}, value})

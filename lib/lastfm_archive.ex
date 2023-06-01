@@ -14,18 +14,7 @@ defmodule LastfmArchive do
 
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.LastfmClient
-  alias LastfmArchive.{Cache, Utils}
-
-  @default_opts %{
-    interval: Application.compile_env(:lastfm_archive, :interval, 1000),
-    per_page: Application.compile_env(:lastfm_archive, :per_page, 200),
-    reset: Application.compile_env(:lastfm_archive, :reset, false),
-    data_dir: Application.compile_env(:lastfm_archive, :data_dir, "./archive_data/")
-  }
-
-  @api Application.compile_env(:lastfm_archive, :lastfm_client, LastfmArchive.LastfmClient)
-  @archive Application.compile_env(:lastfm_archive, :type, LastfmArchive.FileArchive)
-  @cache Application.compile_env(:lastfm_archive, :cache, LastfmArchive.Cache)
+  alias LastfmArchive.Utils
 
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
@@ -37,7 +26,7 @@ defmodule LastfmArchive do
   @doc """
   Returns the total playcount and registered, i.e. earliest scrobble time for a user.
   """
-  defdelegate info, to: LastfmArchive.LastfmClient
+  defdelegate info, to: LastfmClient
 
   @doc """
   Sync scrobbles of a default user specified in configuration.
@@ -107,116 +96,13 @@ defmodule LastfmArchive do
       data_dir: "./lastfm_data/"
   ```
   """
-  @spec sync(binary, keyword) :: :ok | {:error, :file.posix()}
+  @spec sync(binary, keyword) :: {:ok, archive} | {:error, :file.posix()}
   def sync(user, options \\ []) do
-    @cache.load(user, @cache, options)
-    {:ok, archive} = @archive.describe(user, options)
-    sync_archive(archive, options)
-  end
-
-  defp sync_archive(%{identifier: user} = archive, options) do
-    client = LastfmClient.new("user.getrecenttracks")
-    now = DateTime.utc_now() |> DateTime.to_unix()
-
-    with {:ok, {total, registered_time}} <- @api.info(user, %{client | method: "user.getinfo"}),
-         {:ok, {_, last_scrobble_time}} <- @api.playcount(user, {registered_time, now}, client),
-         archive <- update_archive(archive, total, {registered_time, last_scrobble_time}),
-         {:ok, archive} <- @archive.update_metadata(archive, options) do
-      Utils.display_progress(archive)
-
-      for year <- Utils.year_range(archive.temporal) do
-        {from, to} = Utils.build_time_range(year, archive)
-        sync_archive(archive, {from, to, Cache.get({user, year})}, client, options)
-        @cache.serialise(user, @cache, options)
-      end
-
-      @archive.update_metadata(%{archive | modified: DateTime.utc_now()}, options)
-    else
-      error -> error
-    end
-  end
-
-  defp sync_archive(%Archive{extent: 0}, _year_time_range, _client, _options), do: :ok
-
-  defp sync_archive(archive, {from, to, cache}, client, options) do
-    options = Map.merge(@default_opts, Enum.into(options, @default_opts))
-    time_ranges = Utils.build_time_range({from, to})
-
-    for time_range <- time_ranges do
-      with {playcount, previous_results} <- Map.get(cache, time_range, %{}),
-           true <- previous_results |> Enum.all?(&(&1 == :ok)) do
-        Utils.display_skip_message(time_range, playcount)
-      else
-        # new daily sync
-        %{} ->
-          sync_archive_daily(archive, time_range, client, options)
-
-        # redo previous erroneous syncs
-        false ->
-          sync_archive_daily(archive, time_range, client, options)
-      end
-    end
-
-    :ok
-  end
-
-  defp sync_archive_daily(archive, {from, _to} = time_range, client, options) do
-    :timer.sleep(options.interval)
-    year = DateTime.from_unix!(from).year
-
-    with {:ok, {playcount, _}} <- @api.playcount(archive.identifier, time_range, client),
-         pages <- pages(playcount, options.per_page) do
-      Utils.display_progress(time_range, playcount, pages)
-      sync_results = sync_archive_daily(archive, time_range, pages, client, options)
-
-      # don't cache results of the always partial sync of today's scrobbles
-      unless today?(time_range) do
-        @cache.put({archive.identifier, year}, time_range, {playcount, sync_results}, @cache)
-      end
-    else
-      {:error, reason} -> Utils.display_api_error_message(time_range, reason)
-    end
-  end
-
-  defp sync_archive_daily(_archive, _time_range, 0, _client, _options), do: [:ok]
-
-  defp sync_archive_daily(%{identifier: user} = archive, {from, to}, pages, client, options) do
-    from_date = DateTime.from_unix!(from) |> DateTime.to_date()
-    page_dir = Date.to_string(from_date) |> String.replace("-", "/")
-
-    for page <- pages..1, pages > 0 do
-      :timer.sleep(options.interval)
-
-      page_num = page |> to_string |> String.pad_leading(3, "0")
-      path = Path.join([page_dir, "#{options.per_page}_#{page_num}"])
-
-      with {:ok, scrobbles} <- @api.scrobbles(user, {page - 1, options.per_page, from, to}, client),
-           :ok <- @archive.write(archive, scrobbles, filepath: path) do
-        IO.write(".")
-        :ok
-      else
-        {:error, _reason} ->
-          IO.write("x")
-          {:error, %{user: user, page: page - 1, from: from, to: to, per_page: options.per_page}}
-      end
-    end
-  end
-
-  defp pages(playcount, per_page) do
-    (playcount / per_page) |> :math.ceil() |> round
-  end
-
-  defp today?({from, _to}) do
-    DateTime.from_unix!(from) |> DateTime.to_date() |> Kernel.==(Date.utc_today())
-  end
-
-  defp update_archive(archive, total, {registered_time, last_scrobble_time}) do
-    %{
-      archive
-      | temporal: {registered_time, last_scrobble_time},
-        extent: total,
-        date: last_scrobble_time |> DateTime.from_unix!() |> DateTime.to_date()
-    }
+    user
+    |> Archive.impl().describe(options)
+    |> then(fn {:ok, metadata} ->
+      Archive.impl().archive(metadata, options, LastfmClient.new("user.getrecenttracks"))
+    end)
   end
 
   @doc """
