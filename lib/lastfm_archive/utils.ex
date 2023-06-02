@@ -2,6 +2,7 @@ defmodule LastfmArchive.Utils do
   @moduledoc false
 
   alias LastfmArchive.Behaviour.Archive
+  require Logger
 
   @data_dir Application.compile_env(:lastfm_archive, :data_dir, "./lastfm_data/")
   @metadata_file ".archive"
@@ -55,32 +56,8 @@ defmodule LastfmArchive.Utils do
     |> Path.join("#{per_page}_#{page_num}")
   end
 
-  def display_progress(archive) do
-    IO.puts("Archiving #{archive.extent} scrobbles for #{archive.creator}")
-  end
-
-  def display_progress({from, _to}, playcount, pages) do
-    from_date = DateTime.from_unix!(from) |> DateTime.to_date()
-
-    IO.puts("\n")
-    IO.puts("#{from_date}")
-    IO.puts("#{playcount} scrobble(s)")
-    IO.puts("#{pages} page(s)")
-  end
-
-  def display_skip_message({from, _to}, playcount) do
-    from_date = DateTime.from_unix!(from) |> DateTime.to_date()
-
-    IO.puts("\n")
-    IO.puts("Skipping #{from_date}, previously synced: #{playcount} scrobble(s)")
-  end
-
-  def display_api_error_message({from, _to}, reason) do
-    from_date = DateTime.from_unix!(from) |> DateTime.to_date()
-
-    IO.puts("\n")
-    IO.puts("Last.fm API error while syncing #{from_date}: #{reason}")
-  end
+  def date(from) when is_integer(from), do: DateTime.from_unix!(from) |> Calendar.strftime("%Y-%m-%d")
+  def date({from, _day}) when is_integer(from), do: DateTime.from_unix!(from) |> Calendar.strftime("%Y-%m-%d")
 
   @doc """
   Read and unzip a file from the archive of a Lastfm user.

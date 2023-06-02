@@ -1,7 +1,7 @@
 defmodule LastfmArchive.FileArchiveTest do
   use ExUnit.Case, async: true
 
-  import ExUnit.CaptureIO
+  import ExUnit.CaptureLog
   import Fixtures.{Archive, Lastfm}
   import Hammox
 
@@ -143,7 +143,7 @@ defmodule LastfmArchive.FileArchiveTest do
       |> expect(:update_metadata, fn ^metadata, _options -> {:ok, metadata} end)
       |> expect(:update_metadata, fn metadata, _options -> {:ok, metadata} end)
 
-      capture_io(fn -> assert {:ok, %Archive{}} = FileArchive.archive(metadata, []) end)
+      capture_log(fn -> assert {:ok, %Archive{}} = FileArchive.archive(metadata, []) end)
     end
 
     test "writes scrobbles to files", %{
@@ -161,14 +161,14 @@ defmodule LastfmArchive.FileArchiveTest do
         :ok
       end)
 
-      capture_io(fn -> FileArchive.archive(metadata, []) end)
+      capture_log(fn -> FileArchive.archive(metadata, []) end)
     end
 
     test "caches archiving ok status", %{metadata: metadata, user: user} do
       LastfmArchive.CacheMock
       |> expect(:put, 3, fn {^user, 2021}, _time, {_playcount, [:ok]}, _cache -> :ok end)
 
-      capture_io(fn -> FileArchive.archive(metadata, []) end)
+      capture_log(fn -> FileArchive.archive(metadata, []) end)
     end
 
     test "caches status on scrobbles API call errors", %{metadata: metadata, user: user} do
@@ -177,7 +177,7 @@ defmodule LastfmArchive.FileArchiveTest do
       LastfmArchive.CacheMock
       |> expect(:put, 3, fn {^user, 2021}, _time, {_playcount, [error: _data]}, _cache -> :ok end)
 
-      assert capture_io(fn -> FileArchive.archive(metadata, []) end) =~ "x"
+      assert capture_log(fn -> FileArchive.archive(metadata, []) end) =~ "Lastfm API error"
     end
 
     test "does not cache status of today's scrobbles (partial) archiving", %{metadata: metadata, user: user} do
@@ -202,7 +202,7 @@ defmodule LastfmArchive.FileArchiveTest do
       LastfmArchive.CacheMock
       |> expect(:put, 0, fn {_user, _year}, {_from, _to}, {_total_scrobbles, _status}, _cache -> :ok end)
 
-      assert capture_io(fn -> FileArchive.archive(metadata, []) end) =~ Date.utc_today() |> to_string
+      assert capture_log(fn -> FileArchive.archive(metadata, []) end) =~ Date.utc_today() |> to_string
     end
 
     test "handles first total playcount API call error", %{metadata: metadata, user: user} do
@@ -220,19 +220,20 @@ defmodule LastfmArchive.FileArchiveTest do
       scrobbles: scrobbles,
       user: user
     } do
+      api_error = "error"
       {registered_time, last_scrobble_time} = metadata.temporal
       total_scrobbles = metadata.extent
 
       LastfmClient.impl()
       |> expect(:info, fn ^user, _client -> {:ok, {total_scrobbles, registered_time}} end)
       |> expect(:playcount, fn ^user, _time_range, _client -> {:ok, {total_scrobbles, last_scrobble_time}} end)
-      |> stub(:playcount, fn ^user, _time_range, _api -> {:error, "error"} end)
+      |> stub(:playcount, fn ^user, _time_range, _api -> {:error, api_error} end)
       |> stub(:scrobbles, fn ^user, _client_args, _client -> {:ok, scrobbles} end)
 
       LastfmArchive.CacheMock
       |> expect(:put, 0, fn {^user, 2021}, _time, {_playcount, _status}, _cache -> :ok end)
 
-      assert capture_io(fn -> FileArchive.archive(metadata, []) end) =~ "Last.fm API error"
+      assert capture_log(fn -> FileArchive.archive(metadata, []) end) =~ "Lastfm API error"
     end
 
     test "does nothing when user have 0 scrobble", %{metadata: metadata} do
@@ -259,7 +260,7 @@ defmodule LastfmArchive.FileArchiveTest do
 
       LastfmArchive.FileIOMock |> expect(:write, 0, fn _path, _data, [:compressed] -> :ok end)
 
-      capture_io(fn -> assert {:ok, %Archive{}} = FileArchive.archive(metadata, []) end)
+      capture_log(fn -> assert {:ok, %Archive{}} = FileArchive.archive(metadata, []) end)
     end
 
     test "skip archiving on ok status in cache", %{metadata: metadata, user: user} do
@@ -275,7 +276,7 @@ defmodule LastfmArchive.FileArchiveTest do
       LastfmClient.impl() |> expect(:scrobbles, 0, fn _user, _client_args, _client -> {:ok, ""} end)
       LastfmArchive.FileIOMock |> expect(:write, 0, fn _path, _data, [:compressed] -> :ok end)
 
-      capture_io(fn -> assert {:ok, %Archive{}} = FileArchive.archive(metadata, []) end) =~ "Skipping"
+      assert capture_log(fn -> assert {:ok, %Archive{}} = FileArchive.archive(metadata, []) end) =~ "Skipping"
     end
   end
 end

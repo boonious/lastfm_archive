@@ -14,3 +14,6 @@ config :lastfm_archive,
   cache: LastfmArchive.CacheMock,
   file_io: LastfmArchive.FileIOMock,
   path_io: LastfmArchive.PathIOMock
+
+config :logger,
+  level: :info

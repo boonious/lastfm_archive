@@ -7,6 +7,7 @@ defmodule LastfmArchive.FileArchive do
   alias LastfmArchive.Behaviour.LastfmClient
 
   import LastfmArchive.Utils
+  require Logger
 
   @cache Application.compile_env(:lastfm_archive, :cache, LastfmArchive.Cache)
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
@@ -74,7 +75,7 @@ defmodule LastfmArchive.FileArchive do
     @cache.load(user, @cache, options)
 
     with {:ok, metadata} <- update_metadata(metadata, options, client) do
-      display_progress(metadata)
+      Logger.info("Archiving #{metadata.extent} scrobbles for #{metadata.creator}")
       options = Keyword.validate!(options, default_opts())
 
       for year <- year_range(metadata.temporal) do
@@ -102,7 +103,7 @@ defmodule LastfmArchive.FileArchive do
     for day_range <- build_time_range({from, to}) do
       with {playcount, previous_results} <- Map.get(cache, day_range, {}),
            true <- previous_results |> Enum.all?(&(&1 == :ok)) do
-        display_skip_message(day_range, playcount)
+        Logger.info("Skipping #{date(day_range)}, previously synced: #{playcount} scrobble(s)")
       else
         # new daily archiving or redo previous erroneous archiving
         _ -> write_to_archive(metadata, day_range, client, options)
@@ -118,7 +119,7 @@ defmodule LastfmArchive.FileArchive do
 
     with {:ok, {playcount, _}} <- client_impl().playcount(metadata.identifier, time_range, client),
          num_pages <- num_pages(playcount, Keyword.fetch!(options, :per_page)) do
-      display_progress(time_range, playcount, num_pages)
+      Logger.info("#{date(from)}: #{playcount} scrobble(s), #{num_pages} page(s)")
       results = write_to_archive(metadata, time_range, num_pages, client, options)
 
       # don't cache results of the always partial sync of today's scrobbles
@@ -126,7 +127,8 @@ defmodule LastfmArchive.FileArchive do
         @cache.put({metadata.identifier, year}, time_range, {playcount, results}, @cache)
       end
     else
-      {:error, reason} -> display_api_error_message(time_range, reason)
+      {:error, reason} ->
+        Logger.error("Lastfm API error while archiving #{date(time_range)}: #{reason}")
     end
   end
 
@@ -139,11 +141,11 @@ defmodule LastfmArchive.FileArchive do
 
       with {:ok, scrobbles} <- client_impl().scrobbles(user, {page - 1, per_page, from, to}, client),
            :ok <- write(metadata, scrobbles, filepath: page_path(from, page, per_page)) do
-        IO.write(".")
+        Logger.info("✓ page #{page} written to #{user_dir(user)}/#{page_path(from, page, per_page)}.gz")
         :ok
       else
-        {:error, _reason} ->
-          IO.write("x")
+        {:error, reason} ->
+          Logger.error("❌ Lastfm API error while retrieving scrobbles #{date(from)}: #{reason}")
           {:error, %{user: user, page: page - 1, from: from, to: to, per_page: per_page}}
       end
     end
