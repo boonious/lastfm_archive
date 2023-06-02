@@ -5,17 +5,19 @@ defmodule LastfmArchive.Cache do
 
   use GenServer
   alias LastfmArchive.Utils
+  require Logger
 
   @cache_file_prefix ".cache_"
   @cache_file_wildcard @cache_file_prefix <> "????"
-  @ticks_before_serialise 60
+  @ticks_before_serialise 10
 
-  @file_io Application.compile_env(:lastfm_archive, :file_io)
-  @path_io Application.compile_env(:lastfm_archive, :path_io)
+  @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
+  @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
 
-  @callback load(binary, keyword, GenServer.server()) :: map()
+  @callback get(tuple, GenServer.server()) :: map()
+  @callback load(binary, GenServer.server(), keyword) :: map()
   @callback put({binary, integer}, {integer, integer}, tuple, GenServer.server()) :: :ok
-  @callback serialise(binary, keyword, GenServer.server()) :: term
+  @callback serialise(binary, GenServer.server(), keyword) :: term
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: Keyword.get(opts, :name, __MODULE__))
@@ -37,12 +39,8 @@ defmodule LastfmArchive.Cache do
 
   def serialise(user, server \\ __MODULE__, options \\ []), do: GenServer.call(server, {:serialise, user, options})
 
-  @spec get(tuple, GenServer.server()) :: map() | tuple()
   def get(key, server \\ __MODULE__)
-
-  def get({user, year}, server) do
-    GenServer.call(server, {:get, {user, year}})
-  end
+  def get({user, year}, server), do: GenServer.call(server, {:get, {user, year}})
 
   def put({user, year}, {from, to}, value, server \\ __MODULE__) do
     GenServer.call(server, {:put, {user, year}, {from, to}, value})
@@ -109,6 +107,8 @@ defmodule LastfmArchive.Cache do
       Map.get(state, {user, year}, %{}) |> :erlang.term_to_binary()
     )
 
+    Logger.debug("serialise archiving cache status to #{path}")
+
     {:reply, :ok, {@ticks_before_serialise, update_state(state, {user, year}, {from, to}, value)}}
   end
 
@@ -118,6 +118,8 @@ defmodule LastfmArchive.Cache do
   end
 
   defp update_state(state, {user, year}, {from, to}, value) do
+    Logger.debug("caching archive status #{Utils.date(from)}, #{inspect(value)}")
+
     case state[{user, year}] do
       cache when is_map(cache) ->
         update_in(state, [{user, year}, {from, to}], &(&1 = value))

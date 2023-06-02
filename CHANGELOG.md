@@ -1,4 +1,8 @@
 # Changelog
+## 0.9.3 (2023-06-02)
+
+* refactor: FileArchive - raw Lastfm scrobbles JSON format and better logging
+* default runtime configuration to better support LiveBook usage
 
 ## 0.9.2 (2023-05-24)
 

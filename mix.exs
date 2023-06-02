@@ -8,7 +8,7 @@ defmodule LastfmArchive.MixProject do
   def project do
     [
       app: :lastfm_archive,
-      version: "0.9.2",
+      version: "0.9.3",
       elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -29,7 +29,7 @@ defmodule LastfmArchive.MixProject do
     ]
   end
 
-  defp elixirc_paths(:test), do: ["test/support", "lib"]
+  defp elixirc_paths(:test), do: ["test/support", "test/fixtures", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
   def application do

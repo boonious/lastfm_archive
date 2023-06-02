@@ -35,4 +35,7 @@ defmodule LastfmArchive.Behaviour.LastfmClient do
   Returns the playcount and the latest scrobble date of a user for a given time range.
   """
   @callback playcount(user, {from, to}, client) :: {:ok, {playcount, latest_scrobble_time}} | {:error, term()}
+
+  @doc false
+  def impl, do: Application.get_env(:lastfm_archive, :lastfm_client, LastfmArchive.LastfmClient)
 end

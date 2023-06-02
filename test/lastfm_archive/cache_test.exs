@@ -1,7 +1,7 @@
 defmodule LastfmArchive.CacheTest do
   use ExUnit.Case
 
-  import Mox
+  import Hammox
   alias LastfmArchive.Cache
 
   @cache :test_cache
@@ -22,7 +22,7 @@ defmodule LastfmArchive.CacheTest do
   end
 
   test "state/0 returns current state of app cache" do
-    assert {60, %{}} == Cache.state()
+    assert {10, %{}} == Cache.state()
   end
 
   test "state/1 returns current state", %{cache: cache} do

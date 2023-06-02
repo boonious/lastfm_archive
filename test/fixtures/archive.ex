@@ -1,4 +1,5 @@
 defmodule Fixtures.Archive do
+  @moduledoc false
   alias LastfmArchive.Behaviour.Archive
 
   @default_user Application.compile_env(:lastfm_archive, :user)
