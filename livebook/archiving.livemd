@@ -1,0 +1,45 @@
+<!-- livebook:{"app_settings":{"slug":"archive"},"autosave_interval_s":null} -->
+
+# Lastfm Archive Livebook
+
+```elixir
+Mix.install(
+  [
+    {:lastfm_archive, path: "elixir/lastfm_archive"},
+    {:kino, "~> 0.9.4"}
+  ],
+  config: [
+    lastfm_archive: [
+      data_dir: "./lastfm_data/",
+      user: ""
+    ]
+  ]
+)
+
+alias LastfmArchive.Livebook, as: LFM_LB
+```
+
+## Configuration
+
+This Livebook is based on the Elixir [Lastfm Archive library](https://github.com/boonious/lastfm_archive) that archives [scrobbles](https://www.last.fm/about/trackmymusic), tracking music to which Lastfm users have been listening. The library has been configured as a dependency. It downloads scrobbles via the Lastfm API and currently stores raw data in local file location.
+
+You need to check and modify the following dependency configurations by clicking on `Notebook dependencies and setup` above:
+
+1. **`user`**: specify your Lastfm username in this config
+2. **`data_dir`** (optional): by default scrobbles data is stored in `~/lastfm_data/` folder of your home directory. You can modifiy this by changing the config value
+
+<!-- livebook:{"break_markdown":true} -->
+
+### API key environment variable
+
+To access the API provided by Lastfm, you also need to [apply for a key](https://www.last.fm/api/authentication) which is a 32-digit string. This key is used for authentication when downloading data from Lastfm.
+
+Once you have this key, add it as `LFM_API_KEY` secret either for this session or to My Hub - see [Secrets management](https://hackmd.io/@hugobarauna/By6ulTnMi#Secret-management) for further details.
+
+## Scrobbles archiving
+
+```elixir
+LFM_LB.info()
+```
+
+<!-- livebook:{"offset":1659,"stamp":{"token":"QTEyOEdDTQ.GnwGuN9OCOUfs2hCh14xDE7cjBZkPnEop26w8Ne_Ma0OaARD-wdlfccC3Z8.jdz7cBL_cr6U04d4.pzARIpriaCdHI3bvcCyzvcrVdZHd6B5PnDoP4nUWDoRiLkYdWSri0-28OhUfmgw.IxFvZZf8tHvD96zWSH8unQ","version":1}} -->

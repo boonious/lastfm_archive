@@ -47,7 +47,8 @@ defmodule LastfmArchive.MixProject do
       {:ex_doc, "~> 0.29", only: :dev, runtime: false},
       {:hammox, "~> 0.7", only: :test},
       {:hui, "0.10.4"},
-      {:jason, "~> 1.4"}
+      {:jason, "~> 1.4"},
+      {:kino, "~> 0.9.4"}
     ]
   end
 

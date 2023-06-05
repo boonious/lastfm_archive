@@ -2,12 +2,12 @@
 ## 0.9.3 (2023-06-02)
 
 * refactor: FileArchive - raw Lastfm scrobbles JSON format and better logging
-* default runtime configuration to better support LiveBook usage
+* default runtime configuration to better support Livebook usage
 
 ## 0.9.2 (2023-05-24)
 
 * `info/0` returns total play count and first date of scrobble for default user
-* update Lastfm client to use LiveBook system env vars (`LB_LFM_USER` and `LB_LFM_API_KEY`) along with config values 
+* update Lastfm client to use Livebook system env vars (`LB_LFM_USER` and `LB_LFM_API_KEY`) along with config values 
 * rename modules and tests in idiomatic namespaces
 * bump dependencies, Elixir / Erlang versions
 * Github Actions CI
