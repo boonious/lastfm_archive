@@ -1,4 +1,4 @@
-<!-- livebook:{"app_settings":{"slug":"archive"},"autosave_interval_s":null} -->
+<!-- livebook:{"app_settings":{"access_type":"public","slug":"archive"},"autosave_interval_s":null} -->
 
 # Lastfm Archive Livebook
 
@@ -6,7 +6,9 @@
 Mix.install(
   [
     {:lastfm_archive, path: "elixir/lastfm_archive"},
-    {:kino, "~> 0.9.4"}
+    {:kino_vega_lite, "~> 0.1.9"},
+    {:kino, "~> 0.9.4"},
+    {:vega_lite, "~> 0.1.7"}
   ],
   config: [
     lastfm_archive: [
@@ -17,6 +19,8 @@ Mix.install(
 )
 
 alias LastfmArchive.Livebook, as: LFM_LB
+alias VegaLite, as: Vl
+:ok
 ```
 
 ## Configuration
@@ -42,4 +46,46 @@ Once you have this key, add it as `LFM_API_KEY` secret either for this session o
 LFM_LB.info()
 ```
 
-<!-- livebook:{"offset":1659,"stamp":{"token":"QTEyOEdDTQ.GnwGuN9OCOUfs2hCh14xDE7cjBZkPnEop26w8Ne_Ma0OaARD-wdlfccC3Z8.jdz7cBL_cr6U04d4.pzARIpriaCdHI3bvcCyzvcrVdZHd6B5PnDoP4nUWDoRiLkYdWSri0-28OhUfmgw.IxFvZZf8tHvD96zWSH8unQ","version":1}} -->
+<!-- livebook:{"branch_parent_index":1} -->
+
+## Run
+
+```elixir
+LastfmArchive.sync()
+```
+
+<!-- livebook:{"branch_parent_index":1} -->
+
+## Status
+
+```elixir
+heatmap =
+  Vl.new(title: "")
+  |> Vl.data_from_values(LFM_LB.status())
+  |> Vl.mark(:rect)
+  |> Vl.encode_field(:x, "date",
+    time_unit: :month,
+    type: :ordinal,
+    title: "Month",
+    axis: [label_angle: 0, format: "%m"]
+  )
+  |> Vl.encode_field(:y, "date",
+    time_unit: :year,
+    type: :ordinal,
+    title: "Year"
+  )
+  |> Vl.encode_field(:color, "count",
+    aggregate: :max,
+    type: :quantitative,
+    legend: [title: nil]
+  )
+  |> Vl.config(view: [stroke: nil])
+
+year_count_table =
+  LFM_LB.status(LastfmArchive.Cache, granularity: :yearly)
+  |> Kino.DataTable.new(keys: [:year, :count], name: "")
+
+Kino.Layout.grid([heatmap, year_count_table], columns: 2)
+```
+
+<!-- livebook:{"offset":2601,"stamp":{"token":"QTEyOEdDTQ.66TymLr0MoHXJs2nKGASvJnzYWOocdS-yi5oWkL4A9o53RiqgNGYVOW4FxU.nUO4eMhIkYAEBZXq.FGY1KKAPcruBzDotkV6OG2FTiOxBum69NMjjs-KUxmNDfAktjV7NTA1goxukdgY.kLbs9oSmv9tszKEUtthz9Q","version":1}} -->
