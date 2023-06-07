@@ -1,4 +1,10 @@
 # Changelog
+## 0.10.0 (2023-06-07)
+
+* first interactive notebook - Livebook support
+* provide an archiving Livebook to initiate archiving jobs
+* playcounts heatmap and table for visualising archiving progress
+
 ## 0.9.3 (2023-06-02)
 
 * refactor: FileArchive - raw Lastfm scrobbles JSON format and better logging

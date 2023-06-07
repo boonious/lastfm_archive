@@ -4,26 +4,35 @@ defmodule LastfmArchive.Livebook do
   """
 
   alias LastfmArchive.LastfmClient
+  alias VegaLite, as: Vl
 
+  @cache LastfmArchive.Cache
   @type monthy_count :: %{count: integer(), date: String.t()}
 
   @doc """
   Display user name and total number of scrobbles to archive.
   """
   @spec info :: Kino.Markdown.t()
-  def info do
-    case {LastfmClient.default_user(), LastfmArchive.info()} do
-      {"", _} ->
+  def info(user \\ LastfmClient.default_user()) do
+    impl = LastfmArchive.Behaviour.LastfmClient.impl()
+    playcount_client = LastfmClient.new("user.getrecenttracks")
+    info_client = LastfmClient.new("user.getinfo")
+    time_range = {nil, nil}
+
+    case {user, impl.info(user, info_client), impl.playcount(user, time_range, playcount_client)} do
+      {"", _, _} ->
         Kino.Markdown.new("""
         Please specify a Lastfm user in configuration.
         """)
 
-      {user, {:ok, {total, _}}} ->
+      {user, {:ok, {total, registered_time}}, {:ok, {_, latest_scrobble_time}}} ->
         Kino.Markdown.new("""
         For Lastfm user: **#{user}** with **#{total}** total number of scrobbles.
+        - scrobbling since **#{registered_time |> DateTime.from_unix!() |> DateTime.to_date()}**
+        - latest scrobble time **#{latest_scrobble_time |> DateTime.from_unix!() |> Calendar.strftime("%c")}**
         """)
 
-      {_, _} ->
+      {_, _, _} ->
         Kino.Markdown.new("""
         Unable to fetch user info from Lastfm API, have you configured the API key?
         """)
@@ -31,13 +40,49 @@ defmodule LastfmArchive.Livebook do
   end
 
   @doc """
-  Returns a list of monthly counts of the scrobbles archived so far.
+  Monthly playcounts of scrobbles archived so far - VegaLite heatmap.
+  """
+  @spec monthly_playcounts_heatmap(module()) :: VegaLite.t()
+  def monthly_playcounts_heatmap(cache \\ @cache) do
+    Vl.new(title: "")
+    |> Vl.data_from_values(status(cache))
+    |> Vl.mark(:rect)
+    |> Vl.encode_field(:x, "date",
+      time_unit: :month,
+      type: :ordinal,
+      title: "Month",
+      axis: [label_angle: 0, format: "%m"]
+    )
+    |> Vl.encode_field(:y, "date",
+      time_unit: :year,
+      type: :ordinal,
+      title: "Year"
+    )
+    |> Vl.encode_field(:color, "count",
+      aggregate: :max,
+      type: :quantitative,
+      legend: [title: nil]
+    )
+    |> Vl.config(view: [stroke: nil])
+  end
+
+  @doc """
+  Yearly playcounts of scrobbles archived so far - Kino data table.
+  """
+  @spec yearly_playcounts_table(module()) :: Kino.JS.Live.t()
+  def yearly_playcounts_table(cache \\ @cache) do
+    status(cache, granularity: :yearly)
+    |> Kino.DataTable.new(keys: [:year, :count], name: "")
+  end
+
+  @doc """
+  Returns a list of monthly playcounts of scrobbles archived so far.
   """
   @spec status(module(), keyword()) :: list(monthy_count)
-  def status(cache \\ LastfmArchive.Cache, options \\ []) do
+  def status(cache \\ @cache, options \\ []) do
     granularity = Keyword.get(options, :granularity, :monthly)
 
-    LastfmClient.default_user()
+    LastfmArchive.LastfmClient.default_user()
     |> LastfmArchive.Cache.load(cache)
     |> Enum.map(fn {{_user, year}, statuses} -> aggregate_counts(year, statuses, granularity) end)
     |> List.flatten()
