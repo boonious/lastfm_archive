@@ -30,6 +30,21 @@ chunked into 200-track (max) `gzip` compressed pages and stored within directori
 corresponding to the days when tracks were scrobbled. The file archive in a main 
 directory specified in configuration - see below.
 
+## Livebook Support
+
+`LastfmArchive` supports the use of [Livebook](https://livebook.dev) interactive notebook 
+for running archiving jobs, visualising archived data and analytics (forthcoming).
+
+![archive data visualisation](docs/img/livebook_heatmap.png)
+
+Usage:
+- [install](https://livebook.dev/#install) the interactive notebooks app
+- start the app in a browser
+- open the [archiving notebook](livebook/archiving.livemd) 
+- follow the configuration steps
+- execute / evaluate code blocks to initiate archiving
+- visualise archiving progress via playcount heatmap and table
+
 ## Other Usage
 To generate a TSV file archive from downloaded data:
 
@@ -70,7 +85,7 @@ to your list of dependencies in `mix.exs`:
 ```elixir
   def deps do
     [
-      {:lastfm_archive, "~> 0.9"}
+      {:lastfm_archive, "~> 0.10"}
     ]
   end
 ```

@@ -109,7 +109,6 @@ defmodule LastfmArchive.LastfmClient do
     end
   end
 
-  defp encode(nil), do: ""
   defp encode({_k, 0}), do: ""
   defp encode({k, v}), do: "&#{k}=#{v}"
   defp encode(args), do: for({k, v} <- args, v != nil, do: encode({k, v}))

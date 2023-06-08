@@ -21,6 +21,8 @@ config :hui, :lastfm_archive,
   handler: "update",
   headers: [{"Content-type", "application/json"}]
 
+config :logger, level: :info
+
 import_config("#{config_env()}.exs")
 
 # provides the above (private) credentails for local dev/testing purposes in lastfm.secret.exs
