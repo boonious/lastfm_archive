@@ -14,7 +14,8 @@ defmodule LastfmArchive.FileArchive do
   @reset Application.compile_env(:lastfm_archive, :reset, false)
 
   @impl true
-  def update_metadata(%Archive{creator: creator} = metadata, options) when creator != nil and is_binary(creator) do
+  def update_metadata(%LastfmArchive.Archive{creator: creator} = metadata, options)
+      when creator != nil and is_binary(creator) do
     write_metadata({metadata, metadata_filepath(creator, options)}, Keyword.get(options, :reset, @reset))
   end
 
@@ -37,33 +38,10 @@ defmodule LastfmArchive.FileArchive do
 
   @impl true
   def describe(user, options \\ []) do
-    metadata_filepath = metadata_filepath(user, options)
-
-    case @file_io.read(metadata_filepath) do
-      {:ok, data} ->
-        metadata = Jason.decode!(data, keys: :atoms!)
-
-        type = String.to_existing_atom(metadata.type)
-        {created, time_range, date} = parse_dates(metadata)
-
-        {:ok, struct(Archive, %{metadata | type: type, created: created, temporal: time_range, date: date})}
-
-      {:error, :enoent} ->
-        {:ok, Archive.new(user)}
+    case @file_io.read(metadata_filepath(user, options)) do
+      {:ok, data} -> {:ok, Jason.decode!(data, keys: :atoms!) |> LastfmArchive.Archive.new()}
+      {:error, :enoent} -> {:ok, LastfmArchive.Archive.new(user)}
     end
-  end
-
-  defp parse_dates(%{created: created, date: nil, temporal: nil}) do
-    {:ok, created, _} = DateTime.from_iso8601(created)
-    {created, nil, nil}
-  end
-
-  defp parse_dates(%{created: created, date: date, temporal: temporal}) do
-    {:ok, created, _} = DateTime.from_iso8601(created)
-    [from, to] = temporal
-    date = Date.from_iso8601!(date)
-
-    {created, {from, to}, date}
   end
 
   @impl true
@@ -160,7 +138,7 @@ defmodule LastfmArchive.FileArchive do
 
     with {:ok, {total, registered_time}} <- client_impl().info(user, %{client | method: "user.getinfo"}),
          {:ok, {_, last_scrobble_time}} <- client_impl().playcount(user, {registered_time, now}, client) do
-      Archive.new(archive, total, registered_time, last_scrobble_time)
+      LastfmArchive.Archive.new(archive, total, registered_time, last_scrobble_time)
       |> Archive.impl().update_metadata(options)
     end
   end

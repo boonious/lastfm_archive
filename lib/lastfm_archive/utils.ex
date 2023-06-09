@@ -1,7 +1,7 @@
 defmodule LastfmArchive.Utils do
   @moduledoc false
 
-  alias LastfmArchive.Behaviour.Archive
+  alias LastfmArchive.Archive
   require Logger
 
   @data_dir Application.compile_env(:lastfm_archive, :data_dir, "./lastfm_data/")
@@ -65,7 +65,7 @@ defmodule LastfmArchive.Utils do
   ### Example
 
   ```
-    LastfmArchive.Load.read "a_lastfm_user", "tsv/2007.tsv.gz"
+    LastfmArchive.Utils.read("a_lastfm_user", "tsv/2007.tsv.gz")
   ```
   """
   def read(user, filename) do
