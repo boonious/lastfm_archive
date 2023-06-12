@@ -11,29 +11,11 @@ defmodule LastfmArchive.FileArchive do
 
   @cache Application.compile_env(:lastfm_archive, :cache, LastfmArchive.Cache)
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
-  @reset Application.compile_env(:lastfm_archive, :reset, false)
 
   @impl true
   def update_metadata(%LastfmArchive.Archive{creator: creator} = metadata, options)
       when creator != nil and is_binary(creator) do
-    write_metadata({metadata, metadata_filepath(creator, options)}, Keyword.get(options, :reset, @reset))
-  end
-
-  def update_metadata(_metadata, _options), do: {:error, :einval}
-
-  defp write_metadata({metadata, filepath}, true) do
-    write_metadata(%{metadata | created: DateTime.utc_now(), date: nil, modified: nil}, filepath)
-  end
-
-  defp write_metadata({metadata, filepath}, false), do: write_metadata(metadata, filepath)
-
-  defp write_metadata(metadata, filepath) do
-    filepath |> Path.dirname() |> @file_io.mkdir_p()
-
-    case @file_io.write(filepath, Jason.encode!(metadata)) do
-      :ok -> {:ok, metadata}
-      error -> error
-    end
+    write(metadata, options)
   end
 
   @impl true

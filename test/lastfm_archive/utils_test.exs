@@ -1,35 +1,37 @@
 defmodule LastfmArchive.UtilsTest do
   use ExUnit.Case, async: true
 
-  import Mox
+  import Hammox
   import Fixtures.Archive
   import Fixtures.Lastfm
 
   alias LastfmArchive.Utils
 
-  test "build_time_range/1 provides daily time range" do
-    {:ok, from, 0} = DateTime.from_iso8601("2010-12-23T18:50:07Z")
-    {:ok, to, 0} = DateTime.from_iso8601("2011-01-13T11:06:25Z")
+  describe "build_time_range" do
+    test "provides daily time range" do
+      {:ok, from, 0} = DateTime.from_iso8601("2010-12-23T18:50:07Z")
+      {:ok, to, 0} = DateTime.from_iso8601("2011-01-13T11:06:25Z")
 
-    time_ranges = Utils.build_time_range({DateTime.to_unix(from), DateTime.to_unix(to)})
+      time_ranges = Utils.build_time_range({DateTime.to_unix(from), DateTime.to_unix(to)})
 
-    for day <- Date.range(Date.from_erl!({2010, 12, 23}), Date.from_erl!({2011, 1, 13})) do
-      {:ok, from, _} = DateTime.from_iso8601("#{day}T00:00:00Z")
-      {:ok, to, _} = DateTime.from_iso8601("#{day}T23:59:59Z")
+      for day <- Date.range(Date.from_erl!({2010, 12, 23}), Date.from_erl!({2011, 1, 13})) do
+        {:ok, from, _} = DateTime.from_iso8601("#{day}T00:00:00Z")
+        {:ok, to, _} = DateTime.from_iso8601("#{day}T23:59:59Z")
 
-      assert {DateTime.to_unix(from), DateTime.to_unix(to)} in time_ranges
+        assert {DateTime.to_unix(from), DateTime.to_unix(to)} in time_ranges
+      end
     end
-  end
 
-  test "build_time_range/1 provides year time range" do
-    {:ok, registered_date, 0} = DateTime.from_iso8601("2018-01-13T11:06:25Z")
-    {:ok, last_scrobble_date, 0} = DateTime.from_iso8601("2021-05-04T12:55:25Z")
+    test "provides year time range" do
+      {:ok, registered_date, 0} = DateTime.from_iso8601("2018-01-13T11:06:25Z")
+      {:ok, last_scrobble_date, 0} = DateTime.from_iso8601("2021-05-04T12:55:25Z")
 
-    assert {1_577_836_800, 1_609_459_199} ==
-             Utils.build_time_range(2020, %LastfmArchive.Archive{
-               creator: "a_lastfm_user",
-               temporal: {DateTime.to_unix(registered_date), DateTime.to_unix(last_scrobble_date)}
-             })
+      assert {1_577_836_800, 1_609_459_199} ==
+               Utils.build_time_range(2020, %LastfmArchive.Archive{
+                 creator: "a_lastfm_user",
+                 temporal: {DateTime.to_unix(registered_date), DateTime.to_unix(last_scrobble_date)}
+               })
+    end
   end
 
   test "year_range/1 from first and latest scrobble times" do
@@ -58,6 +60,35 @@ defmodule LastfmArchive.UtilsTest do
     [header | scrobbles] = resp |> String.split("\n")
     assert header == LastfmArchive.Transform.tsv_headers()
     assert length(scrobbles) > 0
+  end
+
+  describe "write/2" do
+    setup do
+      archive_id = "write_test_user"
+      metadata_filepath = Path.join([Application.get_env(:lastfm_archive, :data_dir), archive_id, ".archive"])
+      metadata = test_file_archive(archive_id)
+      %{metadata: metadata, metadata_filepath: metadata_filepath}
+    end
+
+    test "metadata to a file", %{metadata: metadata, metadata_filepath: metadata_filepath} do
+      metadata_dir = metadata_filepath |> Path.dirname()
+      metadata_encoded = metadata |> Jason.encode!()
+
+      LastfmArchive.FileIOMock
+      |> expect(:mkdir_p, fn ^metadata_dir -> :ok end)
+      |> expect(:write, fn ^metadata_filepath, ^metadata_encoded -> :ok end)
+
+      assert {:ok, %LastfmArchive.Archive{created: created}} = Utils.write(metadata, [])
+      assert %DateTime{} = created
+    end
+
+    test "returns file io error", %{metadata: metadata} do
+      LastfmArchive.FileIOMock
+      |> expect(:mkdir_p, fn _metadata_dir -> :ok end)
+      |> expect(:write, fn _path, _metadata -> {:error, :einval} end)
+
+      assert {:error, :einval} = Utils.write(metadata, [])
+    end
   end
 
   describe "write/3" do
