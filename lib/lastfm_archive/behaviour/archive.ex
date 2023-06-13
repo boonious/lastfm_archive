@@ -27,6 +27,31 @@ defmodule LastfmArchive.Behaviour.Archive do
   """
   @callback archive(metadata(), options, client) :: {:ok, metadata()} | {:error, term()}
 
+  defmacro __using__(_opts) do
+    quote do
+      @behaviour LastfmArchive.Behaviour.Archive
+
+      import LastfmArchive.Behaviour.Archive
+      import LastfmArchive.Utils
+
+      @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
+
+      def update_metadata(%LastfmArchive.Archive{creator: user} = metadata, options)
+          when user != nil and is_binary(user) do
+        write(metadata, options)
+      end
+
+      def describe(user, options \\ []) do
+        case @file_io.read(metadata_filepath(user, options)) do
+          {:ok, data} -> {:ok, Jason.decode!(data, keys: :atoms!) |> LastfmArchive.Archive.new()}
+          {:error, :enoent} -> {:ok, LastfmArchive.Archive.new(user)}
+        end
+      end
+
+      defoverridable update_metadata: 2, describe: 2
+    end
+  end
+
   @doc false
   def impl, do: Application.get_env(:lastfm_archive, :type, LastfmArchive.FileArchive)
 end

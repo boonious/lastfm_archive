@@ -1,7 +1,7 @@
 defmodule LastfmArchive.FileArchive do
   @moduledoc false
 
-  @behaviour LastfmArchive.Behaviour.Archive
+  use LastfmArchive.Behaviour.Archive
 
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.Behaviour.LastfmClient
@@ -10,21 +10,6 @@ defmodule LastfmArchive.FileArchive do
   require Logger
 
   @cache Application.compile_env(:lastfm_archive, :cache, LastfmArchive.Cache)
-  @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
-
-  @impl true
-  def update_metadata(%LastfmArchive.Archive{creator: creator} = metadata, options)
-      when creator != nil and is_binary(creator) do
-    write(metadata, options)
-  end
-
-  @impl true
-  def describe(user, options \\ []) do
-    case @file_io.read(metadata_filepath(user, options)) do
-      {:ok, data} -> {:ok, Jason.decode!(data, keys: :atoms!) |> LastfmArchive.Archive.new()}
-      {:error, :enoent} -> {:ok, LastfmArchive.Archive.new(user)}
-    end
-  end
 
   @impl true
   def archive(metadata, options, client \\ LastfmArchive.LastfmClient.new("user.getrecenttracks"))
