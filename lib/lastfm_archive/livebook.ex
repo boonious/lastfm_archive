@@ -4,6 +4,7 @@ defmodule LastfmArchive.Livebook do
   """
 
   alias LastfmArchive.LastfmClient
+  alias LastfmArchive.LastfmClient.LastfmApi
   alias VegaLite, as: Vl
 
   @cache LastfmArchive.Cache
@@ -15,11 +16,11 @@ defmodule LastfmArchive.Livebook do
   @spec info :: Kino.Markdown.t()
   def info(user \\ LastfmClient.default_user()) do
     impl = LastfmArchive.Behaviour.LastfmClient.impl()
-    playcount_client = LastfmClient.new("user.getrecenttracks")
-    info_client = LastfmClient.new("user.getinfo")
+    playcount_api = LastfmApi.new("user.getrecenttracks")
+    info_api = LastfmApi.new("user.getinfo")
     time_range = {nil, nil}
 
-    case {user, impl.info(user, info_client), impl.playcount(user, time_range, playcount_client)} do
+    case {user, impl.info(user, info_api), impl.playcount(user, time_range, playcount_api)} do
       {"", _, _} ->
         Kino.Markdown.new("""
         Please specify a Lastfm user in configuration.
@@ -82,7 +83,7 @@ defmodule LastfmArchive.Livebook do
   def status(cache \\ @cache, options \\ []) do
     granularity = Keyword.get(options, :granularity, :monthly)
 
-    LastfmArchive.LastfmClient.default_user()
+    LastfmClient.default_user()
     |> LastfmArchive.Cache.load(cache)
     |> Enum.map(fn {{_user, year}, statuses} -> aggregate_counts(year, statuses, granularity) end)
     |> List.flatten()

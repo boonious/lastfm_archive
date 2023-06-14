@@ -44,7 +44,6 @@ defmodule LastfmArchive.Cache do
 
   def serialise(user, server \\ __MODULE__, options \\ []), do: GenServer.call(server, {:serialise, user, options})
 
-  def get(key, server \\ __MODULE__)
   def get({user, year}, server), do: GenServer.call(server, {:get, {user, year}})
 
   def put({user, year}, {from, to}, value, server \\ __MODULE__) do

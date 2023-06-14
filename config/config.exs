@@ -2,9 +2,9 @@ import Config
 
 # Lastfm user for the archive
 config :lastfm_archive,
-  api: %{api_key: "", endpoint: "http://ws.audioscrobbler.com/", method: ""},
   data_dir: "./lastfm_data/",
   interval: 1000,
+  lastfm_api_key: "",
   lastfm_client: LastfmArchive.LastfmClient,
   per_page: 200,
   type: LastfmArchive.FileArchive,

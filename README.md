@@ -94,17 +94,17 @@ Documentation can be found at [https://hexdocs.pm/lastfm_archive](https://hexdoc
 
 ## Configuration
 Add the following entries in your config - `config/config.exs`. For example,
-the following specifies a `default_user` and a main file location for
+the following specifies an Lastfm `user` and a main file location for
 multiple user archives, `./lastfm_data/` relative to the software home directory.
 
-You also need to specify an `api-key` in the config, so that the application can
+You also need to specify an `lastfm_api_key` in the config, so that the application can
 [access Lastfm API](https://www.last.fm/api/authentication).
 
 ```elixir
   config :lastfm_archive,
-    api: %{api_key: "api-key", endpoint: "http://ws.audioscrobbler.com/", method: ""},
     user: "default_user", # the default user
     data_dir: "./lastfm_data/", # main directory for multiple archives
+    lastfm_api_key: "api_key_provided_by_lastfm",
     per_page: 200, # 200 is max no. of tracks per call permitted by Lastfm API 
     interval: 1000 # milliseconds between requests cf. Lastfm's max 5 reqs/s rate limit
 

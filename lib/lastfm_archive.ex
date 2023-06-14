@@ -14,6 +14,7 @@ defmodule LastfmArchive do
 
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.LastfmClient
+  alias LastfmArchive.LastfmClient.LastfmApi
   alias LastfmArchive.Utils
 
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
@@ -101,7 +102,7 @@ defmodule LastfmArchive do
     user
     |> Archive.impl().describe(options)
     |> then(fn {:ok, metadata} ->
-      Archive.impl().archive(metadata, options, LastfmClient.new("user.getrecenttracks"))
+      Archive.impl().archive(metadata, options, LastfmApi.new())
     end)
   end
 

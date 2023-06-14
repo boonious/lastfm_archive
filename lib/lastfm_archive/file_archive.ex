@@ -5,6 +5,7 @@ defmodule LastfmArchive.FileArchive do
 
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.Behaviour.LastfmClient
+  alias LastfmArchive.LastfmClient.LastfmApi
 
   import LastfmArchive.Utils
   require Logger
@@ -12,20 +13,20 @@ defmodule LastfmArchive.FileArchive do
   @cache Application.compile_env(:lastfm_archive, :cache, LastfmArchive.Cache)
 
   @impl true
-  def archive(metadata, options, client \\ LastfmArchive.LastfmClient.new("user.getrecenttracks"))
+  def archive(metadata, options, api \\ LastfmApi.new("user.getrecenttracks"))
 
-  def archive(%{extent: 0} = metadata, _options, _client), do: {:ok, metadata}
+  def archive(%{extent: 0} = metadata, _options, _api), do: {:ok, metadata}
 
-  def archive(%{identifier: user} = metadata, options, client) do
+  def archive(%{identifier: user} = metadata, options, api) do
     @cache.load(user, @cache, options)
 
-    with {:ok, metadata} <- update_metadata(metadata, options, client) do
+    with {:ok, metadata} <- update_metadata(metadata, options, api) do
       Logger.info("Archiving #{metadata.extent} scrobbles for #{metadata.creator}")
       options = Keyword.validate!(options, default_opts())
 
       for year <- year_range(metadata.temporal) do
         {from, to} = build_time_range(year, metadata)
-        :ok = write_to_archive(metadata, {from, to, @cache.get({user, year}, @cache)}, client, options)
+        :ok = write_to_archive(metadata, {from, to, @cache.get({user, year}, @cache)}, api, options)
         @cache.serialise(user, @cache, options)
       end
 
@@ -44,28 +45,28 @@ defmodule LastfmArchive.FileArchive do
     ]
   end
 
-  defp write_to_archive(metadata, {from, to, cache}, client, options) do
+  defp write_to_archive(metadata, {from, to, cache}, api, options) do
     for day_range <- build_time_range({from, to}) do
       with {playcount, previous_results} <- Map.get(cache, day_range, {}),
            true <- previous_results |> Enum.all?(&(&1 == :ok)) do
         Logger.info("Skipping #{date(day_range)}, previously synced: #{playcount} scrobble(s)")
       else
         # new daily archiving or redo previous erroneous archiving
-        _ -> write_to_archive(metadata, day_range, client, options)
+        _ -> write_to_archive(metadata, day_range, api, options)
       end
     end
 
     :ok
   end
 
-  defp write_to_archive(metadata, {from, _to} = time_range, client, options) do
+  defp write_to_archive(metadata, {from, _to} = time_range, api, options) do
     :timer.sleep(Keyword.fetch!(options, :interval))
     year = DateTime.from_unix!(from).year
 
-    with {:ok, {playcount, _}} <- client_impl().playcount(metadata.identifier, time_range, client),
+    with {:ok, {playcount, _}} <- client_impl().playcount(metadata.identifier, time_range, api),
          num_pages <- num_pages(playcount, Keyword.fetch!(options, :per_page)) do
       Logger.info("#{date(from)}: #{playcount} scrobble(s), #{num_pages} page(s)")
-      results = write_to_archive(metadata, time_range, num_pages, client, options)
+      results = write_to_archive(metadata, time_range, num_pages, api, options)
 
       # don't cache results of the always partial sync of today's scrobbles
       unless today?(time_range) do
@@ -77,14 +78,14 @@ defmodule LastfmArchive.FileArchive do
     end
   end
 
-  defp write_to_archive(_metadata, _time_range, 0, _client, _options), do: [:ok]
+  defp write_to_archive(_metadata, _time_range, 0, _api, _options), do: [:ok]
 
-  defp write_to_archive(%{identifier: user} = metadata, {from, to}, num_pages, client, options) do
+  defp write_to_archive(%{identifier: user} = metadata, {from, to}, num_pages, api, options) do
     for page <- num_pages..1, num_pages > 0 do
       :timer.sleep(Keyword.fetch!(options, :interval))
       per_page = Keyword.fetch!(options, :per_page)
 
-      with {:ok, scrobbles} <- client_impl().scrobbles(user, {page - 1, per_page, from, to}, client),
+      with {:ok, scrobbles} <- client_impl().scrobbles(user, {page - 1, per_page, from, to}, api),
            :ok <- write(metadata, scrobbles, filepath: page_path(from, page, per_page)) do
         Logger.info("✓ page #{page} written to #{user_dir(user)}/#{page_path(from, page, per_page)}.gz")
         :ok
@@ -100,11 +101,11 @@ defmodule LastfmArchive.FileArchive do
     DateTime.from_unix!(from) |> DateTime.to_date() |> Kernel.==(Date.utc_today())
   end
 
-  defp update_metadata(%{identifier: user} = archive, options, client) do
+  defp update_metadata(%{identifier: user} = archive, options, api) do
     now = DateTime.utc_now() |> DateTime.to_unix()
 
-    with {:ok, {total, registered_time}} <- client_impl().info(user, %{client | method: "user.getinfo"}),
-         {:ok, {_, last_scrobble_time}} <- client_impl().playcount(user, {registered_time, now}, client) do
+    with {:ok, {total, registered_time}} <- client_impl().info(user, %{api | method: "user.getinfo"}),
+         {:ok, {_, last_scrobble_time}} <- client_impl().playcount(user, {registered_time, now}, api) do
       LastfmArchive.Archive.new(archive, total, registered_time, last_scrobble_time)
       |> Archive.impl().update_metadata(options)
     end

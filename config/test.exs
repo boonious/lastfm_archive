@@ -2,9 +2,9 @@ import Config
 
 # Lastfm user for the archive
 config :lastfm_archive,
-  api: %{api_key: "", endpoint: "", method: ""},
   data_dir: "./lastfm_data/test/",
   interval: 1,
+  lastfm_api_key: "",
   lastfm_client: LastfmArchive.LastfmClientMock,
   per_page: 200,
   type: LastfmArchive.FileArchiveMock,

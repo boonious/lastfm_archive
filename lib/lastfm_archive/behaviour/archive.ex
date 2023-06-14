@@ -6,7 +6,7 @@ defmodule LastfmArchive.Behaviour.Archive do
   upon various storage implementation such as file systems and databases.
   """
 
-  @type client :: LastfmArchive.LastfmClient.t()
+  @type api :: LastfmArchive.LastfmClient.LastfmApi.t()
   @type metadata :: LastfmArchive.Archive.t()
   @type options :: keyword()
   @type user :: binary()
@@ -25,7 +25,7 @@ defmodule LastfmArchive.Behaviour.Archive do
   @doc """
   Archives all scrobbles data for a Lastfm user.
   """
-  @callback archive(metadata(), options, client) :: {:ok, metadata()} | {:error, term()}
+  @callback archive(metadata(), options, api) :: {:ok, metadata()} | {:error, term()}
 
   defmacro __using__(_opts) do
     quote do
