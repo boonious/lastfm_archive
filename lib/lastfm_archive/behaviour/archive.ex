@@ -7,7 +7,7 @@ defmodule LastfmArchive.Behaviour.Archive do
   """
 
   @type api :: LastfmArchive.LastfmClient.LastfmApi.t()
-  @type metadata :: LastfmArchive.Archive.t()
+  @type metadata :: LastfmArchive.Archive.Metadata.t()
   @type options :: keyword()
   @type user :: binary()
   @type scrobbles :: map()
@@ -34,17 +34,19 @@ defmodule LastfmArchive.Behaviour.Archive do
       import LastfmArchive.Behaviour.Archive
       import LastfmArchive.Utils
 
+      alias LastfmArchive.Archive.Metadata
+
       @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
 
-      def update_metadata(%LastfmArchive.Archive{creator: user} = metadata, options)
+      def update_metadata(%Metadata{creator: user} = metadata, options)
           when user != nil and is_binary(user) do
         write(metadata, options)
       end
 
       def describe(user, options \\ []) do
         case @file_io.read(metadata_filepath(user, options)) do
-          {:ok, data} -> {:ok, Jason.decode!(data, keys: :atoms!) |> LastfmArchive.Archive.new()}
-          {:error, :enoent} -> {:ok, LastfmArchive.Archive.new(user)}
+          {:ok, metadata} -> {:ok, Jason.decode!(metadata, keys: :atoms!) |> Metadata.new()}
+          {:error, :enoent} -> {:ok, Metadata.new(user)}
         end
       end
 

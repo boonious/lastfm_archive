@@ -1,11 +1,11 @@
 defmodule LastfmArchive.Utils do
   @moduledoc false
 
-  alias LastfmArchive.Archive
+  alias LastfmArchive.Archive.Metadata
   require Logger
 
   @data_dir Application.compile_env(:lastfm_archive, :data_dir, "./lastfm_data/")
-  @metadata_file ".archive"
+  @metadata_file ".archive_metadata"
 
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
   @reset Application.compile_env(:lastfm_archive, :reset, false)
@@ -20,9 +20,9 @@ defmodule LastfmArchive.Utils do
     Enum.map(Date.range(from, to), &iso8601_to_unix("#{&1}T00:00:00Z", "#{&1}T23:59:59Z"))
   end
 
-  def build_time_range(year, %Archive{} = archive) when is_integer(year) do
+  def build_time_range(year, %Metadata{} = metadata) when is_integer(year) do
     {from, to} = iso8601_to_unix("#{year}-01-01T00:00:00Z", "#{year}-12-31T23:59:59Z")
-    {registered_time, last_scrobble_time} = archive.temporal
+    {registered_time, last_scrobble_time} = metadata.temporal
 
     from = if from <= registered_time, do: registered_time, else: from
     to = if to >= last_scrobble_time, do: last_scrobble_time, else: to
@@ -90,7 +90,7 @@ defmodule LastfmArchive.Utils do
   @doc """
   Writes archive metadata to a file in the archive of a Lastfm user.
   """
-  def write(%Archive{creator: creator} = metadata, options) when is_list(options) do
+  def write(%Metadata{creator: creator} = metadata, options) when is_list(options) do
     metadata =
       case Keyword.get(options, :reset, @reset) do
         false -> metadata
@@ -111,7 +111,7 @@ defmodule LastfmArchive.Utils do
   """
   def write(metadata, scrobbles, options \\ [])
 
-  def write(%Archive{creator: creator}, scrobbles, options) when is_map(scrobbles) do
+  def write(%Metadata{creator: creator}, scrobbles, options) when is_map(scrobbles) do
     with metadata_filepath <- metadata_filepath(creator, options),
          path <- get_filepath(options) do
       full_path =

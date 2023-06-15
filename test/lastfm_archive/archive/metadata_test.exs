@@ -1,11 +1,11 @@
-defmodule LastfmArchive.ArchiveTest do
+defmodule LastfmArchive.Archive.MetadataTest do
   use ExUnit.Case, async: true
-  alias LastfmArchive.Archive
+  alias LastfmArchive.Archive.Metadata
   import Fixtures.Archive
 
   describe "new/1" do
     test "from a new user" do
-      assert %Archive{
+      assert %Metadata{
                creator: "a_lastfm_user",
                created: %{__struct__: DateTime},
                description: "Lastfm archive of a_lastfm_user, extracted from Lastfm API",
@@ -13,11 +13,11 @@ defmodule LastfmArchive.ArchiveTest do
                identifier: "a_lastfm_user",
                source: "http://ws.audioscrobbler.com/2.0",
                title: "Lastfm archive of a_lastfm_user"
-             } = Archive.new("a_lastfm_user")
+             } = Metadata.new("a_lastfm_user")
     end
 
     test "from decoded metadata" do
-      assert %Archive{
+      assert %Metadata{
                created: ~U[2021-04-09 16:37:07.638844Z],
                creator: "lastfm_user",
                date: ~D[2023-06-09],
@@ -30,21 +30,21 @@ defmodule LastfmArchive.ArchiveTest do
                temporal: {1_187_279_599, 1_686_321_114},
                title: "Lastfm archive of lastfm_user",
                type: LastfmArchive.FileArchive
-             } = Archive.new(archive_metadata() |> Jason.decode!(keys: :atoms!))
+             } = Metadata.new(archive_metadata() |> Jason.decode!(keys: :atoms!))
     end
   end
 
   test "new/3" do
-    archive = Archive.new("a_lastfm_user")
+    archive = Metadata.new("a_lastfm_user")
     registered_time = DateTime.from_iso8601("2021-04-01T18:50:07Z") |> elem(1) |> DateTime.to_unix()
     latest_scrobble_time = DateTime.from_iso8601("2021-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix()
     total_scrobbles = 400
     date = latest_scrobble_time |> DateTime.from_unix!() |> DateTime.to_date()
 
-    assert %Archive{
+    assert %Metadata{
              temporal: {^registered_time, ^latest_scrobble_time},
              extent: ^total_scrobbles,
              date: ^date
-           } = Archive.new(archive, total_scrobbles, registered_time, latest_scrobble_time)
+           } = Metadata.new(archive, total_scrobbles, registered_time, latest_scrobble_time)
   end
 end

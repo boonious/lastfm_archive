@@ -5,7 +5,7 @@ defmodule LastfmArchive.FileArchiveTest do
   import Fixtures.{Archive, Lastfm}
   import Hammox
 
-  alias LastfmArchive.Archive, as: ArchiveStuct
+  alias LastfmArchive.Archive.Metadata
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.Behaviour.LastfmClient
   alias LastfmArchive.FileArchive
@@ -22,11 +22,11 @@ defmodule LastfmArchive.FileArchiveTest do
 
       LastfmArchive.FileIOMock
       |> expect(:mkdir_p, fn "new_archive/a_user" -> :ok end)
-      |> expect(:write, fn "new_archive/a_user/.archive", ^archive_metadata -> :ok end)
+      |> expect(:write, fn "new_archive/a_user/.archive_metadata", ^archive_metadata -> :ok end)
 
       assert {
                :ok,
-               %ArchiveStuct{
+               %Metadata{
                  created: %{__struct__: DateTime},
                  creator: "a_user",
                  description: "Lastfm archive of a_user, extracted from Lastfm API",
@@ -45,11 +45,11 @@ defmodule LastfmArchive.FileArchiveTest do
 
       LastfmArchive.FileIOMock
       |> expect(:mkdir_p, fn "existing_archive/a_user" -> :ok end)
-      |> expect(:write, fn "existing_archive/a_user/.archive", _ -> :ok end)
+      |> expect(:write, fn "existing_archive/a_user/.archive_metadata", _ -> :ok end)
 
       assert {
                :ok,
-               %ArchiveStuct{
+               %Metadata{
                  created: created,
                  creator: "a_user",
                  description: "Lastfm archive of a_user, extracted from Lastfm API",
@@ -69,14 +69,14 @@ defmodule LastfmArchive.FileArchiveTest do
   describe "describe/2" do
     test "an existing file archive" do
       archive_id = "a_user"
-      metadata_path = Path.join([Application.get_env(:lastfm_archive, :data_dir), archive_id, ".archive"])
+      metadata_path = Path.join([Application.get_env(:lastfm_archive, :data_dir), archive_id, ".archive_metadata"])
       metadata = Jason.encode!(test_file_archive(archive_id))
 
       LastfmArchive.FileIOMock |> expect(:read, fn ^metadata_path -> {:ok, metadata} end)
 
       assert {
                :ok,
-               %ArchiveStuct{
+               %Metadata{
                  created: %{__struct__: DateTime},
                  creator: "a_user",
                  description: "Lastfm archive of a_user, extracted from Lastfm API",
@@ -110,7 +110,7 @@ defmodule LastfmArchive.FileArchiveTest do
       Archive.impl() |> stub(:update_metadata, fn metadata, _options -> {:ok, metadata} end)
 
       metadata = %{
-        LastfmArchive.Archive.new("a_lastfm_user")
+        Metadata.new("a_lastfm_user")
         | temporal: {registered_time, last_scrobble_time},
           extent: total_scrobbles,
           date: ~D[2021-04-03],
@@ -144,7 +144,7 @@ defmodule LastfmArchive.FileArchiveTest do
       |> expect(:update_metadata, fn ^metadata, _options -> {:ok, metadata} end)
       |> expect(:update_metadata, fn metadata, _options -> {:ok, metadata} end)
 
-      capture_log(fn -> assert {:ok, %ArchiveStuct{}} = FileArchive.archive(metadata, []) end)
+      capture_log(fn -> assert {:ok, %Metadata{}} = FileArchive.archive(metadata, []) end)
     end
 
     test "writes scrobbles to files", %{
@@ -245,7 +245,7 @@ defmodule LastfmArchive.FileArchiveTest do
 
       LastfmArchive.FileIOMock |> expect(:write, 0, fn _path, _data, [:compressed] -> :ok end)
 
-      assert {:ok, %ArchiveStuct{extent: 0}} = FileArchive.archive(%{metadata | extent: 0}, [])
+      assert {:ok, %Metadata{extent: 0}} = FileArchive.archive(%{metadata | extent: 0}, [])
     end
 
     test "does not write to files and make scrobbles calls on 0 playcount day", %{metadata: metadata} do
@@ -261,7 +261,7 @@ defmodule LastfmArchive.FileArchiveTest do
 
       LastfmArchive.FileIOMock |> expect(:write, 0, fn _path, _data, [:compressed] -> :ok end)
 
-      capture_log(fn -> assert {:ok, %ArchiveStuct{}} = FileArchive.archive(metadata, []) end)
+      capture_log(fn -> assert {:ok, %Metadata{}} = FileArchive.archive(metadata, []) end)
     end
 
     test "skip archiving on ok status in cache", %{metadata: metadata, user: user} do
@@ -277,7 +277,7 @@ defmodule LastfmArchive.FileArchiveTest do
       LastfmClient.impl() |> expect(:scrobbles, 0, fn _user, _client_args, _client -> {:ok, ""} end)
       LastfmArchive.FileIOMock |> expect(:write, 0, fn _path, _data, [:compressed] -> :ok end)
 
-      assert capture_log(fn -> assert {:ok, %ArchiveStuct{}} = FileArchive.archive(metadata, []) end) =~ "Skipping"
+      assert capture_log(fn -> assert {:ok, %Metadata{}} = FileArchive.archive(metadata, []) end) =~ "Skipping"
     end
   end
 end

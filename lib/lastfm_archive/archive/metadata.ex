@@ -1,45 +1,29 @@
-defmodule LastfmArchive.Archive do
+defmodule LastfmArchive.Archive.Metadata do
   @moduledoc """
   Struct representing Lastfm archive metadata.
   """
 
+  use TypedStruct
+
   @archive Application.compile_env(:lastfm_archive, :type, LastFmArchive.FileArchive)
 
+  @typedoc "Metadata descriping a Lastfm archive based on
+  [Dublin Core Metadata Initiative](https://www.dublincore.org/specifications/dublin-core/dcmi-terms/)."
   @derive Jason.Encoder
-  @enforce_keys [:creator]
-  defstruct [
-    :created,
-    :creator,
-    :date,
-    :description,
-    :extent,
-    :format,
-    :identifier,
-    :modified,
-    :source,
-    :temporal,
-    :title,
-    :type
-  ]
-
-  @typedoc """
-  Metadata descriping a Lastfm archive based on
-  [Dublin Core Metadata Initiative](https://www.dublincore.org/specifications/dublin-core/dcmi-terms/).
-  """
-  @type t :: %__MODULE__{
-          created: DateTime.t(),
-          creator: binary(),
-          date: Date.t(),
-          description: binary(),
-          extent: integer(),
-          format: binary(),
-          identifier: binary(),
-          modified: nil | DateTime.t(),
-          source: binary(),
-          temporal: {integer, integer},
-          title: binary(),
-          type: atom()
-        }
+  typedstruct do
+    field(:created, DateTime.t())
+    field(:creator, String.t(), enforce: true)
+    field(:date, Date.t())
+    field(:description, String.t())
+    field(:extent, integer())
+    field(:format, String.t())
+    field(:identifier, String.t())
+    field(:modified, nil | DateTime.t())
+    field(:source, String.t())
+    field(:temporal, {integer, integer})
+    field(:title, String.t())
+    field(:type, module(), default: @archive)
+  end
 
   @doc """
   Data struct containing new and some default metadata of an archive.
@@ -57,8 +41,7 @@ defmodule LastfmArchive.Archive do
       format: "application/json",
       identifier: user,
       source: "http://ws.audioscrobbler.com/2.0",
-      title: "Lastfm archive of #{user}",
-      type: @archive
+      title: "Lastfm archive of #{user}"
     }
   end
 

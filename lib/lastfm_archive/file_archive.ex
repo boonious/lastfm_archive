@@ -3,6 +3,7 @@ defmodule LastfmArchive.FileArchive do
 
   use LastfmArchive.Behaviour.Archive
 
+  alias LastfmArchive.Archive.Metadata
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.Behaviour.LastfmClient
   alias LastfmArchive.LastfmClient.LastfmApi
@@ -106,7 +107,7 @@ defmodule LastfmArchive.FileArchive do
 
     with {:ok, {total, registered_time}} <- client_impl().info(user, %{api | method: "user.getinfo"}),
          {:ok, {_, last_scrobble_time}} <- client_impl().playcount(user, {registered_time, now}, api) do
-      LastfmArchive.Archive.new(archive, total, registered_time, last_scrobble_time)
+      Metadata.new(archive, total, registered_time, last_scrobble_time)
       |> Archive.impl().update_metadata(options)
     end
   end

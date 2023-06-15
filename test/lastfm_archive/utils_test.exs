@@ -6,6 +6,7 @@ defmodule LastfmArchive.UtilsTest do
   import Fixtures.Lastfm
 
   alias LastfmArchive.Utils
+  alias LastfmArchive.Archive.Metadata
 
   describe "build_time_range" do
     test "provides daily time range" do
@@ -27,7 +28,7 @@ defmodule LastfmArchive.UtilsTest do
       {:ok, last_scrobble_date, 0} = DateTime.from_iso8601("2021-05-04T12:55:25Z")
 
       assert {1_577_836_800, 1_609_459_199} ==
-               Utils.build_time_range(2020, %LastfmArchive.Archive{
+               Utils.build_time_range(2020, %Metadata{
                  creator: "a_lastfm_user",
                  temporal: {DateTime.to_unix(registered_date), DateTime.to_unix(last_scrobble_date)}
                })
@@ -65,7 +66,7 @@ defmodule LastfmArchive.UtilsTest do
   describe "write/2" do
     setup do
       archive_id = "write_test_user"
-      metadata_filepath = Path.join([Application.get_env(:lastfm_archive, :data_dir), archive_id, ".archive"])
+      metadata_filepath = Path.join([Application.get_env(:lastfm_archive, :data_dir), archive_id, ".archive_metadata"])
       metadata = test_file_archive(archive_id)
       %{metadata: metadata, metadata_filepath: metadata_filepath}
     end
@@ -78,7 +79,7 @@ defmodule LastfmArchive.UtilsTest do
       |> expect(:mkdir_p, fn ^metadata_dir -> :ok end)
       |> expect(:write, fn ^metadata_filepath, ^metadata_encoded -> :ok end)
 
-      assert {:ok, %LastfmArchive.Archive{created: created}} = Utils.write(metadata, [])
+      assert {:ok, %Metadata{created: created}} = Utils.write(metadata, [])
       assert %DateTime{} = created
     end
 

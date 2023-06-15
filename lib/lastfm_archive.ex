@@ -20,7 +20,7 @@ defmodule LastfmArchive do
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
 
-  @type archive :: LastfmArchive.Archive.t()
+  @type metadata :: LastfmArchive.Archive.Metadata.t()
   @type time_range :: {integer, integer}
   @type solr_url :: atom | Hui.URL.t()
 
@@ -97,7 +97,7 @@ defmodule LastfmArchive do
       data_dir: "./lastfm_data/"
   ```
   """
-  @spec sync(binary, keyword) :: {:ok, archive} | {:error, :file.posix()}
+  @spec sync(binary, keyword) :: {:ok, metadata()} | {:error, :file.posix()}
   def sync(user, options \\ []) do
     user
     |> Archive.impl().describe(options)

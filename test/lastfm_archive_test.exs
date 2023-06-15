@@ -3,7 +3,7 @@ defmodule LastfmArchiveTest do
 
   import Hammox
 
-  alias LastfmArchive.Archive
+  alias LastfmArchive.Archive.Metadata
   alias LastfmArchive.FileArchive
 
   setup :set_mox_global
@@ -15,7 +15,7 @@ defmodule LastfmArchiveTest do
     last_scrobble_time = DateTime.from_iso8601("2021-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix()
 
     metadata = %{
-      Archive.new("a_lastfm_user")
+      Metadata.new("a_lastfm_user")
       | temporal: {registered_time, last_scrobble_time},
         extent: total_scrobbles,
         date: ~D[2021-04-03],
