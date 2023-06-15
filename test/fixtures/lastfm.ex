@@ -12,7 +12,7 @@ defmodule Fixtures.Lastfm do
     """
   end
 
-  def recent_tracks(user, count, time \\ 1_618_327_602) do
+  def recent_tracks(user \\ "a_lastfm_user", count \\ 1, time \\ 1_618_327_602) do
     ~s"""
     {
       "recenttracks": {
@@ -20,7 +20,8 @@ defmodule Fixtures.Lastfm do
           {
             "artist": {
               "mbid": "d3b2711f-2baa-441a-be95-14945ca7e6ea",
-              "#text": "Roxette"
+              "#text": "Roxette",
+              "url": "https:\/\/www.last.fm\/music\/Roxette"
             },
             "album": {
               "mbid": "0c022aea-1ee8-4664-9287-4482fe345e18",
