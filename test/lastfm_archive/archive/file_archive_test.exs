@@ -1,14 +1,16 @@
-defmodule LastfmArchive.FileArchiveTest do
+defmodule LastfmArchive.Archive.FileArchiveTest do
   use ExUnit.Case, async: true
 
   import ExUnit.CaptureLog
   import Fixtures.{Archive, Lastfm}
   import Hammox
 
+  alias LastfmArchive.Archive.FileArchive
   alias LastfmArchive.Archive.Metadata
+
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.Behaviour.LastfmClient
-  alias LastfmArchive.FileArchive
+
   alias LastfmArchive.Utils
 
   @archive Application.compile_env(:lastfm_archive, :type)

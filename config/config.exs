@@ -7,7 +7,7 @@ config :lastfm_archive,
   lastfm_api_key: "",
   lastfm_client: LastfmArchive.LastfmClient,
   per_page: 200,
-  type: LastfmArchive.FileArchive,
+  type: LastfmArchive.Archive.FileArchive,
   user: ""
 
 config :lastfm_archive,

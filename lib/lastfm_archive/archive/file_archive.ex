@@ -1,4 +1,4 @@
-defmodule LastfmArchive.FileArchive do
+defmodule LastfmArchive.Archive.FileArchive do
   @moduledoc false
 
   use LastfmArchive.Behaviour.Archive

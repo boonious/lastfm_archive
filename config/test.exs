@@ -7,7 +7,7 @@ config :lastfm_archive,
   lastfm_api_key: "",
   lastfm_client: LastfmArchive.LastfmClientMock,
   per_page: 200,
-  type: LastfmArchive.FileArchiveMock,
+  type: LastfmArchive.Archive.FileArchiveMock,
   user: "test_user"
 
 config :lastfm_archive,

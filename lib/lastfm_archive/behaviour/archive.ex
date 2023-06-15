@@ -55,7 +55,7 @@ defmodule LastfmArchive.Behaviour.Archive do
   end
 
   @doc false
-  def impl, do: Application.get_env(:lastfm_archive, :type, LastfmArchive.FileArchive)
+  def impl, do: Application.get_env(:lastfm_archive, :type, LastfmArchive.Archive.FileArchive)
 end
 
 defimpl Jason.Encoder, for: Tuple do

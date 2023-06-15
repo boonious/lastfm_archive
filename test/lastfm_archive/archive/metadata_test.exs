@@ -29,7 +29,7 @@ defmodule LastfmArchive.Archive.MetadataTest do
                source: "http://ws.audioscrobbler.com/2.0",
                temporal: {1_187_279_599, 1_686_321_114},
                title: "Lastfm archive of lastfm_user",
-               type: LastfmArchive.FileArchive
+               type: LastfmArchive.Archive.FileArchive
              } = Metadata.new(archive_metadata() |> Jason.decode!(keys: :atoms!))
     end
   end
