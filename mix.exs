@@ -41,16 +41,18 @@ defmodule LastfmArchive.MixProject do
 
   defp deps do
     [
-      {:bypass, "~> 2.1", only: :test},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.16", only: :test},
-      {:ex_doc, "~> 0.29", only: :dev, runtime: false},
-      {:hammox, "~> 0.7", only: :test},
       {:hui, "0.10.4"},
       {:jason, "~> 1.4"},
       {:kino, "~> 0.9.4"},
       {:kino_vega_lite, "~> 0.1.9"},
-      {:vega_lite, "~> 0.1.7"}
+      {:vega_lite, "~> 0.1.7"},
+
+      # test and dev only
+      {:bypass, "~> 2.1", only: :test},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.16", only: :test},
+      {:ex_doc, "~> 0.29", only: :dev, runtime: false},
+      {:hammox, "~> 0.7", only: :test}
     ]
   end
 

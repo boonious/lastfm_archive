@@ -19,7 +19,7 @@ defmodule LastfmArchive do
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
 
-  @type archive :: Archive.t()
+  @type archive :: LastfmArchive.Archive.t()
   @type time_range :: {integer, integer}
   @type solr_url :: atom | Hui.URL.t()
 

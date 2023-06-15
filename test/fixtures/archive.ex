@@ -1,6 +1,6 @@
 defmodule Fixtures.Archive do
   @moduledoc false
-  alias LastfmArchive.Behaviour.Archive
+  alias LastfmArchive.Archive
 
   @default_user Application.compile_env(:lastfm_archive, :user)
   @registered_time DateTime.from_iso8601("2021-04-01T18:50:07Z") |> elem(1) |> DateTime.to_unix()
@@ -21,6 +21,8 @@ defmodule Fixtures.Archive do
         type: FileArchive
     }
   end
+
+  def archive_metadata(), do: File.read!("test/fixtures/metadata.json")
 
   def gzip_data(), do: File.read!("test/fixtures/200_34.gz")
   def tsv_gzip_data(), do: File.read!("test/fixtures/2018.tsv.gz")

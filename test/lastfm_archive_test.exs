@@ -3,7 +3,7 @@ defmodule LastfmArchiveTest do
 
   import Hammox
 
-  alias LastfmArchive.Behaviour.Archive
+  alias LastfmArchive.Archive
   alias LastfmArchive.FileArchive
 
   setup :set_mox_global

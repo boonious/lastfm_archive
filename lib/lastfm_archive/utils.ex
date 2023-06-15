@@ -1,13 +1,14 @@
 defmodule LastfmArchive.Utils do
   @moduledoc false
 
-  alias LastfmArchive.Behaviour.Archive
+  alias LastfmArchive.Archive
   require Logger
 
   @data_dir Application.compile_env(:lastfm_archive, :data_dir, "./lastfm_data/")
   @metadata_file ".archive"
 
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
+  @reset Application.compile_env(:lastfm_archive, :reset, false)
 
   @doc """
   Generate {from, to} daily time ranges for querying Last.fm API based on
@@ -65,7 +66,7 @@ defmodule LastfmArchive.Utils do
   ### Example
 
   ```
-    LastfmArchive.Load.read "a_lastfm_user", "tsv/2007.tsv.gz"
+    LastfmArchive.Utils.read("a_lastfm_user", "tsv/2007.tsv.gz")
   ```
   """
   def read(user, filename) do
@@ -87,9 +88,28 @@ defmodule LastfmArchive.Utils do
   end
 
   @doc """
+  Writes archive metadata to a file in the archive of a Lastfm user.
+  """
+  def write(%Archive{creator: creator} = metadata, options) when is_list(options) do
+    metadata =
+      case Keyword.get(options, :reset, @reset) do
+        false -> metadata
+        true -> %{metadata | created: DateTime.utc_now(), date: nil, modified: nil}
+      end
+
+    filepath = metadata_filepath(creator, options)
+    filepath |> Path.dirname() |> @file_io.mkdir_p()
+
+    case @file_io.write(filepath, Jason.encode!(metadata)) do
+      :ok -> {:ok, metadata}
+      error -> error
+    end
+  end
+
+  @doc """
   Write scrobbles (map) data to a file in the archive of a Lastfm user.
   """
-  def write(archive, scrobbles, options \\ [])
+  def write(metadata, scrobbles, options \\ [])
 
   def write(%Archive{creator: creator}, scrobbles, options) when is_map(scrobbles) do
     with metadata_filepath <- metadata_filepath(creator, options),
@@ -105,7 +125,7 @@ defmodule LastfmArchive.Utils do
     end
   end
 
-  def write(_archive, {:error, api_message}, _options), do: {:error, api_message}
+  def write(_metadata, {:error, api_message}, _options), do: {:error, api_message}
 
   defp get_filepath(options) do
     path = Keyword.get(options, :filepath)
