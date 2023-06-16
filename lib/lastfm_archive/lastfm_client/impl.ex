@@ -1,4 +1,4 @@
-defmodule LastfmArchive.LastfmClient do
+defmodule LastfmArchive.LastfmClient.Impl do
   @moduledoc """
   Client for extracting Lastfm user info and scrobbles data via the official API.
   """

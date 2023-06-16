@@ -37,5 +37,5 @@ defmodule LastfmArchive.Behaviour.LastfmClient do
   @callback playcount(user, {from, to}, lastfm_api) :: {:ok, {playcount, latest_scrobble_time}} | {:error, term()}
 
   @doc false
-  def impl, do: Application.get_env(:lastfm_archive, :lastfm_client, LastfmArchive.LastfmClient)
+  def impl, do: Application.get_env(:lastfm_archive, :lastfm_client, LastfmArchive.LastfmClient.Impl)
 end

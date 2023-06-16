@@ -5,7 +5,7 @@ config :lastfm_archive,
   data_dir: "./lastfm_data/",
   interval: 1000,
   lastfm_api_key: "",
-  lastfm_client: LastfmArchive.LastfmClient,
+  lastfm_client: LastfmArchive.LastfmClient.Impl,
   per_page: 200,
   type: LastfmArchive.Archive.FileArchive,
   user: ""

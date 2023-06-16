@@ -13,7 +13,7 @@ defmodule LastfmArchive do
   """
 
   alias LastfmArchive.Behaviour.Archive
-  alias LastfmArchive.LastfmClient
+  alias LastfmArchive.LastfmClient.Impl, as: LastfmClient
   alias LastfmArchive.LastfmClient.LastfmApi
   alias LastfmArchive.Utils
 

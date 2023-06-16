@@ -1,8 +1,8 @@
-defmodule LastfmArchive.LastfmClientTest do
+defmodule LastfmArchive.LastfmClient.ImplTest do
   use ExUnit.Case, async: true
   import Fixtures.Lastfm
 
-  alias LastfmArchive.LastfmClient
+  alias LastfmArchive.LastfmClient.Impl, as: LastfmClient
   alias LastfmArchive.LastfmClient.LastfmApi
 
   describe "scrobbles/3" do

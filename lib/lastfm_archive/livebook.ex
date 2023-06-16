@@ -3,7 +3,7 @@ defmodule LastfmArchive.Livebook do
   Livebook chart and text rendering.
   """
 
-  alias LastfmArchive.LastfmClient
+  alias LastfmArchive.LastfmClient.Impl, as: LastfmClient
   alias LastfmArchive.LastfmClient.LastfmApi
   alias VegaLite, as: Vl
 
