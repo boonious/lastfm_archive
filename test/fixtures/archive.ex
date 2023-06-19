@@ -9,8 +9,8 @@ defmodule Fixtures.Archive do
   def test_file_archive(), do: test_archive(@default_user)
   def test_file_archive(@default_user), do: test_archive(@default_user)
 
-  def test_file_archive(user), do: Metadata.new(user)
-  def test_file_archive(user, created_datetime), do: %{Metadata.new(user) | created: created_datetime}
+  def test_file_archive(user), do: test_archive(user)
+  def test_file_archive(user, created_datetime), do: %{test_archive(user) | created: created_datetime}
 
   defp test_archive(user) do
     %{
@@ -18,7 +18,7 @@ defmodule Fixtures.Archive do
       | temporal: {@registered_time, @latest_scrobble_time},
         extent: 400,
         date: ~D[2021-04-03],
-        type: FileArchive
+        modified: "2023-06-09T14:36:16.952540Z"
     }
   end
 
