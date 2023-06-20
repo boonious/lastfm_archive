@@ -24,6 +24,7 @@ defmodule Fixtures.Archive do
 
   def archive_metadata(), do: File.read!("test/fixtures/metadata.json")
 
+  def gzipped_scrobbles(), do: File.read!("test/fixtures/200_001.gz")
   def gzip_data(), do: File.read!("test/fixtures/200_34.gz")
   def tsv_gzip_data(), do: File.read!("test/fixtures/2018.tsv.gz")
 

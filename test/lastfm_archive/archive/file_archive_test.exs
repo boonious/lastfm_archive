@@ -2,46 +2,48 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
   use ExUnit.Case, async: true
 
   import ExUnit.CaptureLog
-  import Fixtures.Lastfm
+  import Fixtures.{Archive, Lastfm}
   import Hammox
+
+  alias Explorer.DataFrame
 
   alias LastfmArchive.Archive.FileArchive
   alias LastfmArchive.Archive.Metadata
-
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.Behaviour.LastfmClient
-
   alias LastfmArchive.Utils
 
   setup :verify_on_exit!
 
-  describe "archive/3" do
-    setup do
-      user = "a_lastfm_user"
-      scrobbles = recent_tracks(user, 5) |> Jason.decode!()
+  setup do
+    user = "a_lastfm_user"
+    total_scrobbles = 400
+    registered_time = DateTime.from_iso8601("2021-04-01T18:50:07Z") |> elem(1) |> DateTime.to_unix()
+    last_scrobble_time = DateTime.from_iso8601("2021-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix()
 
-      total_scrobbles = 400
-      registered_time = DateTime.from_iso8601("2021-04-01T18:50:07Z") |> elem(1) |> DateTime.to_unix()
-      last_scrobble_time = DateTime.from_iso8601("2021-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix()
+    metadata = %{
+      Metadata.new("a_lastfm_user")
+      | temporal: {registered_time, last_scrobble_time},
+        extent: total_scrobbles,
+        date: ~D[2021-04-03],
+        type: FileArchive
+    }
+
+    %{user: user, metadata: metadata}
+  end
+
+  describe "archive/3" do
+    setup context do
+      scrobbles = recent_tracks(context.user, 5) |> Jason.decode!()
 
       stub_with(LastfmClient.impl(), LastfmArchive.LastfmClientStub)
       stub_with(LastfmArchive.CacheMock, LastfmArchive.CacheStub)
       stub_with(LastfmArchive.FileIOMock, LastfmArchive.FileIOStub)
       Archive.impl() |> stub(:update_metadata, fn metadata, _options -> {:ok, metadata} end)
 
-      metadata = %{
-        Metadata.new("a_lastfm_user")
-        | temporal: {registered_time, last_scrobble_time},
-          extent: total_scrobbles,
-          date: ~D[2021-04-03],
-          type: FileArchive
-      }
-
       %{
-        metadata: metadata,
         scrobbles: scrobbles,
-        scrobbles_json: scrobbles |> Jason.encode!(),
-        user: user
+        scrobbles_json: scrobbles |> Jason.encode!()
       }
     end
 
@@ -201,6 +203,34 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
     end
   end
 
-  test "read/2" do
+  describe "read/2" do
+    test "returns data frame for day's scrobbles", %{metadata: metadata} do
+      date = Date.utc_today()
+      archive_file = "200_001.gz"
+      user_dir = Utils.user_dir(metadata.creator) <> "/#{date}"
+      file_path = user_dir <> "/#{archive_file}"
+
+      LastfmArchive.FileIOMock
+      |> expect(:ls!, fn ^user_dir -> [archive_file] end)
+      |> expect(:read, fn ^file_path -> {:ok, gzipped_scrobbles()} end)
+
+      %DataFrame{} = df = FileArchive.read(metadata, date: date)
+      assert {105, 11} == df |> DataFrame.collect() |> DataFrame.shape()
+    end
+
+    test "concats multi-page scrobbles into a single data frame", %{metadata: metadata} do
+      date = Date.utc_today()
+
+      LastfmArchive.FileIOMock
+      |> expect(:ls!, fn _user_dir -> ["200_001.gz", "200_002.gz"] end)
+      |> expect(:read, 2, fn _file_path -> {:ok, gzipped_scrobbles()} end)
+
+      %DataFrame{} = df = FileArchive.read(metadata, date: date)
+      assert {210, 11} == df |> DataFrame.collect() |> DataFrame.shape()
+    end
+
+    test "when no date option given", %{metadata: metadata} do
+      assert {:error, _reason} = FileArchive.read(metadata, [])
+    end
   end
 end

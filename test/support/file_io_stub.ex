@@ -4,6 +4,7 @@ defmodule LastfmArchive.FileIOStub do
 
   def read(_path), do: {:ok, ""}
   def read!(_path), do: ""
+  def ls!(_path), do: []
   def mkdir_p(_path), do: :ok
   def exists?(_path), do: false
   def write(_path, _data), do: :ok

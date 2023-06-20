@@ -4,8 +4,11 @@ defmodule LastfmArchive.Archive.FileArchive do
   use LastfmArchive.Behaviour.Archive
 
   alias LastfmArchive.Archive.Metadata
+  alias LastfmArchive.Archive.Scrobble
+
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.Behaviour.LastfmClient
+
   alias LastfmArchive.LastfmClient.LastfmApi
 
   import LastfmArchive.Utils
@@ -34,6 +37,20 @@ defmodule LastfmArchive.Archive.FileArchive do
       %{metadata | modified: DateTime.utc_now()} |> Archive.impl().update_metadata(options)
     end
   end
+
+  @impl true
+  def read(%{creator: creator} = metadata, date: %Date{} = date) do
+    for file <- ls_archive_files(creator, date), String.ends_with?(file, ".gz") do
+      LastfmArchive.Utils.read(creator, "#{date}/#{file}")
+      |> then(fn {:ok, scrobbles} -> scrobbles |> Jason.decode!() end)
+      |> Scrobble.new()
+      |> Enum.map(&Map.from_struct/1)
+      |> Explorer.DataFrame.new(lazy: true)
+    end
+    |> Explorer.DataFrame.concat_rows()
+  end
+
+  def read(_metadata, _options), do: {:error, :einval}
 
   defp client_impl, do: LastfmClient.impl()
 

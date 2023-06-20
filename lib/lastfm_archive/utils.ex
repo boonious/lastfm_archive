@@ -87,6 +87,8 @@ defmodule LastfmArchive.Utils do
     :ok
   end
 
+  def ls_archive_files(user, date), do: "#{user_dir(user)}/#{date}" |> @file_io.ls!()
+
   @doc """
   Writes archive metadata to a file in the archive of a Lastfm user.
   """

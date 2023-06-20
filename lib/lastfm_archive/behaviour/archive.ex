@@ -27,6 +27,11 @@ defmodule LastfmArchive.Behaviour.Archive do
   """
   @callback archive(metadata(), options, api) :: {:ok, metadata()} | {:error, term()}
 
+  @doc """
+  Read access to the archive, returns an Explorer DataFrame for further data manipulation.
+  """
+  @callback read(metadata(), options) :: {:ok, Explorer.DataFrame.t()} | {:error, term()}
+
   defmacro __using__(_opts) do
     quote do
       @behaviour LastfmArchive.Behaviour.Archive

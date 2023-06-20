@@ -11,7 +11,7 @@ defmodule LastfmArchive.Archive.Scrobble do
     field(:mbid, String.t())
     field(:name, String.t())
     field(:datetime_unix, integer())
-    field(:datetime, DateTime.t())
+    field(:datetime, String.t())
     field(:url, String.t())
 
     field(:artist, String.t())
@@ -27,7 +27,13 @@ defmodule LastfmArchive.Archive.Scrobble do
   """
   @spec new(map()) :: t() | Enumerable.t(t())
   def new(%{"recenttracks" => %{"track" => tracks}}) when is_list(tracks) do
-    Stream.map(tracks, fn track -> new(track) end)
+    tracks
+    |> Stream.flat_map(fn track ->
+      case track["date"] do
+        nil -> []
+        _date -> [new(track)]
+      end
+    end)
   end
 
   def new(%{"name" => _} = track) do
@@ -38,7 +44,7 @@ defmodule LastfmArchive.Archive.Scrobble do
       mbid: track["mbid"],
       name: track["name"],
       datetime_unix: unix_time,
-      datetime: DateTime.from_unix!(unix_time),
+      datetime: DateTime.from_unix!(unix_time) |> DateTime.to_string(),
       url: track["url"],
       artist: track["artist"]["name"] || track["artist"]["#text"],
       artist_mbid: track["artist"]["mbid"],
