@@ -140,4 +140,27 @@ defmodule LastfmArchive.UtilsTest do
       end
     end
   end
+
+  describe "ls_archive_files/2" do
+    test "for a specified day" do
+      user = "a_lastfm_user"
+      user_dir = Utils.user_dir(user)
+      filepath = "#{user_dir}/2023/06/01"
+      files = ["200_001.gz", "200_002.gz", ".DS_Store", "another_file"]
+
+      LastfmArchive.FileIOMock |> expect(:ls!, fn ^filepath -> files end)
+      assert Utils.ls_archive_files(user, day: ~D[2023-06-01]) == ["2023/06/01/200_001.gz", "2023/06/01/200_002.gz"]
+    end
+
+    test "for a specified month" do
+      user = "a_lastfm_user"
+      user_dir = Utils.user_dir(user)
+      wildcard_path = "#{user_dir}/2023/06/**/*.gz"
+      files = ["#{user_dir}/2023/06/01/200_001.gz", "#{user_dir}/2023/06/02/200_001.gz"]
+
+      LastfmArchive.PathIOMock |> expect(:wildcard, fn ^wildcard_path, _options -> files end)
+
+      assert Utils.ls_archive_files(user, month: ~D[2023-06-01]) == ["2023/06/01/200_001.gz", "2023/06/02/200_001.gz"]
+    end
+  end
 end

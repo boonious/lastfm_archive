@@ -39,18 +39,24 @@ defmodule LastfmArchive.Archive.FileArchive do
   end
 
   @impl true
-  def read(%{creator: creator} = metadata, date: %Date{} = date) do
-    for file <- ls_archive_files(creator, date), String.ends_with?(file, ".gz") do
-      LastfmArchive.Utils.read(creator, "#{date}/#{file}")
-      |> then(fn {:ok, scrobbles} -> scrobbles |> Jason.decode!() end)
-      |> Scrobble.new()
-      |> Enum.map(&Map.from_struct/1)
-      |> Explorer.DataFrame.new(lazy: true)
+  def read(%{creator: user} = _metadata, day: %Date{} = date), do: do_read(user, day: date)
+  def read(%{creator: user} = _metadata, month: %Date{} = date), do: do_read(user, month: date)
+  def read(_metadata, _options), do: {:error, :einval}
+
+  defp do_read(user, option) do
+    for filepath <- ls_archive_files(user, option) do
+      create_lazy_data_frame(user, filepath)
     end
     |> Explorer.DataFrame.concat_rows()
   end
 
-  def read(_metadata, _options), do: {:error, :einval}
+  defp create_lazy_data_frame(user, file_path) do
+    LastfmArchive.Utils.read(user, file_path)
+    |> then(fn {:ok, scrobbles} -> scrobbles |> Jason.decode!() end)
+    |> Scrobble.new()
+    |> Enum.map(&Map.from_struct/1)
+    |> Explorer.DataFrame.new(lazy: true)
+  end
 
   defp client_impl, do: LastfmClient.impl()
 

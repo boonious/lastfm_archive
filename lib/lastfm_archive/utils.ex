@@ -8,6 +8,7 @@ defmodule LastfmArchive.Utils do
   @metadata_file ".archive_metadata"
 
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
+  @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
   @reset Application.compile_env(:lastfm_archive, :reset, false)
 
   @doc """
@@ -87,7 +88,25 @@ defmodule LastfmArchive.Utils do
     :ok
   end
 
-  def ls_archive_files(user, date), do: "#{user_dir(user)}/#{date}" |> @file_io.ls!()
+  @spec ls_archive_files(String.t(), day: Date.t(), month: Date.t()) :: list(String.t())
+  def ls_archive_files(user, day: date) do
+    day = date |> to_string() |> String.replace("-", "/")
+
+    for file <- "#{user_dir(user)}/#{day}" |> @file_io.ls!(), String.ends_with?(file, ".gz") do
+      day <> "/" <> file
+    end
+  end
+
+  def ls_archive_files(user, month: date) do
+    month = date.month |> to_string() |> String.pad_leading(2, "0")
+
+    Path.join(user_dir(user), "#{date.year}/#{month}/**/*.gz")
+    |> @path_io.wildcard([])
+    |> Enum.map(&get_date_filepath(&1, user))
+  end
+
+  # from "lastfm_data/user/2023/06/06/200_001.gz" -> "2023/06/06/200_001.gz"
+  defp get_date_filepath(path, user), do: String.split(path, user <> "/") |> List.last()
 
   @doc """
   Writes archive metadata to a file in the archive of a Lastfm user.

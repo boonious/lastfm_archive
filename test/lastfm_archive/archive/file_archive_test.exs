@@ -204,32 +204,52 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
   end
 
   describe "read/2" do
-    test "returns data frame for day's scrobbles", %{metadata: metadata} do
+    test "returns data frame for a day's scrobbles", %{metadata: metadata} do
       date = Date.utc_today()
+      day = date |> to_string() |> String.replace("-", "/")
       archive_file = "200_001.gz"
-      user_dir = Utils.user_dir(metadata.creator) <> "/#{date}"
+      user_dir = Utils.user_dir(metadata.creator) <> "/#{day}"
       file_path = user_dir <> "/#{archive_file}"
 
       LastfmArchive.FileIOMock
       |> expect(:ls!, fn ^user_dir -> [archive_file] end)
       |> expect(:read, fn ^file_path -> {:ok, gzipped_scrobbles()} end)
 
-      %DataFrame{} = df = FileArchive.read(metadata, date: date)
+      %DataFrame{} = df = FileArchive.read(metadata, day: date)
       assert {105, 11} == df |> DataFrame.collect() |> DataFrame.shape()
     end
 
-    test "concats multi-page scrobbles into a single data frame", %{metadata: metadata} do
+    test "concats multi-page scrobbles of a day into a single data frame", %{metadata: metadata} do
       date = Date.utc_today()
 
       LastfmArchive.FileIOMock
       |> expect(:ls!, fn _user_dir -> ["200_001.gz", "200_002.gz"] end)
       |> expect(:read, 2, fn _file_path -> {:ok, gzipped_scrobbles()} end)
 
-      %DataFrame{} = df = FileArchive.read(metadata, date: date)
-      assert {210, 11} == df |> DataFrame.collect() |> DataFrame.shape()
+      %DataFrame{} = df = FileArchive.read(metadata, day: date)
+      assert {105 * 2, 11} == df |> DataFrame.collect() |> DataFrame.shape()
     end
 
-    test "when no date option given", %{metadata: metadata} do
+    test "returns data frame for a month's scrobbles", %{metadata: metadata} do
+      date = ~D[2023-06-01]
+      user = "a_lastfm_user"
+      user_dir = Utils.user_dir(user)
+      wildcard_path = "#{user_dir}/2023/06/**/*.gz"
+
+      files = [
+        "#{user_dir}/2023/06/01/200_001.gz",
+        "#{user_dir}/2023/06/02/200_001.gz",
+        "#{user_dir}/2023/06/03/200_001.gz"
+      ]
+
+      LastfmArchive.PathIOMock |> expect(:wildcard, fn ^wildcard_path, _options -> files end)
+      LastfmArchive.FileIOMock |> expect(:read, 3, fn _file_path -> {:ok, gzipped_scrobbles()} end)
+
+      %DataFrame{} = df = FileArchive.read(metadata, month: date)
+      assert {105 * 3, 11} == df |> DataFrame.collect() |> DataFrame.shape()
+    end
+
+    test "when no day or month option given", %{metadata: metadata} do
       assert {:error, _reason} = FileArchive.read(metadata, [])
     end
   end
