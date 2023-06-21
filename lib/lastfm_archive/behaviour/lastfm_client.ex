@@ -3,9 +3,9 @@ defmodule LastfmArchive.Behaviour.LastfmClient do
   Behaviour and data struct for retrieving data from Lastfm API.
   """
 
-  alias LastfmArchive.LastfmClient
+  alias LastfmArchive.LastfmClient.LastfmApi
 
-  @type client :: LastfmClient.t()
+  @type lastfm_api :: LastfmApi.t()
 
   @type user :: binary
   @type page :: integer
@@ -24,18 +24,18 @@ defmodule LastfmArchive.Behaviour.LastfmClient do
 
   See Lastfm API [documentation](https://www.last.fm/api/show/user.getRecentTracks) for more details.
   """
-  @callback scrobbles(user, {page, limit, from, to}, client) :: {:ok, map} | {:error, term()}
+  @callback scrobbles(user, {page, limit, from, to}, lastfm_api) :: {:ok, map} | {:error, term()}
 
   @doc """
   Returns the total playcount, registered, i.e. first scrobble time for a user.
   """
-  @callback info(user, client) :: {:ok, {playcount, registered_time}} | {:error, term()}
+  @callback info(user, lastfm_api) :: {:ok, {playcount, registered_time}} | {:error, term()}
 
   @doc """
   Returns the playcount and the latest scrobble date of a user for a given time range.
   """
-  @callback playcount(user, {from, to}, client) :: {:ok, {playcount, latest_scrobble_time}} | {:error, term()}
+  @callback playcount(user, {from, to}, lastfm_api) :: {:ok, {playcount, latest_scrobble_time}} | {:error, term()}
 
   @doc false
-  def impl, do: Application.get_env(:lastfm_archive, :lastfm_client, LastfmArchive.LastfmClient)
+  def impl, do: Application.get_env(:lastfm_archive, :lastfm_client, LastfmArchive.LastfmClient.Impl)
 end

@@ -41,10 +41,12 @@ defmodule LastfmArchive.MixProject do
 
   defp deps do
     [
+      {:elixir_uuid, "~> 1.2"},
       {:hui, "0.10.4"},
       {:jason, "~> 1.4"},
       {:kino, "~> 0.9.4"},
       {:kino_vega_lite, "~> 0.1.9"},
+      {:typed_struct, "~> 0.3.0"},
       {:vega_lite, "~> 0.1.7"},
 
       # test and dev only

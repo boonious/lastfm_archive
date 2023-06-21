@@ -3,8 +3,8 @@ defmodule LastfmArchiveTest do
 
   import Hammox
 
-  alias LastfmArchive.Archive
-  alias LastfmArchive.FileArchive
+  alias LastfmArchive.Archive.FileArchive
+  alias LastfmArchive.Archive.Metadata
 
   setup :set_mox_global
   setup :verify_on_exit!
@@ -15,7 +15,7 @@ defmodule LastfmArchiveTest do
     last_scrobble_time = DateTime.from_iso8601("2021-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix()
 
     metadata = %{
-      Archive.new("a_lastfm_user")
+      Metadata.new("a_lastfm_user")
       | temporal: {registered_time, last_scrobble_time},
         extent: total_scrobbles,
         date: ~D[2021-04-03],
@@ -28,7 +28,7 @@ defmodule LastfmArchiveTest do
   test "sync scrobbles to a new file archive", %{metadata: metadata} do
     user = Application.get_env(:lastfm_archive, :user)
 
-    LastfmArchive.FileArchiveMock
+    LastfmArchive.Archive.FileArchiveMock
     |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
     |> expect(:archive, fn ^metadata, _options, _api_client -> {:ok, metadata} end)
 
@@ -36,7 +36,7 @@ defmodule LastfmArchiveTest do
   end
 
   test "sync/2 scrobbles to a new file archive", %{user: user, metadata: metadata} do
-    LastfmArchive.FileArchiveMock
+    LastfmArchive.Archive.FileArchiveMock
     |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
     |> expect(:archive, fn ^metadata, _options, _api_client -> {:ok, metadata} end)
 

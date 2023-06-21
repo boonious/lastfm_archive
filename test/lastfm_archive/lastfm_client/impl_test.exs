@@ -1,7 +1,9 @@
-defmodule LastfmArchive.LastfmClientTest do
+defmodule LastfmArchive.LastfmClient.ImplTest do
   use ExUnit.Case, async: true
   import Fixtures.Lastfm
-  alias LastfmArchive.LastfmClient
+
+  alias LastfmArchive.LastfmClient.Impl, as: LastfmClient
+  alias LastfmArchive.LastfmClient.LastfmApi
 
   describe "scrobbles/3" do
     setup do
@@ -9,8 +11,8 @@ defmodule LastfmArchive.LastfmClientTest do
 
       %{
         bypass: bypass,
-        api: %LastfmClient{
-          api_key: "12345",
+        api: %LastfmApi{
+          key: "12345",
           endpoint: "http://localhost:#{bypass.port}/",
           method: "user.getrecenttracks"
         },
@@ -25,7 +27,7 @@ defmodule LastfmArchive.LastfmClientTest do
         params = Plug.Conn.fetch_query_params(conn) |> Map.fetch!(:query_params)
         authorization_header = conn.req_headers |> Enum.find(&(elem(&1, 0) == "authorization")) |> elem(1)
 
-        assert "Bearer #{api.api_key}" == authorization_header
+        assert "Bearer #{api.key}" == authorization_header
 
         assert %{
                  "api_key" => "12345",
@@ -66,7 +68,7 @@ defmodule LastfmArchive.LastfmClientTest do
 
       %{
         bypass: bypass,
-        api: %LastfmClient{api_key: "12345", endpoint: "http://localhost:#{bypass.port}/", method: "user.getinfo"}
+        api: %LastfmApi{key: "12345", endpoint: "http://localhost:#{bypass.port}/", method: "user.getinfo"}
       }
     end
 
@@ -75,7 +77,7 @@ defmodule LastfmArchive.LastfmClientTest do
         params = Plug.Conn.fetch_query_params(conn) |> Map.fetch!(:query_params)
         authorization_header = conn.req_headers |> Enum.find(&(elem(&1, 0) == "authorization")) |> elem(1)
 
-        assert "Bearer #{api.api_key}" == authorization_header
+        assert "Bearer #{api.key}" == authorization_header
         assert %{"api_key" => "12345", "method" => "user.getinfo", "user" => "a_lastfm_user"} = params
 
         Plug.Conn.resp(conn, 200, user_info("a_lastfm_user", 1234, 1_472_601_600))
@@ -106,8 +108,8 @@ defmodule LastfmArchive.LastfmClientTest do
 
       %{
         bypass: bypass,
-        api: %LastfmClient{
-          api_key: "12345",
+        api: %LastfmApi{
+          key: "12345",
           endpoint: "http://localhost:#{bypass.port}/",
           method: "user.getrecenttracks"
         },
@@ -123,7 +125,7 @@ defmodule LastfmArchive.LastfmClientTest do
         params = Plug.Conn.fetch_query_params(conn) |> Map.fetch!(:query_params)
         authorization_header = conn.req_headers |> Enum.find(&(elem(&1, 0) == "authorization")) |> elem(1)
 
-        assert "Bearer #{context.api.api_key}" == authorization_header
+        assert "Bearer #{context.api.key}" == authorization_header
 
         assert %{
                  "api_key" => "12345",

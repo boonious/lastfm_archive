@@ -6,8 +6,8 @@ defmodule LastfmArchive.Behaviour.Archive do
   upon various storage implementation such as file systems and databases.
   """
 
-  @type client :: LastfmArchive.LastfmClient.t()
-  @type metadata :: LastfmArchive.Archive.t()
+  @type api :: LastfmArchive.LastfmClient.LastfmApi.t()
+  @type metadata :: LastfmArchive.Archive.Metadata.t()
   @type options :: keyword()
   @type user :: binary()
   @type scrobbles :: map()
@@ -25,7 +25,7 @@ defmodule LastfmArchive.Behaviour.Archive do
   @doc """
   Archives all scrobbles data for a Lastfm user.
   """
-  @callback archive(metadata(), options, client) :: {:ok, metadata()} | {:error, term()}
+  @callback archive(metadata(), options, api) :: {:ok, metadata()} | {:error, term()}
 
   defmacro __using__(_opts) do
     quote do
@@ -34,17 +34,19 @@ defmodule LastfmArchive.Behaviour.Archive do
       import LastfmArchive.Behaviour.Archive
       import LastfmArchive.Utils
 
+      alias LastfmArchive.Archive.Metadata
+
       @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
 
-      def update_metadata(%LastfmArchive.Archive{creator: user} = metadata, options)
+      def update_metadata(%Metadata{creator: user} = metadata, options)
           when user != nil and is_binary(user) do
         write(metadata, options)
       end
 
       def describe(user, options \\ []) do
         case @file_io.read(metadata_filepath(user, options)) do
-          {:ok, data} -> {:ok, Jason.decode!(data, keys: :atoms!) |> LastfmArchive.Archive.new()}
-          {:error, :enoent} -> {:ok, LastfmArchive.Archive.new(user)}
+          {:ok, metadata} -> {:ok, Jason.decode!(metadata, keys: :atoms!) |> Metadata.new()}
+          {:error, :enoent} -> {:ok, Metadata.new(user)}
         end
       end
 
@@ -53,7 +55,7 @@ defmodule LastfmArchive.Behaviour.Archive do
   end
 
   @doc false
-  def impl, do: Application.get_env(:lastfm_archive, :type, LastfmArchive.FileArchive)
+  def impl, do: Application.get_env(:lastfm_archive, :type, LastfmArchive.Archive.FileArchive)
 end
 
 defimpl Jason.Encoder, for: Tuple do
