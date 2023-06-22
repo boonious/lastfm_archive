@@ -30,6 +30,19 @@ chunked into 200-track (max) `gzip` compressed pages and stored within directori
 corresponding to the days when tracks were scrobbled. The file archive in a main 
 directory specified in configuration - see below.
 
+Scrobbles can be read from an archive of a Lastfm user.
+This returns scrobbles for a single day or month period
+in a lazy `t:Explorer.DataFrame.t/0` for further data manipulation
+and visualisation.
+
+```elixir
+# read a single-day scrobbles from the configured
+# archive (FileArchive) and default user
+LastfmArchive.read(day: ~D[2022-12-31])
+
+# read a single-month scrobbles for a user
+LastfmArchive.read("a_lastfm_user",  month: ~D[2022-12-31])
+```
 ## Livebook Support
 
 `LastfmArchive` supports the use of [Livebook](https://livebook.dev) interactive notebook 

@@ -21,6 +21,7 @@ defmodule LastfmArchive do
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
 
   @type metadata :: LastfmArchive.Archive.Metadata.t()
+  @type read_options :: LastfmArchive.Behaviour.Archive.read_options()
   @type time_range :: {integer, integer}
   @type solr_url :: atom | Hui.URL.t()
 
@@ -30,36 +31,27 @@ defmodule LastfmArchive do
   defdelegate info, to: LastfmClient
 
   @doc """
-  Sync scrobbles of a default user specified in configuration.
-
-  ### Example
-
-  ```
-    LastfmArchive.sync
-  ```
-
-  The default user is specified in configuration, for example `user_a` in
-  `config/config.exs`:
-
-  ```
-    config :lastfm_archive,
-      user: "user_a",
-      ... # other archiving options
-
-  ```
-
-  See `sync/2` for further details and archiving options.
-  """
-  @spec sync :: :ok | {:error, :file.posix()}
-  def sync, do: LastfmClient.default_user() |> sync()
-
-  @doc """
   Sync scrobbles for a Lastfm user.
 
   ### Example
 
   ```
     LastfmArchive.sync("a_lastfm_user")
+  ```
+
+  You can also specify a default user is in configuration,
+  for example `user_a` in `config/config.exs`:
+
+  ```
+    config :lastfm_archive,
+      user: "user_a",
+      ... # other archiving options
+  ```
+
+  And run:
+
+  ```
+    LastfmArchive.sync
   ```
 
   The first sync downloads all daily scrobbles in 200-track (gzip compressed)
@@ -98,12 +90,43 @@ defmodule LastfmArchive do
   ```
   """
   @spec sync(binary, keyword) :: {:ok, metadata()} | {:error, :file.posix()}
-  def sync(user, options \\ []) do
+  def sync(user \\ LastfmClient.default_user(), options \\ []) do
     user
-    |> Archive.impl().describe(options)
-    |> then(fn {:ok, metadata} ->
-      Archive.impl().archive(metadata, options, LastfmApi.new())
-    end)
+    |> metadata(options)
+    |> Archive.impl().archive(options, LastfmApi.new())
+  end
+
+  @doc """
+  Read scrobbles from an archive of a Lastfm user.
+
+  This returns scrobbles for a single day  or month period
+  in a lazy Explorer.DataFrame for further data manipulation
+  and visualisation.
+
+  ### Example
+  ```
+    # read a single-day scrobbles from the configured
+    # archive (FileArchive) and default user
+    LastfmArchive.read(day: ~D[2022-12-31])
+
+    # read a single-month scrobbles for a user
+    LastfmArchive.read("a_lastfm_user",  month: ~D[2022-12-31])
+  ```
+
+  Options:
+  - `:day` - read scrobbles for this particular date (`Date.t()`)
+  - `:month` - read scrobbles for this particular month (`Date.t()`)
+  """
+  @spec read(binary, read_options) :: {:ok, Explorer.DataFrame} | {:error, term()}
+  def read(user \\ LastfmClient.default_user(), read_options) do
+    user
+    |> metadata([])
+    |> Archive.impl().read(read_options)
+  end
+
+  defp metadata(user, options) do
+    {:ok, metadata} = user |> Archive.impl().describe(options)
+    metadata
   end
 
   @doc """

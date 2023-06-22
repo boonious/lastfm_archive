@@ -22,6 +22,15 @@ defmodule Fixtures.Archive do
     }
   end
 
+  def test_data_frame() do
+    gzipped_scrobbles()
+    |> :zlib.gunzip()
+    |> Jason.decode!()
+    |> LastfmArchive.Archive.Scrobble.new()
+    |> Enum.map(&Map.from_struct/1)
+    |> Explorer.DataFrame.new(lazy: true)
+  end
+
   def archive_metadata(), do: File.read!("test/fixtures/metadata.json")
 
   def gzipped_scrobbles(), do: File.read!("test/fixtures/200_001.gz")

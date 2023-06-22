@@ -1,6 +1,7 @@
 defmodule LastfmArchiveTest do
   use ExUnit.Case
 
+  import Fixtures.Archive
   import Hammox
 
   alias LastfmArchive.Archive.FileArchive
@@ -25,21 +26,36 @@ defmodule LastfmArchiveTest do
     %{user: "a_lastfm_user", metadata: metadata}
   end
 
-  test "sync scrobbles to a new file archive", %{metadata: metadata} do
-    user = Application.get_env(:lastfm_archive, :user)
+  describe "sync/2" do
+    test "scrobbles for the default user to a new file archive", %{metadata: metadata} do
+      user = Application.get_env(:lastfm_archive, :user)
 
-    LastfmArchive.Archive.FileArchiveMock
-    |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-    |> expect(:archive, fn ^metadata, _options, _api_client -> {:ok, metadata} end)
+      LastfmArchive.Archive.FileArchiveMock
+      |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
+      |> expect(:archive, fn ^metadata, _options, _api_client -> {:ok, metadata} end)
 
-    LastfmArchive.sync()
+      LastfmArchive.sync()
+    end
+
+    test "scrobbles of a user to a new file archive", %{user: user, metadata: metadata} do
+      LastfmArchive.Archive.FileArchiveMock
+      |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
+      |> expect(:archive, fn ^metadata, _options, _api_client -> {:ok, metadata} end)
+
+      LastfmArchive.sync(user)
+    end
   end
 
-  test "sync/2 scrobbles to a new file archive", %{user: user, metadata: metadata} do
-    LastfmArchive.Archive.FileArchiveMock
-    |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-    |> expect(:archive, fn ^metadata, _options, _api_client -> {:ok, metadata} end)
+  describe "read/2" do
+    test "scrobbles of a user from a file archive", %{user: user, metadata: metadata} do
+      date = ~D[2023-06-01]
+      option = [day: date]
 
-    LastfmArchive.sync(user)
+      LastfmArchive.Archive.FileArchiveMock
+      |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
+      |> expect(:read, fn ^metadata, ^option -> {:ok, test_data_frame()} end)
+
+      LastfmArchive.read(user, option)
+    end
   end
 end
