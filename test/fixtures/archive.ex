@@ -9,8 +9,8 @@ defmodule Fixtures.Archive do
   def test_file_archive(), do: test_archive(@default_user)
   def test_file_archive(@default_user), do: test_archive(@default_user)
 
-  def test_file_archive(user), do: Metadata.new(user)
-  def test_file_archive(user, created_datetime), do: %{Metadata.new(user) | created: created_datetime}
+  def test_file_archive(user), do: test_archive(user)
+  def test_file_archive(user, created_datetime), do: %{test_archive(user) | created: created_datetime}
 
   defp test_archive(user) do
     %{
@@ -18,12 +18,22 @@ defmodule Fixtures.Archive do
       | temporal: {@registered_time, @latest_scrobble_time},
         extent: 400,
         date: ~D[2021-04-03],
-        type: FileArchive
+        modified: "2023-06-09T14:36:16.952540Z"
     }
+  end
+
+  def test_data_frame() do
+    gzipped_scrobbles()
+    |> :zlib.gunzip()
+    |> Jason.decode!()
+    |> LastfmArchive.Archive.Scrobble.new()
+    |> Enum.map(&Map.from_struct/1)
+    |> Explorer.DataFrame.new(lazy: true)
   end
 
   def archive_metadata(), do: File.read!("test/fixtures/metadata.json")
 
+  def gzipped_scrobbles(), do: File.read!("test/fixtures/200_001.gz")
   def gzip_data(), do: File.read!("test/fixtures/200_34.gz")
   def tsv_gzip_data(), do: File.read!("test/fixtures/2018.tsv.gz")
 

@@ -10,6 +10,7 @@ defmodule LastfmArchive.Behaviour.Archive do
   @type metadata :: LastfmArchive.Archive.Metadata.t()
   @type options :: keyword()
   @type user :: binary()
+  @type read_options :: [day: Date.t(), month: Date.t()]
   @type scrobbles :: map()
 
   @doc """
@@ -26,6 +27,11 @@ defmodule LastfmArchive.Behaviour.Archive do
   Archives all scrobbles data for a Lastfm user.
   """
   @callback archive(metadata(), options, api) :: {:ok, metadata()} | {:error, term()}
+
+  @doc """
+  Read access to the archive, returns an Explorer DataFrame for further data manipulation.
+  """
+  @callback read(metadata(), read_options) :: {:ok, Explorer.DataFrame.t()} | {:error, term()}
 
   defmacro __using__(_opts) do
     quote do

@@ -5,125 +5,45 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
   import Fixtures.{Archive, Lastfm}
   import Hammox
 
+  alias Explorer.DataFrame
+
   alias LastfmArchive.Archive.FileArchive
   alias LastfmArchive.Archive.Metadata
-
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.Behaviour.LastfmClient
-
   alias LastfmArchive.Utils
-
-  @archive Application.compile_env(:lastfm_archive, :type)
 
   setup :verify_on_exit!
 
-  describe "update_metadata/2" do
-    test "of file archive, writes and returns metadata" do
-      new_archive = test_file_archive("a_user")
-      archive_metadata = Jason.encode!(new_archive)
+  setup do
+    user = "a_lastfm_user"
+    total_scrobbles = 400
+    registered_time = DateTime.from_iso8601("2021-04-01T18:50:07Z") |> elem(1) |> DateTime.to_unix()
+    last_scrobble_time = DateTime.from_iso8601("2021-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix()
 
-      LastfmArchive.FileIOMock
-      |> expect(:mkdir_p, fn "new_archive/a_user" -> :ok end)
-      |> expect(:write, fn "new_archive/a_user/.archive_metadata", ^archive_metadata -> :ok end)
+    metadata = %{
+      Metadata.new("a_lastfm_user")
+      | temporal: {registered_time, last_scrobble_time},
+        extent: total_scrobbles,
+        date: ~D[2021-04-03],
+        type: FileArchive
+    }
 
-      assert {
-               :ok,
-               %Metadata{
-                 created: %{__struct__: DateTime},
-                 creator: "a_user",
-                 description: "Lastfm archive of a_user, extracted from Lastfm API",
-                 format: "application/json",
-                 identifier: "a_user",
-                 source: "http://ws.audioscrobbler.com/2.0",
-                 title: "Lastfm archive of a_user",
-                 type: @archive
-               }
-             } = FileArchive.update_metadata(new_archive, data_dir: "new_archive")
-    end
-
-    test "reset an existing archive with 'overwrite' option" do
-      earlier_created_datetime = DateTime.add(DateTime.utc_now(), -3600, :second)
-      existing_archive = test_file_archive("a_user", earlier_created_datetime)
-
-      LastfmArchive.FileIOMock
-      |> expect(:mkdir_p, fn "existing_archive/a_user" -> :ok end)
-      |> expect(:write, fn "existing_archive/a_user/.archive_metadata", _ -> :ok end)
-
-      assert {
-               :ok,
-               %Metadata{
-                 created: created,
-                 creator: "a_user",
-                 description: "Lastfm archive of a_user, extracted from Lastfm API",
-                 format: "application/json",
-                 identifier: "a_user",
-                 source: "http://ws.audioscrobbler.com/2.0",
-                 title: "Lastfm archive of a_user",
-                 modified: nil,
-                 date: nil
-               }
-             } = FileArchive.update_metadata(existing_archive, data_dir: "existing_archive", reset: true)
-
-      assert DateTime.compare(earlier_created_datetime, created) == :lt
-    end
-  end
-
-  describe "describe/2" do
-    test "an existing file archive" do
-      archive_id = "a_user"
-      metadata_path = Path.join([Application.get_env(:lastfm_archive, :data_dir), archive_id, ".archive_metadata"])
-      metadata = Jason.encode!(test_file_archive(archive_id))
-
-      LastfmArchive.FileIOMock |> expect(:read, fn ^metadata_path -> {:ok, metadata} end)
-
-      assert {
-               :ok,
-               %Metadata{
-                 created: %{__struct__: DateTime},
-                 creator: "a_user",
-                 description: "Lastfm archive of a_user, extracted from Lastfm API",
-                 format: "application/json",
-                 identifier: "a_user",
-                 source: "http://ws.audioscrobbler.com/2.0",
-                 title: "Lastfm archive of a_user",
-                 type: @archive
-               }
-             } = FileArchive.describe("a_user")
-    end
-
-    test "return error if file archive does not exist" do
-      LastfmArchive.FileIOMock |> expect(:read, fn _ -> {:error, :enoent} end)
-      assert {:ok, _new_archive_to_created} = FileArchive.describe("non_existig_archive_id")
-    end
+    %{user: user, metadata: metadata}
   end
 
   describe "archive/3" do
-    setup do
-      user = "a_lastfm_user"
-      scrobbles = recent_tracks(user, 5) |> Jason.decode!()
-
-      total_scrobbles = 400
-      registered_time = DateTime.from_iso8601("2021-04-01T18:50:07Z") |> elem(1) |> DateTime.to_unix()
-      last_scrobble_time = DateTime.from_iso8601("2021-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix()
+    setup context do
+      scrobbles = recent_tracks(context.user, 5) |> Jason.decode!()
 
       stub_with(LastfmClient.impl(), LastfmArchive.LastfmClientStub)
       stub_with(LastfmArchive.CacheMock, LastfmArchive.CacheStub)
       stub_with(LastfmArchive.FileIOMock, LastfmArchive.FileIOStub)
       Archive.impl() |> stub(:update_metadata, fn metadata, _options -> {:ok, metadata} end)
 
-      metadata = %{
-        Metadata.new("a_lastfm_user")
-        | temporal: {registered_time, last_scrobble_time},
-          extent: total_scrobbles,
-          date: ~D[2021-04-03],
-          type: FileArchive
-      }
-
       %{
-        metadata: metadata,
         scrobbles: scrobbles,
-        scrobbles_json: scrobbles |> Jason.encode!(),
-        user: user
+        scrobbles_json: scrobbles |> Jason.encode!()
       }
     end
 
@@ -280,6 +200,57 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       LastfmArchive.FileIOMock |> expect(:write, 0, fn _path, _data, [:compressed] -> :ok end)
 
       assert capture_log(fn -> assert {:ok, %Metadata{}} = FileArchive.archive(metadata, []) end) =~ "Skipping"
+    end
+  end
+
+  describe "read/2" do
+    test "returns data frame for a day's scrobbles", %{metadata: metadata} do
+      date = Date.utc_today()
+      day = date |> to_string() |> String.replace("-", "/")
+      archive_file = "200_001.gz"
+      user_dir = Utils.user_dir(metadata.creator) <> "/#{day}"
+      file_path = user_dir <> "/#{archive_file}"
+
+      LastfmArchive.FileIOMock
+      |> expect(:ls!, fn ^user_dir -> [archive_file] end)
+      |> expect(:read, fn ^file_path -> {:ok, gzipped_scrobbles()} end)
+
+      %DataFrame{} = df = FileArchive.read(metadata, day: date)
+      assert {105, 11} == df |> DataFrame.collect() |> DataFrame.shape()
+    end
+
+    test "concats multi-page scrobbles of a day into a single data frame", %{metadata: metadata} do
+      date = Date.utc_today()
+
+      LastfmArchive.FileIOMock
+      |> expect(:ls!, fn _user_dir -> ["200_001.gz", "200_002.gz"] end)
+      |> expect(:read, 2, fn _file_path -> {:ok, gzipped_scrobbles()} end)
+
+      %DataFrame{} = df = FileArchive.read(metadata, day: date)
+      assert {105 * 2, 11} == df |> DataFrame.collect() |> DataFrame.shape()
+    end
+
+    test "returns data frame for a month's scrobbles", %{metadata: metadata} do
+      date = ~D[2023-06-01]
+      user = "a_lastfm_user"
+      user_dir = Utils.user_dir(user)
+      wildcard_path = "#{user_dir}/2023/06/**/*.gz"
+
+      files = [
+        "#{user_dir}/2023/06/01/200_001.gz",
+        "#{user_dir}/2023/06/02/200_001.gz",
+        "#{user_dir}/2023/06/03/200_001.gz"
+      ]
+
+      LastfmArchive.PathIOMock |> expect(:wildcard, fn ^wildcard_path, _options -> files end)
+      LastfmArchive.FileIOMock |> expect(:read, 3, fn _file_path -> {:ok, gzipped_scrobbles()} end)
+
+      %DataFrame{} = df = FileArchive.read(metadata, month: date)
+      assert {105 * 3, 11} == df |> DataFrame.collect() |> DataFrame.shape()
+    end
+
+    test "when no day or month option given", %{metadata: metadata} do
+      assert {:error, _reason} = FileArchive.read(metadata, [])
     end
   end
 end
