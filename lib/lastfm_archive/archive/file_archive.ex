@@ -1,5 +1,7 @@
 defmodule LastfmArchive.Archive.FileArchive do
-  @moduledoc false
+  @moduledoc """
+  An archive containing raw data extracted from Lastfm API.
+  """
 
   use LastfmArchive.Behaviour.Archive
 

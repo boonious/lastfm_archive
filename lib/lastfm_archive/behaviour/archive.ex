@@ -2,21 +2,26 @@ defmodule LastfmArchive.Behaviour.Archive do
   @moduledoc """
   Behaviour of a Lastfm archive.
 
-  An archive contains scrobbles data retrieved from Lastfm API. It can be based
-  upon various storage implementation such as file systems and databases.
+  An archive contains transformed or scrobbles data retrieved from Lastfm API.
+  It can be based upon various storage implementation such as file systems and
+  databases.
   """
 
   @type api :: LastfmArchive.LastfmClient.LastfmApi.t()
   @type metadata :: LastfmArchive.Archive.Metadata.t()
   @type options :: keyword()
-  @type user :: binary()
   @type read_options :: [day: Date.t(), month: Date.t()]
   @type scrobbles :: map()
+  @type transformer :: module()
+  @type user :: binary()
 
   @doc """
-  Writes latest metadata to file.
+  Archives all scrobbles data for a Lastfm user.
+
+  Optional for post-hoc archives that are based on existing
+  local archive such as TSV, Parquet archives.
   """
-  @callback update_metadata(metadata(), options) :: {:ok, metadata()} | {:error, term()}
+  @callback archive(metadata(), options, api) :: {:ok, metadata()} | {:error, term()}
 
   @doc """
   Returns metadata of an existing archive.
@@ -24,14 +29,21 @@ defmodule LastfmArchive.Behaviour.Archive do
   @callback describe(user, options) :: {:ok, metadata()} | {:error, term()}
 
   @doc """
-  Archives all scrobbles data for a Lastfm user.
+  Optionally applies post-archive side effects such as archive transformation or loading.
   """
-  @callback archive(metadata(), options, api) :: {:ok, metadata()} | {:error, term()}
+  @callback after_archive(metadata(), transformer()) :: {:ok, metadata()} | {:error, term()}
 
   @doc """
   Read access to the archive, returns an Explorer DataFrame for further data manipulation.
   """
   @callback read(metadata(), read_options) :: {:ok, Explorer.DataFrame.t()} | {:error, term()}
+
+  @doc """
+  Writes latest metadata to file.
+  """
+  @callback update_metadata(metadata(), options) :: {:ok, metadata()} | {:error, term()}
+
+  @optional_callbacks archive: 3, after_archive: 2
 
   defmacro __using__(_opts) do
     quote do
