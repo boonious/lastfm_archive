@@ -12,6 +12,7 @@ config :lastfm_archive,
 
 config :lastfm_archive,
   cache: LastfmArchive.CacheMock,
+  data_frame_io: Explorer.DataFrameMock,
   file_io: LastfmArchive.FileIOMock,
   path_io: LastfmArchive.PathIOMock
 

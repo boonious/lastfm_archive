@@ -12,6 +12,7 @@ config :lastfm_archive,
 
 config :lastfm_archive,
   cache: LastfmArchive.Cache,
+  data_frame_io: Explorer.DataFrame,
   file_io: Elixir.File,
   path_io: Elixir.Path
 

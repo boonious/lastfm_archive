@@ -1,12 +1,14 @@
 defmodule LastfmArchive.Utils do
   @moduledoc false
 
+  alias Explorer.DataFrame
   alias LastfmArchive.Archive.Metadata
   require Logger
 
   @data_dir Application.compile_env(:lastfm_archive, :data_dir, "./lastfm_data/")
   @metadata_file ".archive_metadata"
 
+  @data_frame_io Application.compile_env(:lastfm_archive, :data_frame_io, Explorer.DataFrame)
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
   @reset Application.compile_env(:lastfm_archive, :reset, false)
@@ -36,6 +38,16 @@ defmodule LastfmArchive.Utils do
     {:ok, to, _} = DateTime.from_iso8601(to)
 
     {DateTime.to_unix(from), DateTime.to_unix(to)}
+  end
+
+  @spec month_range(integer, LastfmArchive.Archive.Metadata.t()) :: list(Date.t())
+  def month_range(year, metadata) do
+    {_from, to} = build_time_range(year, metadata)
+    %Date{month: last_month} = DateTime.from_unix!(to) |> DateTime.to_date()
+
+    for month <- 1..12, month <= last_month do
+      %Date{year: year, day: 1, month: month}
+    end
   end
 
   def year_range({from, to}), do: DateTime.from_unix!(from).year..DateTime.from_unix!(to).year
@@ -84,6 +96,12 @@ defmodule LastfmArchive.Utils do
 
   def create_tsv_dir(user) do
     dir = Path.join(user_dir(user, []), "tsv")
+    unless @file_io.exists?(dir), do: @file_io.mkdir_p(dir)
+    :ok
+  end
+
+  def create_dir(user, format: format) do
+    dir = Path.join(user_dir(user, []), format |> Atom.to_string())
     unless @file_io.exists?(dir), do: @file_io.mkdir_p(dir)
     :ok
   end
@@ -151,5 +169,23 @@ defmodule LastfmArchive.Utils do
   defp get_filepath(options) do
     path = Keyword.get(options, :filepath)
     if path != nil and path != "", do: path, else: raise("please provide a valid :filepath option")
+  end
+
+  @doc """
+  Write dataframe of scrobbles to file of various storage format.
+  """
+  def write(%DataFrame{} = dataframe, year, filepath, format: :tsv) do
+    case @file_io.exists?(filepath) do
+      true ->
+        Logger.info("\nTSV file exists, skipping #{year} scrobbles.")
+
+      false ->
+        Logger.info("\nCreating TSV file for #{year} scrobbles.")
+
+        :ok =
+          dataframe
+          |> Explorer.DataFrame.collect()
+          |> @data_frame_io.to_csv(filepath, delimiter: "\t")
+    end
   end
 end
