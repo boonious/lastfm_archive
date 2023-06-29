@@ -18,7 +18,7 @@ defmodule LastfmArchive.Behaviour.ArchiveTest do
   setup :verify_on_exit!
 
   setup do
-    %{archive: LastfmArchive.TestArchive, metadata: test_file_archive("a_user")}
+    %{archive: LastfmArchive.TestArchive, metadata: file_archive_metadata("a_user")}
   end
 
   describe "update_metadata/2" do
@@ -27,7 +27,7 @@ defmodule LastfmArchive.Behaviour.ArchiveTest do
 
       LastfmArchive.FileIOMock
       |> expect(:mkdir_p, fn "test_data_dir/a_user" -> :ok end)
-      |> expect(:write, fn "test_data_dir/a_user/.archive_metadata", ^metadata_encoded -> :ok end)
+      |> expect(:write, fn "test_data_dir/a_user/.file_archive_metadata", ^metadata_encoded -> :ok end)
 
       assert {
                :ok,
@@ -46,11 +46,11 @@ defmodule LastfmArchive.Behaviour.ArchiveTest do
 
     test "reset an existing archive via 'overwrite' option", %{archive: archive} do
       earlier_created_datetime = DateTime.add(DateTime.utc_now(), -3600, :second)
-      existing_archive = test_file_archive("a_user", earlier_created_datetime)
+      metadata = file_archive_metadata("a_user", earlier_created_datetime)
 
       LastfmArchive.FileIOMock
       |> expect(:mkdir_p, fn "existing_archive/a_user" -> :ok end)
-      |> expect(:write, fn "existing_archive/a_user/.archive_metadata", _ -> :ok end)
+      |> expect(:write, fn "existing_archive/a_user/.file_archive_metadata", _ -> :ok end)
 
       assert {
                :ok,
@@ -65,7 +65,7 @@ defmodule LastfmArchive.Behaviour.ArchiveTest do
                  modified: nil,
                  date: nil
                }
-             } = archive.update_metadata(existing_archive, data_dir: "existing_archive", reset: true)
+             } = archive.update_metadata(metadata, data_dir: "existing_archive", reset: true)
 
       assert DateTime.compare(earlier_created_datetime, created) == :lt
     end
@@ -74,7 +74,7 @@ defmodule LastfmArchive.Behaviour.ArchiveTest do
   describe "describe/2" do
     test "an existing file archive", %{archive: archive, metadata: metadata} do
       archive_id = metadata.creator
-      metadata_path = Path.join([Application.get_env(:lastfm_archive, :data_dir), archive_id, ".archive_metadata"])
+      metadata_path = Path.join([Application.get_env(:lastfm_archive, :data_dir), archive_id, ".file_archive_metadata"])
 
       LastfmArchive.FileIOMock |> expect(:read, fn ^metadata_path -> {:ok, metadata |> Jason.encode!()} end)
 

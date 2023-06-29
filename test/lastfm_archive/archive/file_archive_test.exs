@@ -17,19 +17,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
 
   setup do
     user = "a_lastfm_user"
-    total_scrobbles = 400
-    registered_time = DateTime.from_iso8601("2021-04-01T18:50:07Z") |> elem(1) |> DateTime.to_unix()
-    last_scrobble_time = DateTime.from_iso8601("2021-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix()
-
-    metadata = %{
-      Metadata.new("a_lastfm_user")
-      | temporal: {registered_time, last_scrobble_time},
-        extent: total_scrobbles,
-        date: ~D[2021-04-03],
-        type: FileArchive
-    }
-
-    %{user: user, metadata: metadata}
+    %{user: user, metadata: new_archive_metadata(user: user, type: FileArchive)}
   end
 
   describe "archive/3" do

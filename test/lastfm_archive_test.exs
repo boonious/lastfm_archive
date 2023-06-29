@@ -4,26 +4,16 @@ defmodule LastfmArchiveTest do
   import Fixtures.Archive
   import Hammox
 
-  alias LastfmArchive.Archive.FileArchive
-  alias LastfmArchive.Archive.Metadata
-
   setup :set_mox_global
   setup :verify_on_exit!
 
   setup do
-    total_scrobbles = 400
-    registered_time = DateTime.from_iso8601("2021-04-01T18:50:07Z") |> elem(1) |> DateTime.to_unix()
-    last_scrobble_time = DateTime.from_iso8601("2021-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix()
+    user = "a_lastfm_user"
 
-    metadata = %{
-      Metadata.new("a_lastfm_user")
-      | temporal: {registered_time, last_scrobble_time},
-        extent: total_scrobbles,
-        date: ~D[2021-04-03],
-        type: FileArchive
+    %{
+      user: user,
+      metadata: new_archive_metadata(user: user, type: LastfmArchive.Archive.FileArchive)
     }
-
-    %{user: "a_lastfm_user", metadata: metadata}
   end
 
   describe "sync/2" do

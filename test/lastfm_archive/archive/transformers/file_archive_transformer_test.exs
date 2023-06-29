@@ -6,8 +6,8 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
   import Hammox
   import LastfmArchive.Utils, only: [user_dir: 1]
 
+  alias Explorer.DataFrame
   alias LastfmArchive.Archive.FileArchiveMock
-  alias LastfmArchive.Archive.Metadata
   alias LastfmArchive.Archive.Transformers.FileArchiveTransformer
   alias LastfmArchive.FileIOMock
 
@@ -17,20 +17,19 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
 
   setup do
     user = "a_lastfm_user"
-    total_scrobbles = 400
-    registered_time = DateTime.from_iso8601("2022-01-01T18:50:07Z") |> elem(1) |> DateTime.to_unix()
-    last_scrobble_time = DateTime.from_iso8601("2023-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix()
 
-    metadata = %{
-      Metadata.new(user)
-      | temporal: {registered_time, last_scrobble_time},
-        extent: total_scrobbles,
-        date: ~D[2021-04-03],
-        type: FileArchive
-    }
+    metadata =
+      new_archive_metadata(
+        user: user,
+        start: DateTime.from_iso8601("2022-01-01T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
+        end: DateTime.from_iso8601("2023-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
+        type: FileArchive,
+        date: ~D[2023-04-03]
+      )
 
     FileArchiveMock
     |> stub(:describe, fn ^user, _options -> {:ok, metadata} end)
+    # returns data frame with 105 scrobbles each month
     |> stub(:read, fn ^metadata, _option -> {:ok, test_data_frame()} end)
 
     %{dir: Path.join(user_dir(user), "tsv"), user: user, metadata: metadata}
@@ -48,8 +47,16 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
       |> expect(:mkdir_p, fn ^dir -> :ok end)
 
       DataFrameMock
-      |> expect(:to_csv, fn _df, ^filepath1, [delimiter: "\t"] -> :ok end)
-      |> expect(:to_csv, fn _df, ^filepath2, [delimiter: "\t"] -> :ok end)
+      |> expect(:to_csv, fn %DataFrame{} = df, ^filepath1, [delimiter: "\t"] ->
+        # whole year of scrobbles
+        assert df |> DataFrame.shape() == {12 * 105, 11}
+        :ok
+      end)
+      |> expect(:to_csv, fn %DataFrame{} = df, ^filepath2, [delimiter: "\t"] ->
+        # 4 month of scrobbles
+        assert df |> DataFrame.shape() == {4 * 105, 11}
+        :ok
+      end)
 
       assert capture_log(fn -> assert {:ok, _} = FileArchiveTransformer.apply(metadata, format: :tsv) end) =~ "Creating"
     end

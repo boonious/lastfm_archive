@@ -1,13 +1,12 @@
 defmodule LastfmArchive.Utils do
   @moduledoc false
 
+  alias LastfmArchive.Archive.FileArchive
   alias Explorer.DataFrame
   alias LastfmArchive.Archive.Metadata
   require Logger
 
   @data_dir Application.compile_env(:lastfm_archive, :data_dir, "./lastfm_data/")
-  @metadata_file ".archive_metadata"
-
   @data_frame_io Application.compile_env(:lastfm_archive, :data_frame_io, Explorer.DataFrame)
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
@@ -55,7 +54,14 @@ defmodule LastfmArchive.Utils do
   def data_dir(options \\ []), do: Keyword.get(options, :data_dir, @data_dir)
   def user_dir(user, options \\ []), do: Path.join([data_dir(options), user])
 
-  def metadata_filepath(user, options), do: Path.join([data_dir(options), user, @metadata_file])
+  def metadata_filepath(user, options) do
+    Keyword.get(options, :type, FileArchive)
+    |> Module.split()
+    |> List.last()
+    |> Macro.underscore()
+    |> then(fn archive_type -> Path.join([data_dir(options), user, ".#{archive_type}_metadata"]) end)
+  end
+
   def num_pages(playcount, per_page), do: (playcount / per_page) |> :math.ceil() |> round
 
   # returns 2021/12/31/200_001 type paths
