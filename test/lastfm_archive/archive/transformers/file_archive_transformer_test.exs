@@ -6,11 +6,11 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
   import Hammox
   import LastfmArchive.Utils, only: [user_dir: 1]
 
-  alias Explorer.DataFrame
   alias LastfmArchive.Archive.FileArchiveMock
   alias LastfmArchive.Archive.Transformers.FileArchiveTransformer
   alias LastfmArchive.FileIOMock
 
+  alias Explorer.DataFrame
   alias Explorer.DataFrameMock
 
   setup :verify_on_exit!
@@ -27,6 +27,7 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
         date: ~D[2023-04-03]
       )
 
+    # need to get rid of this.. do not create DF if TSV file exists
     FileArchiveMock
     |> stub(:describe, fn ^user, _options -> {:ok, metadata} end)
     # returns data frame with 105 scrobbles each month
@@ -39,6 +40,10 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
     test "TSV trasnformation", %{dir: dir, user: user, metadata: metadata} do
       filepath1 = Path.join([user_dir(user), "tsv", "2022.tsv.gz"])
       filepath2 = Path.join([user_dir(user), "tsv", "2023.tsv.gz"])
+
+      # read archive 16 times per 16 months scrobbles, 105 scrobbles each month
+      FileArchiveMock
+      |> expect(:read, 16, fn ^metadata, _option -> {:ok, test_data_frame()} end)
 
       FileIOMock
       |> expect(:exists?, fn ^dir -> false end)
