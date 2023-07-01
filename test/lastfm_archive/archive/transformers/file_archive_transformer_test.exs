@@ -27,12 +27,6 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
         date: ~D[2023-04-03]
       )
 
-    # need to get rid of this.. do not create DF if TSV file exists
-    FileArchiveMock
-    |> stub(:describe, fn ^user, _options -> {:ok, metadata} end)
-    # returns data frame with 105 scrobbles each month
-    |> stub(:read, fn ^metadata, _option -> {:ok, test_data_frame()} end)
-
     %{dir: Path.join(user_dir(user), "tsv"), user: user, metadata: metadata}
   end
 
@@ -43,7 +37,7 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
 
       # read archive 16 times per 16 months scrobbles, 105 scrobbles each month
       FileArchiveMock
-      |> expect(:read, 16, fn ^metadata, _option -> {:ok, test_data_frame()} end)
+      |> expect(:read, 16, fn ^metadata, _option -> {:ok, data_frame()} end)
 
       FileIOMock
       |> expect(:exists?, fn ^dir -> false end)

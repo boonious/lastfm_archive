@@ -35,7 +35,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
 
       # 4 read for 4 months, each with 105 scrobbles
       FileArchiveMock
-      |> expect(:read, 4, fn ^metadata, _option -> {:ok, test_data_frame()} end)
+      |> expect(:read, 4, fn ^metadata, _option -> {:ok, data_frame()} end)
 
       FileIOMock
       |> expect(:exists?, fn ^dir -> true end)

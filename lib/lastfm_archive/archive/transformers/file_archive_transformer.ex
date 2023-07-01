@@ -8,7 +8,7 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
   alias LastfmArchive.Archive.Metadata
   alias LastfmArchive.Behaviour.Archive
 
-  import LastfmArchive.Utils, only: [create_dir: 2, month_range: 2, year_range: 1, user_dir: 1, write: 4]
+  import LastfmArchive.Utils, only: [create_dir: 2, create_filepath: 2, month_range: 2, year_range: 1, write: 3]
   require Logger
 
   @impl true
@@ -26,11 +26,15 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
     transform(metadata, rest)
   end
 
-  # to update: do not create DF is TSV file already exists
   defp transform(%Metadata{creator: user} = metadata, [%Date{year: year} | _] = months) do
-    :ok =
-      create_dataframe(metadata, months)
-      |> write(year, Path.join([user_dir(user), "tsv", "#{year}.tsv.gz"]), format: :tsv)
+    case create_filepath(user, "tsv/#{year}.tsv.gz") do
+      {:ok, filepath} ->
+        Logger.info("\nCreating TSV file for #{year} scrobbles.")
+        :ok = create_dataframe(metadata, months) |> write(filepath, format: :tsv)
+
+      {:error, :file_exists} ->
+        Logger.info("\nTSV file exists, skipping #{year} scrobbles.")
+    end
   end
 
   defp create_dataframe(metadata, months) do

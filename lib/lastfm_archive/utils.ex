@@ -112,6 +112,15 @@ defmodule LastfmArchive.Utils do
     :ok
   end
 
+  def create_filepath(user, path) do
+    filepath = Path.join([user_dir(user), path])
+
+    case @file_io.exists?(filepath) do
+      false -> {:ok, filepath}
+      true -> {:error, :file_exists}
+    end
+  end
+
   @spec ls_archive_files(String.t(), day: Date.t(), month: Date.t()) :: list(String.t())
   def ls_archive_files(user, day: date) do
     day = date |> to_string() |> String.replace("-", "/")
@@ -151,9 +160,6 @@ defmodule LastfmArchive.Utils do
     end
   end
 
-  @doc """
-  Write scrobbles (map) data to a file in the archive of a Lastfm user.
-  """
   def write(metadata, scrobbles, options \\ [])
 
   def write(%Metadata{creator: creator}, scrobbles, options) when is_map(scrobbles) do
@@ -170,29 +176,18 @@ defmodule LastfmArchive.Utils do
     end
   end
 
+  def write(%DataFrame{} = dataframe, filepath, format: :tsv) do
+    :ok =
+      dataframe
+      |> Explorer.DataFrame.collect()
+      |> @data_frame_io.dump_csv!(delimiter: "\t")
+      |> then(fn data -> @file_io.write(filepath, data, [:compressed]) end)
+  end
+
   def write(_metadata, {:error, api_message}, _options), do: {:error, api_message}
 
   defp get_filepath(options) do
     path = Keyword.get(options, :filepath)
     if path != nil and path != "", do: path, else: raise("please provide a valid :filepath option")
-  end
-
-  @doc """
-  Write dataframe of scrobbles to file of various storage format.
-  """
-  def write(%DataFrame{} = dataframe, year, filepath, format: :tsv) do
-    case @file_io.exists?(filepath) do
-      true ->
-        Logger.info("\nTSV file exists, skipping #{year} scrobbles.")
-
-      false ->
-        Logger.info("\nCreating TSV file for #{year} scrobbles.")
-
-        :ok =
-          dataframe
-          |> Explorer.DataFrame.collect()
-          |> @data_frame_io.dump_csv!(delimiter: "\t")
-          |> then(fn data -> @file_io.write(filepath, data, [:compressed]) end)
-    end
   end
 end

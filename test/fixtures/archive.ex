@@ -46,7 +46,7 @@ defmodule Fixtures.Archive do
     }
   end
 
-  def test_data_frame() do
+  def data_frame() do
     gzipped_scrobbles()
     |> :zlib.gunzip()
     |> Jason.decode!()

@@ -43,7 +43,7 @@ defmodule LastfmArchiveTest do
 
       LastfmArchive.Archive.FileArchiveMock
       |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-      |> expect(:read, fn ^metadata, ^option -> {:ok, test_data_frame()} end)
+      |> expect(:read, fn ^metadata, ^option -> {:ok, data_frame()} end)
 
       LastfmArchive.read(user, option)
     end
