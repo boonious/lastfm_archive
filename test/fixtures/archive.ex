@@ -55,6 +55,8 @@ defmodule Fixtures.Archive do
     |> Explorer.DataFrame.new(lazy: true)
   end
 
+  def tsv_data(), do: File.read!("test/fixtures/2023.tsv")
+
   def archive_metadata(), do: File.read!("test/fixtures/metadata.json")
 
   def gzipped_scrobbles(), do: File.read!("test/fixtures/200_001.gz")

@@ -191,7 +191,8 @@ defmodule LastfmArchive.Utils do
         :ok =
           dataframe
           |> Explorer.DataFrame.collect()
-          |> @data_frame_io.to_csv(filepath, delimiter: "\t")
+          |> @data_frame_io.dump_csv!(delimiter: "\t")
+          |> then(fn data -> @file_io.write(filepath, data, [:compressed]) end)
     end
   end
 end

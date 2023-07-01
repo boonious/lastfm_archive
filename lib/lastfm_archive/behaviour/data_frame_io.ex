@@ -3,5 +3,5 @@ defmodule LastfmArchive.Behaviour.DataFrameIo do
   For Explorer.DataFrame I/O mocks.
   """
 
-  @callback to_csv(df :: Explorer.DataFrame.t(), filename :: String.t(), opts :: Keyword.t()) :: :ok | {:error, term()}
+  @callback dump_csv!(df :: Explorer.DataFrame.t(), opts :: Keyword.t()) :: String.t()
 end

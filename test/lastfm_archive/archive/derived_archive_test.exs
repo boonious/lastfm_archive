@@ -40,12 +40,13 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
       FileIOMock
       |> expect(:exists?, fn ^dir -> true end)
       |> expect(:exists?, fn ^filepath -> false end)
+      |> expect(:write, fn ^filepath, _data, [:compressed] -> :ok end)
 
       DataFrameMock
-      |> expect(:to_csv, fn %DataFrame{} = df, ^filepath, [delimiter: "\t"] ->
+      |> expect(:dump_csv!, fn %DataFrame{} = df, [delimiter: "\t"] ->
         # 4 month of scrobbles
         assert df |> DataFrame.shape() == {4 * 105, 11}
-        :ok
+        tsv_data()
       end)
 
       assert {:ok, _metadata} = DerivedArchive.after_archive(metadata, FileArchiveTransformer, format: :tsv)

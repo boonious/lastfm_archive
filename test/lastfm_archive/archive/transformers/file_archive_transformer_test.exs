@@ -50,17 +50,19 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
       |> expect(:exists?, fn ^filepath1 -> false end)
       |> expect(:exists?, fn ^filepath2 -> false end)
       |> expect(:mkdir_p, fn ^dir -> :ok end)
+      |> expect(:write, fn ^filepath1, _data, [:compressed] -> :ok end)
+      |> expect(:write, fn ^filepath2, _data, [:compressed] -> :ok end)
 
       DataFrameMock
-      |> expect(:to_csv, fn %DataFrame{} = df, ^filepath1, [delimiter: "\t"] ->
+      |> expect(:dump_csv!, fn %DataFrame{} = df, [delimiter: "\t"] ->
         # whole year of scrobbles
         assert df |> DataFrame.shape() == {12 * 105, 11}
-        :ok
+        tsv_data()
       end)
-      |> expect(:to_csv, fn %DataFrame{} = df, ^filepath2, [delimiter: "\t"] ->
+      |> expect(:dump_csv!, fn %DataFrame{} = df, [delimiter: "\t"] ->
         # 4 month of scrobbles
         assert df |> DataFrame.shape() == {4 * 105, 11}
-        :ok
+        tsv_data()
       end)
 
       assert capture_log(fn -> assert {:ok, _} = FileArchiveTransformer.apply(metadata, format: :tsv) end) =~ "Creating"
@@ -70,9 +72,10 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
       FileIOMock
       |> expect(:exists?, fn ^dir -> true end)
       |> stub(:exists?, fn _filepath -> true end)
+      |> expect(:write, 0, fn __filepath, _data, [:compressed] -> :ok end)
 
       DataFrameMock
-      |> expect(:to_csv, 0, fn _df, _filepath, [delimiter: "\t"] -> :ok end)
+      |> expect(:dump_csv!, 0, fn _df, [delimiter: "\t"] -> :ok end)
 
       assert capture_log(fn -> assert {:ok, _} = FileArchiveTransformer.apply(metadata, format: :tsv) end) =~ "skipping"
     end
