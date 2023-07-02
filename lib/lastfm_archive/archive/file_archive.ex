@@ -41,8 +41,8 @@ defmodule LastfmArchive.Archive.FileArchive do
   end
 
   @impl true
-  def read(%{creator: user} = _metadata, day: %Date{} = date), do: do_read(user, day: date)
-  def read(%{creator: user} = _metadata, month: %Date{} = date), do: do_read(user, month: date)
+  def read(%{creator: user} = _metadata, day: %Date{} = date), do: {:ok, do_read(user, day: date)}
+  def read(%{creator: user} = _metadata, month: %Date{} = date), do: {:ok, do_read(user, month: date)}
   def read(_metadata, _options), do: {:error, :einval}
 
   defp do_read(user, option) do

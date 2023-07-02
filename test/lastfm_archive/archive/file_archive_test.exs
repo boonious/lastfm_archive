@@ -203,7 +203,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       |> expect(:ls!, fn ^user_dir -> [archive_file] end)
       |> expect(:read, fn ^file_path -> {:ok, gzipped_scrobbles()} end)
 
-      %DataFrame{} = df = FileArchive.read(metadata, day: date)
+      {:ok, %DataFrame{} = df} = FileArchive.read(metadata, day: date)
       assert {105, 11} == df |> DataFrame.collect() |> DataFrame.shape()
     end
 
@@ -214,7 +214,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       |> expect(:ls!, fn _user_dir -> ["200_001.gz", "200_002.gz"] end)
       |> expect(:read, 2, fn _file_path -> {:ok, gzipped_scrobbles()} end)
 
-      %DataFrame{} = df = FileArchive.read(metadata, day: date)
+      {:ok, %DataFrame{} = df} = FileArchive.read(metadata, day: date)
       assert {105 * 2, 11} == df |> DataFrame.collect() |> DataFrame.shape()
     end
 
@@ -233,7 +233,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       LastfmArchive.PathIOMock |> expect(:wildcard, fn ^wildcard_path, _options -> files end)
       LastfmArchive.FileIOMock |> expect(:read, 3, fn _file_path -> {:ok, gzipped_scrobbles()} end)
 
-      %DataFrame{} = df = FileArchive.read(metadata, month: date)
+      {:ok, %DataFrame{} = df} = FileArchive.read(metadata, month: date)
       assert {105 * 3, 11} == df |> DataFrame.collect() |> DataFrame.shape()
     end
 

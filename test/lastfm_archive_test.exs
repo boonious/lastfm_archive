@@ -45,7 +45,7 @@ defmodule LastfmArchiveTest do
       |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
       |> expect(:read, fn ^metadata, ^option -> {:ok, data_frame()} end)
 
-      LastfmArchive.read(user, option)
+      assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read(user, option)
     end
   end
 end
