@@ -12,6 +12,7 @@ defmodule LastfmArchive do
 
   """
 
+  alias LastfmArchive.Archive.Transformers.FileArchiveTransformer
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.LastfmClient.Impl, as: LastfmClient
   alias LastfmArchive.LastfmClient.LastfmApi
@@ -21,9 +22,11 @@ defmodule LastfmArchive do
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
 
   @type metadata :: LastfmArchive.Archive.Metadata.t()
-  @type read_options :: LastfmArchive.Behaviour.Archive.read_options()
   @type time_range :: {integer, integer}
   @type solr_url :: atom | Hui.URL.t()
+
+  @type read_options :: LastfmArchive.Behaviour.Archive.read_options()
+  @type transform_options :: LastfmArchive.Behaviour.Archive.transform_options()
 
   @doc """
   Returns the total playcount and registered, i.e. earliest scrobble time for a user.
@@ -92,7 +95,7 @@ defmodule LastfmArchive do
   @spec sync(binary, keyword) :: {:ok, metadata()} | {:error, :file.posix()}
   def sync(user \\ LastfmClient.default_user(), options \\ []) do
     user
-    |> metadata(options)
+    |> metadata()
     |> Archive.impl().archive(options, LastfmApi.new())
   end
 
@@ -118,15 +121,37 @@ defmodule LastfmArchive do
   - `:month` - read scrobbles for this particular month (`Date.t()`)
   """
   @spec read(binary, read_options) :: {:ok, Explorer.DataFrame} | {:error, term()}
-  def read(user \\ LastfmClient.default_user(), read_options) do
+  def read(user \\ LastfmClient.default_user(), options) do
     user
-    |> metadata([])
-    |> Archive.impl().read(read_options)
+    |> metadata()
+    |> Archive.impl().read(options)
   end
 
-  defp metadata(user, options) do
-    {:ok, metadata} = user |> Archive.impl().describe(options)
+  @spec transform(binary, transform_options) :: any
+  def transform(user \\ LastfmClient.default_user(), options \\ [format: :tsv])
+
+  def transform(user, [format: :tsv] = options) when is_binary(user) do
+    user
+    |> metadata(:derived_archive, options)
+    |> update_metadata(:derived_archive, options)
+    |> do_transform(options)
+    |> update_metadata(:derived_archive, options)
+  end
+
+  defp do_transform({:ok, metadata}, options) do
+    {:ok, metadata} = Archive.impl(:derived_archive).after_archive(metadata, FileArchiveTransformer, options)
     metadata
+  end
+
+  defp metadata(user, archive_type \\ :file_archive, options \\ [])
+
+  defp metadata(user, archive_type, options) do
+    {:ok, metadata} = user |> Archive.impl(archive_type).describe(options)
+    metadata
+  end
+
+  defp update_metadata(metadata, archive_type, options) do
+    Archive.impl(archive_type).update_metadata(metadata, options)
   end
 
   @doc """

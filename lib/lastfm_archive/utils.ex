@@ -1,6 +1,7 @@
 defmodule LastfmArchive.Utils do
   @moduledoc false
 
+  alias LastfmArchive.Archive.DerivedArchive
   alias LastfmArchive.Archive.FileArchive
   alias Explorer.DataFrame
   alias LastfmArchive.Archive.Metadata
@@ -41,10 +42,11 @@ defmodule LastfmArchive.Utils do
 
   @spec month_range(integer, LastfmArchive.Archive.Metadata.t()) :: list(Date.t())
   def month_range(year, metadata) do
-    {_from, to} = build_time_range(year, metadata)
+    {from, to} = build_time_range(year, metadata)
+    %Date{month: first_month} = DateTime.from_unix!(from) |> DateTime.to_date()
     %Date{month: last_month} = DateTime.from_unix!(to) |> DateTime.to_date()
 
-    for month <- 1..12, month <= last_month do
+    for month <- 1..12, month <= last_month, month >= first_month do
       %Date{year: year, day: 1, month: month}
     end
   end
@@ -54,12 +56,15 @@ defmodule LastfmArchive.Utils do
   def data_dir(options \\ []), do: Keyword.get(options, :data_dir, @data_dir)
   def user_dir(user, options \\ []), do: Path.join([data_dir(options), user])
 
-  def metadata_filepath(user, options) do
-    Keyword.get(options, :type, FileArchive)
+  def metadata_filepath(user, options \\ []) do
+    format = Keyword.get(options, :format, "")
+    {type, format} = if format == "", do: {FileArchive, ""}, else: {DerivedArchive, "#{format}_"}
+
+    type
     |> Module.split()
     |> List.last()
     |> Macro.underscore()
-    |> then(fn archive_type -> Path.join([data_dir(options), user, ".#{archive_type}_metadata"]) end)
+    |> then(fn archive_type -> Path.join([data_dir(options), user, ".#{format}#{archive_type}_metadata"]) end)
   end
 
   def num_pages(playcount, per_page), do: (playcount / per_page) |> :math.ceil() |> round

@@ -9,11 +9,14 @@ defmodule LastfmArchive.Behaviour.Archive do
 
   @type api :: LastfmArchive.LastfmClient.LastfmApi.t()
   @type metadata :: LastfmArchive.Archive.Metadata.t()
-  @type options :: keyword()
-  @type read_options :: [day: Date.t(), month: Date.t()]
+
   @type scrobbles :: map()
   @type transformer :: module()
   @type user :: binary()
+
+  @type options :: keyword()
+  @type read_options :: [day: Date.t(), month: Date.t()]
+  @type transform_options :: [format: atom()]
 
   @doc """
   Archives all scrobbles data for a Lastfm user.
@@ -26,7 +29,7 @@ defmodule LastfmArchive.Behaviour.Archive do
   @doc """
   Returns metadata of an existing archive.
   """
-  @callback describe(user, options) :: {:ok, metadata()} | {:error, term()}
+  @callback describe(user, transform_options) :: {:ok, metadata()} | {:error, term()}
 
   @doc """
   Optionally applies post-archive side effects such as archive transformation or loading.
@@ -64,7 +67,7 @@ defmodule LastfmArchive.Behaviour.Archive do
       def describe(user, options \\ []) do
         case @file_io.read(metadata_filepath(user, options)) do
           {:ok, metadata} -> {:ok, Jason.decode!(metadata, keys: :atoms!) |> Metadata.new()}
-          {:error, :enoent} -> {:ok, Metadata.new(user)}
+          {:error, :enoent} -> {:ok, Metadata.new(user, options)}
         end
       end
 
@@ -73,7 +76,12 @@ defmodule LastfmArchive.Behaviour.Archive do
   end
 
   @doc false
-  def impl, do: Application.get_env(:lastfm_archive, :type, LastfmArchive.Archive.FileArchive)
+  def impl(type \\ :file_archive)
+  def impl(:file_archive), do: Application.get_env(:lastfm_archive, :file_archive, LastfmArchive.Archive.FileArchive)
+
+  def impl(:derived_archive) do
+    Application.get_env(:lastfm_archive, :derived_archive, LastfmArchive.Archive.DerivedArchive)
+  end
 end
 
 defimpl Jason.Encoder, for: Tuple do

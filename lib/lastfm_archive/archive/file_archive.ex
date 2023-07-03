@@ -52,8 +52,8 @@ defmodule LastfmArchive.Archive.FileArchive do
     |> Explorer.DataFrame.concat_rows()
   end
 
-  defp create_lazy_data_frame(user, file_path) do
-    LastfmArchive.Utils.read(user, file_path)
+  defp create_lazy_data_frame(user, filepath) do
+    LastfmArchive.Utils.read(user, filepath)
     |> then(fn {:ok, scrobbles} -> scrobbles |> Jason.decode!() end)
     |> Scrobble.new()
     |> Enum.map(&Map.from_struct/1)

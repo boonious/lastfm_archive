@@ -36,6 +36,10 @@ defmodule Fixtures.Archive do
     }
   end
 
+  def new_derived_archive_metadata(file_archive_metadata, options) do
+    Metadata.new(file_archive_metadata, options)
+  end
+
   defp test_archive(user) do
     %{
       Metadata.new(user)
