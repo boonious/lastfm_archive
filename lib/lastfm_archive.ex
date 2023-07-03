@@ -127,6 +127,25 @@ defmodule LastfmArchive do
     |> Archive.impl().read(options)
   end
 
+  @doc """
+  Transform downloaded file archive into various storage formats for a Lastfm user.
+
+  ### Example
+
+  ```
+    LastfmArchive.transform("a_lastfm_user", format: :tsv)
+
+    # or which currently transform archive of the default user to TSV files
+    LastfmArchive.transform()
+  ```
+
+  The function only transforms downloaded archive data on local filesystem. It does not fetch data from Lastfm,
+  which can be done via `sync/2`.
+
+  The TSV files are created on a yearly basis and stored in `gzip` compressed format.
+  They are stored in a `tsv` directory within either the default `./lastfm_data/`
+  or the directory specified in config/config.exs (`:lastfm_archive, :data_dir`).
+  """
   @spec transform(binary, transform_options) :: any
   def transform(user \\ LastfmClient.default_user(), options \\ [format: :tsv])
 
@@ -152,56 +171,6 @@ defmodule LastfmArchive do
 
   defp update_metadata(metadata, archive_type, options) do
     Archive.impl(archive_type).update_metadata(metadata, options)
-  end
-
-  @doc """
-  Transform downloaded raw JSON data and create a TSV file archive for a Lastfm user.
-
-  ### Example
-
-  ```
-    LastfmArchive.transform_archive("a_lastfm_user")
-  ```
-
-  The function only transforms downloaded archive data on local filesystem. It does not fetch data from Lastfm,
-  which can be done via `archive/2`, `archive/3`.
-
-  The TSV files are created on a yearly basis and stored in `gzip` compressed format.
-  They are stored in a `tsv` directory within either the default `./lastfm_data/`
-  or the directory specified in config/config.exs (`:lastfm_archive, :data_dir`).
-
-  """
-  @spec transform_archive(binary, :tsv) :: :ok
-  def transform_archive(user, _mode \\ :tsv) do
-    raw_json_files = ls_archive_files(user)
-
-    # group file paths by years, to create per-year TSV file archive
-    archive_file_batches =
-      Enum.group_by(raw_json_files, fn x ->
-        x = Regex.run(~r/^\d{4}/, x)
-        if is_nil(x), do: x, else: x |> hd
-      end)
-
-    :ok = Utils.create_tsv_dir(user)
-
-    for {year, archive_files} <- archive_file_batches, year != nil do
-      tsv_filepath = Path.join([Utils.user_dir(user), "tsv", "#{year}.tsv.gz"])
-
-      if @file_io.exists?(tsv_filepath) do
-        IO.puts("\nTSV file archive exists, skipping #{year} scrobbles.")
-      else
-        IO.puts("\nCreating TSV file archive for #{year} scrobbles.")
-        write_tsv(user, tsv_filepath, archive_files)
-      end
-    end
-
-    :ok
-  end
-
-  defp write_tsv(user, tsv_filepath, archive_files) do
-    for archive_file <- archive_files, String.match?(archive_file, ~r/^\d{4}/) do
-      @file_io.write(tsv_filepath, LastfmArchive.Transform.transform(user, archive_file), [:compressed])
-    end
   end
 
   # return all archive file paths in a list

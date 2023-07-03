@@ -71,5 +71,16 @@ defmodule LastfmArchiveTest do
 
       LastfmArchive.transform(user, format: :tsv)
     end
+
+    test "scrobbles of default user with default (TSV) format", %{tsv_archive_metadata: metadata} do
+      user = Application.get_env(:lastfm_archive, :user)
+
+      DerivedArchiveMock
+      |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
+      |> expect(:update_metadata, 2, fn metadata, _options -> {:ok, metadata} end)
+      |> expect(:after_archive, fn ^metadata, FileArchiveTransformer, [format: :tsv] -> {:ok, metadata} end)
+
+      LastfmArchive.transform()
+    end
   end
 end

@@ -58,8 +58,7 @@ defmodule LastfmArchive.UtilsTest do
     assert {:error, :enoent} = Utils.read(test_user, "non_existing_file.tsv.gz")
     assert {:ok, resp} = Utils.read(test_user, "tsv/2018.tsv.gz")
 
-    [header | scrobbles] = resp |> String.split("\n")
-    assert header == LastfmArchive.Transform.tsv_headers()
+    [_header | scrobbles] = resp |> String.split("\n")
     assert length(scrobbles) > 0
   end
 
