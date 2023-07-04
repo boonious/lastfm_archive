@@ -135,7 +135,7 @@ defmodule LastfmArchive.UtilsTest do
       |> expect(:write, 0, fn ^full_path, ^data_json, [:compressed] -> true end)
 
       assert_raise RuntimeError, "please provide a valid :filepath option", fn ->
-        Utils.write(file_archive_metadata(user), context.data)
+        Utils.write(file_archive_metadata(user), context.data, [])
       end
     end
   end

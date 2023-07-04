@@ -18,7 +18,6 @@ defmodule LastfmArchive do
   alias LastfmArchive.LastfmClient.LastfmApi
   alias LastfmArchive.Utils
 
-  @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
 
   @type metadata :: LastfmArchive.Archive.Metadata.t()
