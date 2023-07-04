@@ -17,19 +17,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
 
   setup do
     user = "a_lastfm_user"
-    total_scrobbles = 400
-    registered_time = DateTime.from_iso8601("2021-04-01T18:50:07Z") |> elem(1) |> DateTime.to_unix()
-    last_scrobble_time = DateTime.from_iso8601("2021-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix()
-
-    metadata = %{
-      Metadata.new("a_lastfm_user")
-      | temporal: {registered_time, last_scrobble_time},
-        extent: total_scrobbles,
-        date: ~D[2021-04-03],
-        type: FileArchive
-    }
-
-    %{user: user, metadata: metadata}
+    %{user: user, metadata: new_archive_metadata(user: user, type: FileArchive)}
   end
 
   describe "archive/3" do
@@ -215,7 +203,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       |> expect(:ls!, fn ^user_dir -> [archive_file] end)
       |> expect(:read, fn ^file_path -> {:ok, gzipped_scrobbles()} end)
 
-      %DataFrame{} = df = FileArchive.read(metadata, day: date)
+      {:ok, %DataFrame{} = df} = FileArchive.read(metadata, day: date)
       assert {105, 11} == df |> DataFrame.collect() |> DataFrame.shape()
     end
 
@@ -226,7 +214,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       |> expect(:ls!, fn _user_dir -> ["200_001.gz", "200_002.gz"] end)
       |> expect(:read, 2, fn _file_path -> {:ok, gzipped_scrobbles()} end)
 
-      %DataFrame{} = df = FileArchive.read(metadata, day: date)
+      {:ok, %DataFrame{} = df} = FileArchive.read(metadata, day: date)
       assert {105 * 2, 11} == df |> DataFrame.collect() |> DataFrame.shape()
     end
 
@@ -245,7 +233,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       LastfmArchive.PathIOMock |> expect(:wildcard, fn ^wildcard_path, _options -> files end)
       LastfmArchive.FileIOMock |> expect(:read, 3, fn _file_path -> {:ok, gzipped_scrobbles()} end)
 
-      %DataFrame{} = df = FileArchive.read(metadata, month: date)
+      {:ok, %DataFrame{} = df} = FileArchive.read(metadata, month: date)
       assert {105 * 3, 11} == df |> DataFrame.collect() |> DataFrame.shape()
     end
 

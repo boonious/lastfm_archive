@@ -1,12 +1,14 @@
 defmodule LastfmArchive.Utils do
   @moduledoc false
 
+  alias LastfmArchive.Archive.DerivedArchive
+  alias LastfmArchive.Archive.FileArchive
+  alias Explorer.DataFrame
   alias LastfmArchive.Archive.Metadata
   require Logger
 
   @data_dir Application.compile_env(:lastfm_archive, :data_dir, "./lastfm_data/")
-  @metadata_file ".archive_metadata"
-
+  @data_frame_io Application.compile_env(:lastfm_archive, :data_frame_io, Explorer.DataFrame)
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
   @reset Application.compile_env(:lastfm_archive, :reset, false)
@@ -38,12 +40,33 @@ defmodule LastfmArchive.Utils do
     {DateTime.to_unix(from), DateTime.to_unix(to)}
   end
 
+  @spec month_range(integer, LastfmArchive.Archive.Metadata.t()) :: list(Date.t())
+  def month_range(year, metadata) do
+    {from, to} = build_time_range(year, metadata)
+    %Date{month: first_month} = DateTime.from_unix!(from) |> DateTime.to_date()
+    %Date{month: last_month} = DateTime.from_unix!(to) |> DateTime.to_date()
+
+    for month <- 1..12, month <= last_month, month >= first_month do
+      %Date{year: year, day: 1, month: month}
+    end
+  end
+
   def year_range({from, to}), do: DateTime.from_unix!(from).year..DateTime.from_unix!(to).year
 
   def data_dir(options \\ []), do: Keyword.get(options, :data_dir, @data_dir)
   def user_dir(user, options \\ []), do: Path.join([data_dir(options), user])
 
-  def metadata_filepath(user, options), do: Path.join([data_dir(options), user, @metadata_file])
+  def metadata_filepath(user, options \\ []) do
+    format = Keyword.get(options, :format, "")
+    {type, format} = if format == "", do: {FileArchive, ""}, else: {DerivedArchive, "#{format}_"}
+
+    type
+    |> Module.split()
+    |> List.last()
+    |> Macro.underscore()
+    |> then(fn archive_type -> Path.join([data_dir(options), user, ".#{format}#{archive_type}_metadata"]) end)
+  end
+
   def num_pages(playcount, per_page), do: (playcount / per_page) |> :math.ceil() |> round
 
   # returns 2021/12/31/200_001 type paths
@@ -88,6 +111,21 @@ defmodule LastfmArchive.Utils do
     :ok
   end
 
+  def create_dir(user, format: format) do
+    dir = Path.join(user_dir(user, []), format |> Atom.to_string())
+    unless @file_io.exists?(dir), do: @file_io.mkdir_p(dir)
+    :ok
+  end
+
+  def create_filepath(user, path) do
+    filepath = Path.join([user_dir(user), path])
+
+    case @file_io.exists?(filepath) do
+      false -> {:ok, filepath}
+      true -> {:error, :file_exists}
+    end
+  end
+
   @spec ls_archive_files(String.t(), day: Date.t(), month: Date.t()) :: list(String.t())
   def ls_archive_files(user, day: date) do
     day = date |> to_string() |> String.replace("-", "/")
@@ -127,9 +165,6 @@ defmodule LastfmArchive.Utils do
     end
   end
 
-  @doc """
-  Write scrobbles (map) data to a file in the archive of a Lastfm user.
-  """
   def write(metadata, scrobbles, options \\ [])
 
   def write(%Metadata{creator: creator}, scrobbles, options) when is_map(scrobbles) do
@@ -144,6 +179,14 @@ defmodule LastfmArchive.Utils do
       unless @file_io.exists?(full_path_dir), do: @file_io.mkdir_p(full_path_dir)
       @file_io.write(full_path, scrobbles |> Jason.encode!(), [:compressed])
     end
+  end
+
+  def write(%DataFrame{} = dataframe, filepath, format: :tsv) do
+    :ok =
+      dataframe
+      |> Explorer.DataFrame.collect()
+      |> @data_frame_io.dump_csv!(delimiter: "\t")
+      |> then(fn data -> @file_io.write(filepath, data, [:compressed]) end)
   end
 
   def write(_metadata, {:error, api_message}, _options), do: {:error, api_message}

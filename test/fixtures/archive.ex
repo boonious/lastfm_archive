@@ -1,16 +1,44 @@
 defmodule Fixtures.Archive do
   @moduledoc false
+  alias LastfmArchive.Archive.FileArchive
   alias LastfmArchive.Archive.Metadata
 
   @default_user Application.compile_env(:lastfm_archive, :user)
   @registered_time DateTime.from_iso8601("2021-04-01T18:50:07Z") |> elem(1) |> DateTime.to_unix()
   @latest_scrobble_time DateTime.from_iso8601("2021-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix()
+  @date ~D[2021-04-03]
+  @total 400
 
-  def test_file_archive(), do: test_archive(@default_user)
-  def test_file_archive(@default_user), do: test_archive(@default_user)
+  def file_archive_metadata(), do: test_archive(@default_user)
+  def file_archive_metadata(@default_user), do: test_archive(@default_user)
 
-  def test_file_archive(user), do: test_archive(user)
-  def test_file_archive(user, created_datetime), do: %{test_archive(user) | created: created_datetime}
+  def file_archive_metadata(user), do: test_archive(user)
+  def file_archive_metadata(user, created_datetime), do: %{test_archive(user) | created: created_datetime}
+
+  @spec new_archive_metadata(keyword) :: LastfmArchive.Archive.Metadata.t()
+  def new_archive_metadata(args) when is_list(args) do
+    args =
+      Keyword.validate!(args,
+        user: "a_lastfm_user",
+        start: @registered_time,
+        end: @latest_scrobble_time,
+        date: @date,
+        type: FileArchive,
+        total: @total
+      )
+
+    %{
+      Metadata.new(Keyword.get(args, :user))
+      | temporal: {Keyword.get(args, :start), Keyword.get(args, :end)},
+        extent: Keyword.get(args, :total),
+        date: Keyword.get(args, :date),
+        type: Keyword.get(args, :type)
+    }
+  end
+
+  def new_derived_archive_metadata(file_archive_metadata, options) do
+    Metadata.new(file_archive_metadata, options)
+  end
 
   defp test_archive(user) do
     %{
@@ -22,7 +50,7 @@ defmodule Fixtures.Archive do
     }
   end
 
-  def test_data_frame() do
+  def data_frame() do
     gzipped_scrobbles()
     |> :zlib.gunzip()
     |> Jason.decode!()
@@ -30,6 +58,8 @@ defmodule Fixtures.Archive do
     |> Enum.map(&Map.from_struct/1)
     |> Explorer.DataFrame.new(lazy: true)
   end
+
+  def tsv_data(), do: File.read!("test/fixtures/2023.tsv")
 
   def archive_metadata(), do: File.read!("test/fixtures/metadata.json")
 

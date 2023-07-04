@@ -12,6 +12,7 @@ defmodule LastfmArchive do
 
   """
 
+  alias LastfmArchive.Archive.Transformers.FileArchiveTransformer
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.LastfmClient.Impl, as: LastfmClient
   alias LastfmArchive.LastfmClient.LastfmApi
@@ -21,9 +22,11 @@ defmodule LastfmArchive do
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
 
   @type metadata :: LastfmArchive.Archive.Metadata.t()
-  @type read_options :: LastfmArchive.Behaviour.Archive.read_options()
   @type time_range :: {integer, integer}
   @type solr_url :: atom | Hui.URL.t()
+
+  @type read_options :: LastfmArchive.Behaviour.Archive.read_options()
+  @type transform_options :: LastfmArchive.Behaviour.Archive.transform_options()
 
   @doc """
   Returns the total playcount and registered, i.e. earliest scrobble time for a user.
@@ -92,7 +95,7 @@ defmodule LastfmArchive do
   @spec sync(binary, keyword) :: {:ok, metadata()} | {:error, :file.posix()}
   def sync(user \\ LastfmClient.default_user(), options \\ []) do
     user
-    |> metadata(options)
+    |> metadata()
     |> Archive.impl().archive(options, LastfmApi.new())
   end
 
@@ -118,65 +121,56 @@ defmodule LastfmArchive do
   - `:month` - read scrobbles for this particular month (`Date.t()`)
   """
   @spec read(binary, read_options) :: {:ok, Explorer.DataFrame} | {:error, term()}
-  def read(user \\ LastfmClient.default_user(), read_options) do
+  def read(user \\ LastfmClient.default_user(), options) do
     user
-    |> metadata([])
-    |> Archive.impl().read(read_options)
-  end
-
-  defp metadata(user, options) do
-    {:ok, metadata} = user |> Archive.impl().describe(options)
-    metadata
+    |> metadata()
+    |> Archive.impl().read(options)
   end
 
   @doc """
-  Transform downloaded raw JSON data and create a TSV file archive for a Lastfm user.
+  Transform downloaded file archive into various storage formats for a Lastfm user.
 
   ### Example
 
   ```
-    LastfmArchive.transform_archive("a_lastfm_user")
+    LastfmArchive.transform("a_lastfm_user", format: :tsv)
+
+    # or which currently transform archive of the default user to TSV files
+    LastfmArchive.transform()
   ```
 
   The function only transforms downloaded archive data on local filesystem. It does not fetch data from Lastfm,
-  which can be done via `archive/2`, `archive/3`.
+  which can be done via `sync/2`.
 
   The TSV files are created on a yearly basis and stored in `gzip` compressed format.
   They are stored in a `tsv` directory within either the default `./lastfm_data/`
   or the directory specified in config/config.exs (`:lastfm_archive, :data_dir`).
-
   """
-  @spec transform_archive(binary, :tsv) :: :ok
-  def transform_archive(user, _mode \\ :tsv) do
-    raw_json_files = ls_archive_files(user)
+  @spec transform(binary, transform_options) :: any
+  def transform(user \\ LastfmClient.default_user(), options \\ [format: :tsv])
 
-    # group file paths by years, to create per-year TSV file archive
-    archive_file_batches =
-      Enum.group_by(raw_json_files, fn x ->
-        x = Regex.run(~r/^\d{4}/, x)
-        if is_nil(x), do: x, else: x |> hd
-      end)
-
-    :ok = Utils.create_tsv_dir(user)
-
-    for {year, archive_files} <- archive_file_batches, year != nil do
-      tsv_filepath = Path.join([Utils.user_dir(user), "tsv", "#{year}.tsv.gz"])
-
-      if @file_io.exists?(tsv_filepath) do
-        IO.puts("\nTSV file archive exists, skipping #{year} scrobbles.")
-      else
-        IO.puts("\nCreating TSV file archive for #{year} scrobbles.")
-        write_tsv(user, tsv_filepath, archive_files)
-      end
-    end
-
-    :ok
+  def transform(user, [format: :tsv] = options) when is_binary(user) do
+    user
+    |> metadata(:derived_archive, options)
+    |> update_metadata(:derived_archive, options)
+    |> do_transform(options)
+    |> update_metadata(:derived_archive, options)
   end
 
-  defp write_tsv(user, tsv_filepath, archive_files) do
-    for archive_file <- archive_files, String.match?(archive_file, ~r/^\d{4}/) do
-      @file_io.write(tsv_filepath, LastfmArchive.Transform.transform(user, archive_file), [:compressed])
-    end
+  defp do_transform({:ok, metadata}, options) do
+    {:ok, metadata} = Archive.impl(:derived_archive).after_archive(metadata, FileArchiveTransformer, options)
+    metadata
+  end
+
+  defp metadata(user, archive_type \\ :file_archive, options \\ [])
+
+  defp metadata(user, archive_type, options) do
+    {:ok, metadata} = user |> Archive.impl(archive_type).describe(options)
+    metadata
+  end
+
+  defp update_metadata(metadata, archive_type, options) do
+    Archive.impl(archive_type).update_metadata(metadata, options)
   end
 
   # return all archive file paths in a list

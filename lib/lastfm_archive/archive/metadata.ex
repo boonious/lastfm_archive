@@ -2,10 +2,11 @@ defmodule LastfmArchive.Archive.Metadata do
   @moduledoc """
   Struct representing Lastfm archive metadata.
   """
+  alias LastfmArchive.Archive.DerivedArchive
 
   use TypedStruct
 
-  @archive Application.compile_env(:lastfm_archive, :type, LastFmArchive.FileArchive)
+  @archive Application.compile_env(:lastfm_archive, :file_archive, LastFmArchive.FileArchive)
 
   @typedoc "Metadata descriping a Lastfm archive based on
   [Dublin Core Metadata Initiative](https://www.dublincore.org/specifications/dublin-core/dcmi-terms/)."
@@ -32,8 +33,16 @@ defmodule LastfmArchive.Archive.Metadata do
   based on the outcomes of archiving, i.e. the implementation of the
   callbacks of this behaviour.
   """
-  @spec new(String.t()) :: t()
-  def new(user) when is_binary(user) do
+
+  def new(%{} = decoded_metadata) do
+    type = String.to_existing_atom(decoded_metadata.type)
+    {created, time_range, date} = parse_dates(decoded_metadata)
+    struct(__MODULE__, %{decoded_metadata | type: type, created: created, temporal: time_range, date: date})
+  end
+
+  def new(user, opts \\ [])
+
+  def new(user, []) when is_binary(user) do
     %__MODULE__{
       created: DateTime.utc_now(),
       creator: user,
@@ -45,15 +54,20 @@ defmodule LastfmArchive.Archive.Metadata do
     }
   end
 
-  def new(%{} = decoded_metadata) do
-    type = String.to_existing_atom(decoded_metadata.type)
-    {created, time_range, date} = parse_dates(decoded_metadata)
-    struct(__MODULE__, %{decoded_metadata | type: type, created: created, temporal: time_range, date: date})
+  # create new metadata for derived archive
+  def new(%__MODULE__{} = metadata, format: format) do
+    %{
+      metadata
+      | description: "Lastfm archive of #{metadata.creator} in #{format} format",
+        format: "text/tab-separated-values",
+        source: "local file archive",
+        type: DerivedArchive
+    }
   end
 
-  def new(%__MODULE__{} = archive, total, registered_time, last_scrobble_time) do
+  def new(%__MODULE__{} = metadata, total, registered_time, last_scrobble_time) do
     %{
-      archive
+      metadata
       | temporal: {registered_time, last_scrobble_time},
         extent: total,
         date: last_scrobble_time |> DateTime.from_unix!() |> DateTime.to_date()

@@ -1,5 +1,7 @@
 defmodule LastfmArchive.Archive.FileArchive do
-  @moduledoc false
+  @moduledoc """
+  An archive containing raw data extracted from Lastfm API.
+  """
 
   use LastfmArchive.Behaviour.Archive
 
@@ -39,8 +41,8 @@ defmodule LastfmArchive.Archive.FileArchive do
   end
 
   @impl true
-  def read(%{creator: user} = _metadata, day: %Date{} = date), do: do_read(user, day: date)
-  def read(%{creator: user} = _metadata, month: %Date{} = date), do: do_read(user, month: date)
+  def read(%{creator: user} = _metadata, day: %Date{} = date), do: {:ok, do_read(user, day: date)}
+  def read(%{creator: user} = _metadata, month: %Date{} = date), do: {:ok, do_read(user, month: date)}
   def read(_metadata, _options), do: {:error, :einval}
 
   defp do_read(user, option) do
@@ -50,8 +52,8 @@ defmodule LastfmArchive.Archive.FileArchive do
     |> Explorer.DataFrame.concat_rows()
   end
 
-  defp create_lazy_data_frame(user, file_path) do
-    LastfmArchive.Utils.read(user, file_path)
+  defp create_lazy_data_frame(user, filepath) do
+    LastfmArchive.Utils.read(user, filepath)
     |> then(fn {:ok, scrobbles} -> scrobbles |> Jason.decode!() end)
     |> Scrobble.new()
     |> Enum.map(&Map.from_struct/1)
