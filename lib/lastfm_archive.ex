@@ -12,6 +12,7 @@ defmodule LastfmArchive do
 
   """
 
+  alias LastfmArchive.Archive.FileArchive
   alias LastfmArchive.Archive.Transformers.FileArchiveTransformer
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.LastfmClient.Impl, as: LastfmClient
@@ -24,7 +25,7 @@ defmodule LastfmArchive do
   @type time_range :: {integer, integer}
   @type solr_url :: atom | Hui.URL.t()
 
-  @type read_options :: LastfmArchive.Behaviour.Archive.read_options()
+  @type read_options :: FileArchive.read_options()
   @type transform_options :: LastfmArchive.Behaviour.Archive.transform_options()
 
   @doc """
@@ -138,7 +139,7 @@ defmodule LastfmArchive do
     LastfmArchive.transform()
   ```
 
-  Current output transform  formats: `:tsv`, `:parquet`.
+  Current output transform formats: `:tsv`, `:parquet`.
 
   The function only transforms downloaded archive data on local filesystem. It does not fetch data from Lastfm,
   which can be done via `sync/2`.

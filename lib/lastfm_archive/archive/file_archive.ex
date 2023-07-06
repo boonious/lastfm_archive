@@ -18,6 +18,8 @@ defmodule LastfmArchive.Archive.FileArchive do
 
   @cache Application.compile_env(:lastfm_archive, :cache, LastfmArchive.Cache)
 
+  @type read_options :: [day: Date.t(), month: Date.t()]
+
   @impl true
   def archive(metadata, options, api \\ LastfmApi.new("user.getrecenttracks"))
 
@@ -41,6 +43,7 @@ defmodule LastfmArchive.Archive.FileArchive do
   end
 
   @impl true
+  @spec read(Archive.metadata(), read_options()) :: {:error, :einval} | {:ok, Explorer.DataFrame.t()}
   def read(%{creator: user} = _metadata, day: %Date{} = date), do: {:ok, do_read(user, day: date)}
   def read(%{creator: user} = _metadata, month: %Date{} = date), do: {:ok, do_read(user, month: date)}
   def read(_metadata, _options), do: {:error, :einval}
