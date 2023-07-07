@@ -43,6 +43,35 @@ LastfmArchive.read(day: ~D[2022-12-31])
 # read a single-month scrobbles for a user
 LastfmArchive.read("a_lastfm_user",  month: ~D[2022-12-31])
 ```
+
+You can also load more data, i.e. the entire archive (forthcoming) and per-year data
+from transformed archive - see below.
+
+### Transform Into Other Storage Formats
+You can transform the file archive into other common storage formats such as TSV and 
+columnar data structure such as [Apache Parquet](https://parquet.apache.org). 
+These formats facilitate data interoperability, as well as OLAP, analytics use cases.
+
+```elixir
+# transform data in a file archive into local TSV files
+LastfmArchive.transform("a_lastfm_user", format: :tsv)
+
+# transform data in a file archive into local Apache Parquet files
+LastfmArchive.transform("a_lastfm_user", format: :parquet)
+```
+
+See [`transform/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#transform/2).
+
+This following functions return a data frame containing scrobbles for a particular year.
+
+```elixir
+# from the TSV archive
+LastfmArchive.read_tsv("a_lastfm_user", year: 2023)
+
+# from the Parquet archive
+LastfmArchive.read_parquet("a_lastfm_user", year: 2023)
+```
+
 ## Livebook Support
 
 `LastfmArchive` supports the use of [Livebook](https://livebook.dev) interactive notebook 
@@ -59,16 +88,6 @@ Usage:
 - visualise archiving progress via playcount heatmap and table
 
 ## Other Usage
-To generate a TSV file archive from downloaded data:
-
-```elixir
-  # transform all existing data in a file archive into TSV files
-  LastfmArchive.transform_archive("a_lastfm_user")
-```
-
-See [`transform_archive/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#transform_archive/2).
-
-
 To load all transformed TSV data from the archive into Solr:
 
 

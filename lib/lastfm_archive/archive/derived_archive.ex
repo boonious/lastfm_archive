@@ -34,12 +34,14 @@ defmodule LastfmArchive.Archive.DerivedArchive do
     {:ok, Metadata.new(file_archive_metadata, options)}
   end
 
-  # return empty data frame for now
   @impl true
-  @spec read(Archive.metadata(), read_options()) :: {:ok, Explorer.DataFrame.t()}
-  # def read(metadata, _options), do: {:ok, Explorer.DataFrame.new([], lazy: true)}
-  def read(%{creator: user, format: mimetype} = _metadata, year: year), do: {:ok, do_read(user, mimetype, year)}
-  def read(_metadata, _options), do: {:error, :einval}
+  @spec read(Archive.metadata(), read_options()) :: {:ok, Explorer.DataFrame.t()} | {:error, term()}
+  def read(%{creator: user, format: mimetype} = _metadata, options) do
+    case Keyword.fetch(options, :year) do
+      {:ok, year} -> {:ok, do_read(user, mimetype, year)}
+      _error -> {:error, :einval}
+    end
+  end
 
   defp do_read(user, mimetype, year) do
     format = format(mimetype)
