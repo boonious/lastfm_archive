@@ -9,7 +9,7 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   alias Explorer.DataFrame
 
   @data_frame_io Application.compile_env(:lastfm_archive, :data_frame_io, DataFrame)
-  @format_mimetypes %{tsv: "text/tab-separated-values", parquet: "application/vnd.apache.parquet"}
+  @format_mimetypes %{csv: "text/tab-separated-values", parquet: "application/vnd.apache.parquet"}
 
   @type read_options :: [year: integer()]
 
@@ -45,11 +45,11 @@ defmodule LastfmArchive.Archive.DerivedArchive do
 
   defp do_read(user, mimetype, year) do
     format = format(mimetype)
-    {func_format, opts} = if format == :tsv, do: {:csv, [delimiter: "\t"]}, else: {format, []}
+    opts = if format == :csv, do: [delimiter: "\t"], else: []
 
     format
     |> then(fn format -> Utils.read(user, "#{format}/#{year}.#{format}.gz") end)
-    |> load_data_frame({func_format, opts})
+    |> load_data_frame({format, opts})
   end
 
   defp format(mimetype) do

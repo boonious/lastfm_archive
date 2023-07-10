@@ -13,7 +13,7 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
   alias Explorer.DataFrame
   alias Explorer.DataFrameMock
 
-  @formats [:tsv, :parquet]
+  @formats [:csv, :parquet]
 
   setup :verify_on_exit!
 
@@ -35,11 +35,11 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
   describe "apply/3" do
     for format <- @formats do
       setup context do
-        {func_format, opts} = if unquote(format) == :tsv, do: {:csv, [delimiter: "\t"]}, else: {unquote(format), []}
+        opts = if unquote(format) == :csv, do: [delimiter: "\t"], else: []
 
         %{
           dir: Path.join(user_dir(context.user), "#{unquote(format)}"),
-          format: {unquote(format), func_format},
+          format: unquote(format),
           options: opts
         }
       end
@@ -48,7 +48,7 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
         dir: dir,
         user: user,
         metadata: metadata,
-        format: {format, func_format},
+        format: format,
         options: opts
       } do
         filepath1 = Path.join([user_dir(user), "#{format}", "2022.#{format}.gz"])
@@ -67,15 +67,15 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
         |> expect(:write, fn ^filepath2, _data, [:compressed] -> :ok end)
 
         DataFrameMock
-        |> expect(:"dump_#{func_format}!", fn %DataFrame{} = df, ^opts ->
+        |> expect(:"dump_#{format}!", fn %DataFrame{} = df, ^opts ->
           # whole year of scrobbles
           assert df |> DataFrame.shape() == {12 * 105, 11}
-          tsv_data()
+          csv_data()
         end)
-        |> expect(:"dump_#{func_format}!", fn %DataFrame{} = df, ^opts ->
+        |> expect(:"dump_#{format}!", fn %DataFrame{} = df, ^opts ->
           # 4 month of scrobbles
           assert df |> DataFrame.shape() == {4 * 105, 11}
-          tsv_data()
+          csv_data()
         end)
 
         assert capture_log(fn -> assert {:ok, _} = FileArchiveTransformer.apply(metadata, format: format) end) =~
@@ -85,7 +85,7 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
       test "does not overwrite existing #{format} file", %{
         dir: dir,
         metadata: metadata,
-        format: {format, func_format},
+        format: format,
         options: opts
       } do
         FileIOMock
@@ -94,7 +94,7 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
         |> expect(:write, 0, fn __filepath, _data, [:compressed] -> :ok end)
 
         DataFrameMock
-        |> expect(:"dump_#{func_format}!", 0, fn _df, ^opts -> :ok end)
+        |> expect(:"dump_#{format}!", 0, fn _df, ^opts -> :ok end)
 
         assert capture_log(fn -> assert {:ok, _} = FileArchiveTransformer.apply(metadata, format: format) end) =~
                  "skipping"

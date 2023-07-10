@@ -14,7 +14,7 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
 
   @data_frame_io Application.compile_env(:lastfm_archive, :data_frame_io, DataFrame)
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
-  @formats [:tsv, :parquet]
+  @formats [:csv, :parquet]
 
   @impl true
   def apply(%{creator: user} = metadata, [format: format] = opts) do
@@ -53,7 +53,7 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
   end
 
   defp write_data_frame(df, filepath, format: format) when format in @formats do
-    {format, opts} = if format == :tsv, do: {:csv, [delimiter: "\t"]}, else: {format, []}
+    opts = if format == :csv, do: [delimiter: "\t"], else: []
 
     write_fun = fn df ->
       df

@@ -89,7 +89,7 @@ defmodule LastfmArchive.Utils do
   ### Example
 
   ```
-    LastfmArchive.Utils.read("a_lastfm_user", "tsv/2007.tsv.gz")
+    LastfmArchive.Utils.read("a_lastfm_user", "csv/2007.csv.gz")
   ```
   """
   def read(user, filename) do

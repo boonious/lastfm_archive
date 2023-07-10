@@ -59,13 +59,13 @@ defmodule Fixtures.Archive do
     |> Explorer.DataFrame.new(lazy: true)
   end
 
-  def tsv_data(), do: File.read!("test/fixtures/2023.tsv")
+  def csv_data(), do: File.read!("test/fixtures/2023.csv")
 
   def archive_metadata(), do: File.read!("test/fixtures/metadata.json")
 
   def gzipped_scrobbles(), do: File.read!("test/fixtures/200_001.gz")
   def gzip_data(), do: File.read!("test/fixtures/200_34.gz")
-  def tsv_gzip_data(), do: File.read!("test/fixtures/2018.tsv.gz")
+  def csv_gzip_data(), do: File.read!("test/fixtures/2018.csv.gz")
 
   def solr_add_docs(), do: File.read!("test/fixtures/solr_add_docs.json")
   def solr_schema_response(), do: File.read!("test/fixtures/solr_schema_response.json")
