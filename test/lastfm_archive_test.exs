@@ -25,7 +25,8 @@ defmodule LastfmArchiveTest do
     %{
       user: user,
       file_archive_metadata: file_archive_metadata,
-      tsv_archive_metadata: new_derived_archive_metadata(file_archive_metadata, format: :tsv)
+      tsv_archive_metadata: new_derived_archive_metadata(file_archive_metadata, format: :tsv),
+      parquet_archive_metadata: new_derived_archive_metadata(file_archive_metadata, format: :parquet)
     }
   end
 
@@ -70,6 +71,15 @@ defmodule LastfmArchiveTest do
       |> expect(:after_archive, fn ^metadata, FileArchiveTransformer, [format: :tsv] -> {:ok, metadata} end)
 
       LastfmArchive.transform(user, format: :tsv)
+    end
+
+    test "scrobbles of a user into Apache Parquet files", %{user: user, parquet_archive_metadata: metadata} do
+      DerivedArchiveMock
+      |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
+      |> expect(:update_metadata, 2, fn metadata, _options -> {:ok, metadata} end)
+      |> expect(:after_archive, fn ^metadata, FileArchiveTransformer, [format: :parquet] -> {:ok, metadata} end)
+
+      LastfmArchive.transform(user, format: :parquet)
     end
 
     test "scrobbles of default user with default (TSV) format", %{tsv_archive_metadata: metadata} do

@@ -18,7 +18,6 @@ defmodule LastfmArchive do
   alias LastfmArchive.LastfmClient.LastfmApi
   alias LastfmArchive.Utils
 
-  @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
 
   @type metadata :: LastfmArchive.Archive.Metadata.t()
@@ -128,28 +127,30 @@ defmodule LastfmArchive do
   end
 
   @doc """
-  Transform downloaded file archive into various storage formats for a Lastfm user.
+  Transform downloaded file archive into TSV or Apache Parquet formats for a Lastfm user.
 
   ### Example
 
   ```
     LastfmArchive.transform("a_lastfm_user", format: :tsv)
 
-    # or which currently transform archive of the default user to TSV files
+    # transform archive of the default user into TSV files
     LastfmArchive.transform()
   ```
+
+  Current output transform  formats: `:tsv`, `:parquet`.
 
   The function only transforms downloaded archive data on local filesystem. It does not fetch data from Lastfm,
   which can be done via `sync/2`.
 
-  The TSV files are created on a yearly basis and stored in `gzip` compressed format.
-  They are stored in a `tsv` directory within either the default `./lastfm_data/`
+  The transformed files are created on a yearly basis and stored in `gzip` compressed format.
+  They are stored in a `tsv` or `parquet` directory within either the default `./lastfm_data/`
   or the directory specified in config/config.exs (`:lastfm_archive, :data_dir`).
   """
   @spec transform(binary, transform_options) :: any
   def transform(user \\ LastfmClient.default_user(), options \\ [format: :tsv])
 
-  def transform(user, [format: :tsv] = options) when is_binary(user) do
+  def transform(user, [format: format] = options) when is_binary(user) and format in [:tsv, :parquet] do
     user
     |> metadata(:derived_archive, options)
     |> update_metadata(:derived_archive, options)

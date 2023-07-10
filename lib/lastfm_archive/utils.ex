@@ -8,7 +8,6 @@ defmodule LastfmArchive.Utils do
   require Logger
 
   @data_dir Application.compile_env(:lastfm_archive, :data_dir, "./lastfm_data/")
-  @data_frame_io Application.compile_env(:lastfm_archive, :data_frame_io, Explorer.DataFrame)
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
   @reset Application.compile_env(:lastfm_archive, :reset, false)
@@ -105,12 +104,6 @@ defmodule LastfmArchive.Utils do
     end
   end
 
-  def create_tsv_dir(user) do
-    dir = Path.join(user_dir(user, []), "tsv")
-    unless @file_io.exists?(dir), do: @file_io.mkdir_p(dir)
-    :ok
-  end
-
   def create_dir(user, format: format) do
     dir = Path.join(user_dir(user, []), format |> Atom.to_string())
     unless @file_io.exists?(dir), do: @file_io.mkdir_p(dir)
@@ -147,8 +140,10 @@ defmodule LastfmArchive.Utils do
   defp get_date_filepath(path, user), do: String.split(path, user <> "/") |> List.last()
 
   @doc """
-  Writes archive metadata to a file in the archive of a Lastfm user.
+  Writes data frame or metadata to a file given a write function or options.
   """
+  def write(%DataFrame{} = dataframe, write_fun), do: :ok = dataframe |> write_fun.()
+
   def write(%Metadata{creator: creator} = metadata, options) when is_list(options) do
     metadata =
       case Keyword.get(options, :reset, @reset) do
@@ -165,8 +160,6 @@ defmodule LastfmArchive.Utils do
     end
   end
 
-  def write(metadata, scrobbles, options \\ [])
-
   def write(%Metadata{creator: creator}, scrobbles, options) when is_map(scrobbles) do
     with metadata_filepath <- metadata_filepath(creator, options),
          path <- get_filepath(options) do
@@ -179,14 +172,6 @@ defmodule LastfmArchive.Utils do
       unless @file_io.exists?(full_path_dir), do: @file_io.mkdir_p(full_path_dir)
       @file_io.write(full_path, scrobbles |> Jason.encode!(), [:compressed])
     end
-  end
-
-  def write(%DataFrame{} = dataframe, filepath, format: :tsv) do
-    :ok =
-      dataframe
-      |> Explorer.DataFrame.collect()
-      |> @data_frame_io.dump_csv!(delimiter: "\t")
-      |> then(fn data -> @file_io.write(filepath, data, [:compressed]) end)
   end
 
   def write(_metadata, {:error, api_message}, _options), do: {:error, api_message}
