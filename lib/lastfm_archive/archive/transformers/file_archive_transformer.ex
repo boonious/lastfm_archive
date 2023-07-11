@@ -6,6 +6,7 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
   @behaviour LastfmArchive.Behaviour.Transformer
 
   alias Explorer.DataFrame
+  alias LastfmArchive.Archive.DerivedArchive
   alias LastfmArchive.Archive.Metadata
   alias LastfmArchive.Behaviour.Archive
 
@@ -14,7 +15,6 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
 
   @data_frame_io Application.compile_env(:lastfm_archive, :data_frame_io, DataFrame)
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
-  @formats [:csv, :parquet]
 
   @impl true
   def apply(%{creator: user} = metadata, [format: format] = opts) do
@@ -52,8 +52,8 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
     |> DataFrame.concat_rows()
   end
 
-  defp write_data_frame(df, filepath, format: format) when format in @formats do
-    opts = if format == :csv, do: [delimiter: "\t"], else: []
+  defp write_data_frame(df, filepath, format: format) do
+    {_mimetype, opts} = DerivedArchive.setting(format)
 
     write_fun = fn df ->
       df

@@ -6,14 +6,13 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
   import Hammox
   import LastfmArchive.Utils, only: [user_dir: 1]
 
+  alias LastfmArchive.Archive.DerivedArchive
   alias LastfmArchive.Archive.FileArchiveMock
   alias LastfmArchive.Archive.Transformers.FileArchiveTransformer
   alias LastfmArchive.FileIOMock
 
   alias Explorer.DataFrame
   alias Explorer.DataFrameMock
-
-  @formats [:csv, :parquet]
 
   setup :verify_on_exit!
 
@@ -33,26 +32,13 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
   end
 
   describe "apply/3" do
-    for format <- @formats do
-      setup context do
-        opts = if unquote(format) == :csv, do: [delimiter: "\t"], else: []
+    for format <- DerivedArchive.formats() do
+      test "#{format} trasnformation", %{user: user, metadata: metadata} do
+        {_mimetype, opts} = DerivedArchive.setting(unquote(format))
+        dir = Path.join(user_dir(user), "#{unquote(format)}")
 
-        %{
-          dir: Path.join(user_dir(context.user), "#{unquote(format)}"),
-          format: unquote(format),
-          options: opts
-        }
-      end
-
-      test "#{format} trasnformation", %{
-        dir: dir,
-        user: user,
-        metadata: metadata,
-        format: format,
-        options: opts
-      } do
-        filepath1 = Path.join([user_dir(user), "#{format}", "2022.#{format}.gz"])
-        filepath2 = Path.join([user_dir(user), "#{format}", "2023.#{format}.gz"])
+        filepath1 = Path.join([user_dir(user), "#{unquote(format)}", "2022.#{unquote(format)}.gz"])
+        filepath2 = Path.join([user_dir(user), "#{unquote(format)}", "2023.#{unquote(format)}.gz"])
 
         # read archive 16 times per 16 months scrobbles, 105 scrobbles each month
         FileArchiveMock
@@ -67,36 +53,34 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
         |> expect(:write, fn ^filepath2, _data, [:compressed] -> :ok end)
 
         DataFrameMock
-        |> expect(:"dump_#{format}!", fn %DataFrame{} = df, ^opts ->
+        |> expect(:"dump_#{unquote(format)}!", fn %DataFrame{} = df, ^opts ->
           # whole year of scrobbles
           assert df |> DataFrame.shape() == {12 * 105, 11}
           csv_data()
         end)
-        |> expect(:"dump_#{format}!", fn %DataFrame{} = df, ^opts ->
+        |> expect(:"dump_#{unquote(format)}!", fn %DataFrame{} = df, ^opts ->
           # 4 month of scrobbles
           assert df |> DataFrame.shape() == {4 * 105, 11}
           csv_data()
         end)
 
-        assert capture_log(fn -> assert {:ok, _} = FileArchiveTransformer.apply(metadata, format: format) end) =~
+        assert capture_log(fn -> assert {:ok, _} = FileArchiveTransformer.apply(metadata, format: unquote(format)) end) =~
                  "Creating"
       end
 
-      test "does not overwrite existing #{format} file", %{
-        dir: dir,
-        metadata: metadata,
-        format: format,
-        options: opts
-      } do
+      test "does not overwrite existing #{format} file", %{user: user, metadata: metadata} do
+        {_mimetype, opts} = DerivedArchive.setting(unquote(format))
+        dir = Path.join(user_dir(user), "#{unquote(format)}")
+
         FileIOMock
         |> expect(:exists?, fn ^dir -> true end)
         |> stub(:exists?, fn _filepath -> true end)
         |> expect(:write, 0, fn __filepath, _data, [:compressed] -> :ok end)
 
         DataFrameMock
-        |> expect(:"dump_#{format}!", 0, fn _df, ^opts -> :ok end)
+        |> expect(:"dump_#{unquote(format)}!", 0, fn _df, ^opts -> :ok end)
 
-        assert capture_log(fn -> assert {:ok, _} = FileArchiveTransformer.apply(metadata, format: format) end) =~
+        assert capture_log(fn -> assert {:ok, _} = FileArchiveTransformer.apply(metadata, format: unquote(format)) end) =~
                  "skipping"
       end
     end
