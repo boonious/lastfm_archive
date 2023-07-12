@@ -1,4 +1,10 @@
 # Changelog
+## 0.10.1 (2023-07-07)
+
+* `read/2` callback and implementation to return data in `Explorer` data frame
+* `after_archive` callback and implementation to transform data into TSV and Apache Parquet files
+* refactor `Archive`, `FileArchive` and new `Scrobble` and `Metadata` structs
+
 ## 0.10.0 (2023-06-07)
 
 * first interactive notebook - Livebook support

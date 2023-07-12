@@ -119,9 +119,27 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
   end
 
   describe "read/2" do
-    # stub test for now
-    test "tsv derived archive", %{derived_archive_metadata: metadata} do
+    test "returns data frame based on a year TSV file", %{user: user, derived_archive_metadata: metadata} do
+      filepath = Path.join([user_dir(user), "tsv", "2023.tsv.gz"])
+
+      FileIOMock |> expect(:read, fn ^filepath -> {:ok, File.read!("test/fixtures/2023.tsv.gz")} end)
+      DataFrameMock |> expect(:load_csv!, fn _data, [delimiter: "\t"] -> data_frame() end)
+
       assert {:ok, %DataFrame{}} = DerivedArchive.read(metadata, year: 2023)
+    end
+
+    test "returns data frame based on a year Parquet file", %{user: user, derived_archive_metadata: metadata} do
+      filepath = Path.join([user_dir(user), "parquet", "2023.parquet.gz"])
+      metadata = %{metadata | format: "application/vnd.apache.parquet"}
+
+      FileIOMock |> expect(:read, fn ^filepath -> {:ok, File.read!("test/fixtures/2023.parquet.gz")} end)
+      DataFrameMock |> expect(:load_parquet!, fn _data, [] -> data_frame() end)
+
+      assert {:ok, %DataFrame{}} = DerivedArchive.read(metadata, year: 2023)
+    end
+
+    test "when year option given", %{derived_archive_metadata: metadata} do
+      assert {:error, _reason} = DerivedArchive.read(metadata, [])
     end
   end
 end

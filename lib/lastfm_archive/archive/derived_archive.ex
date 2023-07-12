@@ -5,6 +5,14 @@ defmodule LastfmArchive.Archive.DerivedArchive do
 
   use LastfmArchive.Behaviour.Archive
 
+  alias LastfmArchive.Utils
+  alias Explorer.DataFrame
+
+  @data_frame_io Application.compile_env(:lastfm_archive, :data_frame_io, DataFrame)
+  @format_mimetypes %{tsv: "text/tab-separated-values", parquet: "application/vnd.apache.parquet"}
+
+  @type read_options :: [year: integer()]
+
   @impl true
   def after_archive(metadata, transformer, options), do: transformer.apply(metadata, options)
 
@@ -26,7 +34,31 @@ defmodule LastfmArchive.Archive.DerivedArchive do
     {:ok, Metadata.new(file_archive_metadata, options)}
   end
 
-  # return empty data frame for now
   @impl true
-  def read(_metadata, _options), do: {:ok, Explorer.DataFrame.new([], lazy: true)}
+  @spec read(Archive.metadata(), read_options()) :: {:ok, Explorer.DataFrame.t()} | {:error, term()}
+  def read(%{creator: user, format: mimetype} = _metadata, options) do
+    case Keyword.fetch(options, :year) do
+      {:ok, year} -> {:ok, do_read(user, mimetype, year)}
+      _error -> {:error, :einval}
+    end
+  end
+
+  defp do_read(user, mimetype, year) do
+    format = format(mimetype)
+    {func_format, opts} = if format == :tsv, do: {:csv, [delimiter: "\t"]}, else: {format, []}
+
+    format
+    |> then(fn format -> Utils.read(user, "#{format}/#{year}.#{format}.gz") end)
+    |> load_data_frame({func_format, opts})
+  end
+
+  defp format(mimetype) do
+    format_mimetypes()
+    |> Enum.find(fn {_format, type} -> type == mimetype end)
+    |> elem(0)
+  end
+
+  defp load_data_frame({:ok, data}, {format, opts}), do: apply(@data_frame_io, :"load_#{format}!", [data, opts])
+
+  def format_mimetypes, do: @format_mimetypes
 end

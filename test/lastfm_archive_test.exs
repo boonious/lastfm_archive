@@ -63,6 +63,26 @@ defmodule LastfmArchiveTest do
     end
   end
 
+  test "read_parquet/2", %{user: user, parquet_archive_metadata: metadata} do
+    options = [year: 2023]
+
+    DerivedArchiveMock
+    |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
+    |> expect(:read, fn ^metadata, ^options -> {:ok, data_frame()} end)
+
+    assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read_parquet(user, options)
+  end
+
+  test "read_tsv/2", %{user: user, tsv_archive_metadata: metadata} do
+    options = [year: 2023]
+
+    DerivedArchiveMock
+    |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
+    |> expect(:read, fn ^metadata, ^options -> {:ok, data_frame()} end)
+
+    assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read_tsv(user, options)
+  end
+
   describe "transform/2" do
     test "scrobbles of a user into TSV files", %{user: user, tsv_archive_metadata: metadata} do
       DerivedArchiveMock

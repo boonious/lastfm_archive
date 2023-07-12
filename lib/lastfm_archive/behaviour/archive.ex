@@ -15,8 +15,6 @@ defmodule LastfmArchive.Behaviour.Archive do
   @type user :: binary()
 
   @type options :: keyword()
-  @type read_options :: [day: Date.t(), month: Date.t()]
-  @type transform_options :: [format: atom()]
 
   @doc """
   Archives all scrobbles data for a Lastfm user.
@@ -24,12 +22,12 @@ defmodule LastfmArchive.Behaviour.Archive do
   Optional for post-hoc archives that are based on existing
   local archive such as TSV, Parquet archives.
   """
-  @callback archive(metadata(), options, api) :: {:ok, metadata()} | {:error, term()}
+  @callback archive(metadata(), options(), api()) :: {:ok, metadata()} | {:error, term()}
 
   @doc """
   Returns metadata of an existing archive.
   """
-  @callback describe(user, transform_options) :: {:ok, metadata()} | {:error, term()}
+  @callback describe(user(), options()) :: {:ok, metadata()} | {:error, term()}
 
   @doc """
   Optionally applies post-archive side effects such as archive transformation or loading.
@@ -39,7 +37,7 @@ defmodule LastfmArchive.Behaviour.Archive do
   @doc """
   Read access to the archive, returns an Explorer DataFrame for further data manipulation.
   """
-  @callback read(metadata(), read_options) :: {:ok, Explorer.DataFrame.t()} | {:error, term()}
+  @callback read(metadata(), options()) :: {:ok, Explorer.DataFrame.t()} | {:error, term()}
 
   @doc """
   Writes latest metadata to file.

@@ -7,7 +7,6 @@ defmodule LastfmArchive.Archive.Metadata do
   use TypedStruct
 
   @archive Application.compile_env(:lastfm_archive, :file_archive, LastFmArchive.FileArchive)
-  @format_mimetypes %{tsv: "text/tab-separated-values", parquet: "application/vnd.apache.parquet"}
 
   @typedoc "Metadata descriping a Lastfm archive based on
   [Dublin Core Metadata Initiative](https://www.dublincore.org/specifications/dublin-core/dcmi-terms/)."
@@ -60,7 +59,7 @@ defmodule LastfmArchive.Archive.Metadata do
     %{
       metadata
       | description: "Lastfm archive of #{metadata.creator} in #{format} format",
-        format: @format_mimetypes[format],
+        format: DerivedArchive.format_mimetypes()[format],
         source: "local file archive",
         type: DerivedArchive
     }

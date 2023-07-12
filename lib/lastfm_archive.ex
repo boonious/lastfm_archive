@@ -12,6 +12,7 @@ defmodule LastfmArchive do
 
   """
 
+  alias LastfmArchive.Archive.FileArchive
   alias LastfmArchive.Archive.Transformers.FileArchiveTransformer
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.LastfmClient.Impl, as: LastfmClient
@@ -24,7 +25,6 @@ defmodule LastfmArchive do
   @type time_range :: {integer, integer}
   @type solr_url :: atom | Hui.URL.t()
 
-  @type read_options :: LastfmArchive.Behaviour.Archive.read_options()
   @type transform_options :: LastfmArchive.Behaviour.Archive.transform_options()
 
   @doc """
@@ -119,11 +119,53 @@ defmodule LastfmArchive do
   - `:day` - read scrobbles for this particular date (`Date.t()`)
   - `:month` - read scrobbles for this particular month (`Date.t()`)
   """
-  @spec read(binary, read_options) :: {:ok, Explorer.DataFrame} | {:error, term()}
+  @spec read(binary, FileArchive.read_options()) :: {:ok, Explorer.DataFrame} | {:error, term()}
   def read(user \\ LastfmClient.default_user(), options) do
     user
     |> metadata()
     |> Archive.impl().read(options)
+  end
+
+  @doc """
+  Read scrobbles data from an Apache Parquet archive created via `transform/2`.
+
+  Returns a data frame containing scrobbles spanning a single year.
+
+  ### Example
+  ```
+    # read a year of scrobbles for a user
+    LastfmArchive.read_parquet("a_lastfm_user", year: 2023)
+  ```
+
+  Options:
+  - `:year` - read scrobbles for this particular year
+  """
+  @spec read_parquet(binary, DerivedArchive.read_options()) :: {:ok, Explorer.DataFrame} | {:error, term()}
+  def read_parquet(user \\ LastfmClient.default_user(), year: year) do
+    user
+    |> metadata(:derived_archive, format: :parquet)
+    |> Archive.impl(:derived_archive).read(year: year)
+  end
+
+  @doc """
+  Read scrobbles data from a TSV archive created via `transform/2`
+
+  Returns a data frame containing scrobbles spanning a single year.
+
+  ### Example
+  ```
+    # read a year of scrobbles for a user
+    LastfmArchive.read_tsv("a_lastfm_user", year: 2023)
+  ```
+
+  Options:
+  - `:year` - read scrobbles for this particular year
+  """
+  @spec read_tsv(binary, DerivedArchive.read_options()) :: {:ok, Explorer.DataFrame} | {:error, term()}
+  def read_tsv(user \\ LastfmClient.default_user(), year: year) do
+    user
+    |> metadata(:derived_archive, format: :tsv)
+    |> Archive.impl(:derived_archive).read(year: year)
   end
 
   @doc """
@@ -138,7 +180,7 @@ defmodule LastfmArchive do
     LastfmArchive.transform()
   ```
 
-  Current output transform  formats: `:tsv`, `:parquet`.
+  Current output transform formats: `:tsv`, `:parquet`.
 
   The function only transforms downloaded archive data on local filesystem. It does not fetch data from Lastfm,
   which can be done via `sync/2`.
