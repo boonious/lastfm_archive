@@ -4,6 +4,7 @@ defmodule LastfmArchiveTest do
   import Fixtures.Archive
   import Hammox
 
+  alias LastfmArchive.Archive.DerivedArchive
   alias LastfmArchive.Archive.DerivedArchiveMock
   alias LastfmArchive.Archive.FileArchiveMock
   alias LastfmArchive.Archive.Transformers.FileArchiveTransformer
@@ -84,22 +85,18 @@ defmodule LastfmArchiveTest do
   end
 
   describe "transform/2" do
-    test "scrobbles of a user into CSV files", %{user: user, csv_archive_metadata: metadata} do
-      DerivedArchiveMock
-      |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-      |> expect(:after_archive, fn ^metadata, FileArchiveTransformer, [format: :csv] -> {:ok, metadata} end)
-      |> expect(:update_metadata, fn metadata, _options -> {:ok, metadata} end)
+    for format <- DerivedArchive.formats() do
+      test "scrobbles of a user into #{format} files", %{user: user, file_archive_metadata: file_archive_metadata} do
+        format = unquote(format)
+        metadata = new_derived_archive_metadata(file_archive_metadata, format: format)
 
-      LastfmArchive.transform(user, format: :csv)
-    end
+        DerivedArchiveMock
+        |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
+        |> expect(:after_archive, fn ^metadata, FileArchiveTransformer, [format: ^format] -> {:ok, metadata} end)
+        |> expect(:update_metadata, fn metadata, _options -> {:ok, metadata} end)
 
-    test "scrobbles of a user into Apache Parquet files", %{user: user, parquet_archive_metadata: metadata} do
-      DerivedArchiveMock
-      |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-      |> expect(:after_archive, fn ^metadata, FileArchiveTransformer, [format: :parquet] -> {:ok, metadata} end)
-      |> expect(:update_metadata, fn metadata, _options -> {:ok, metadata} end)
-
-      LastfmArchive.transform(user, format: :parquet)
+        LastfmArchive.transform(user, format: format)
+      end
     end
 
     test "scrobbles of default user with default (CSV) format", %{csv_archive_metadata: metadata} do

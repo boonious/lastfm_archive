@@ -31,7 +31,6 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
     derived_archive_metadata = file_archive_metadata |> new_derived_archive_metadata(format: :csv)
 
     %{
-      dir: Path.join(user_dir(user), "csv"),
       derived_archive_metadata: derived_archive_metadata,
       file_archive_metadata: file_archive_metadata,
       user: user
@@ -39,26 +38,33 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
   end
 
   describe "after_archive/3" do
-    test "transform FileArchive into CSV file", %{dir: dir, derived_archive_metadata: metadata, user: user} do
-      filepath = Path.join([user_dir(user), "csv", "2023.csv.gz"])
+    for format <- DerivedArchive.formats() do
+      test "transform FileArchive into #{format} file", %{derived_archive_metadata: metadata, user: user} do
+        format = unquote(format)
 
-      # 4 read for 4 months, each with 105 scrobbles
-      FileArchiveMock
-      |> expect(:read, 4, fn ^metadata, _option -> {:ok, data_frame()} end)
+        dir = Path.join(user_dir(user), "#{format}")
+        {mimetype, opts} = DerivedArchive.setting(format)
+        metadata = %{metadata | format: mimetype}
+        filepath = Path.join([user_dir(user), "#{format}", "2023.#{format}.gz"])
 
-      FileIOMock
-      |> expect(:exists?, fn ^dir -> true end)
-      |> expect(:exists?, fn ^filepath -> false end)
-      |> expect(:write, fn ^filepath, _data, [:compressed] -> :ok end)
+        # 4 read for 4 months, each with 105 scrobbles
+        FileArchiveMock
+        |> expect(:read, 4, fn ^metadata, _option -> {:ok, data_frame()} end)
 
-      DataFrameMock
-      |> expect(:dump_csv!, fn %DataFrame{} = df, [delimiter: "\t"] ->
-        # 4 month of scrobbles
-        assert df |> DataFrame.shape() == {4 * 105, 11}
-        csv_data()
-      end)
+        FileIOMock
+        |> expect(:exists?, fn ^dir -> true end)
+        |> expect(:exists?, fn ^filepath -> false end)
+        |> expect(:write, fn ^filepath, _data, [:compressed] -> :ok end)
 
-      assert {:ok, _metadata} = DerivedArchive.after_archive(metadata, FileArchiveTransformer, format: :csv)
+        DataFrameMock
+        |> expect(:"dump_#{format}!", fn %DataFrame{} = df, ^opts ->
+          # 4 month of scrobbles
+          assert df |> DataFrame.shape() == {4 * 105, 11}
+          csv_data()
+        end)
+
+        assert {:ok, _metadata} = DerivedArchive.after_archive(metadata, FileArchiveTransformer, format: format)
+      end
     end
   end
 
@@ -119,23 +125,19 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
   end
 
   describe "read/2" do
-    test "returns data frame based on a year CSV file", %{user: user, derived_archive_metadata: metadata} do
-      filepath = Path.join([user_dir(user), "csv", "2023.csv.gz"])
+    for format <- DerivedArchive.formats() do
+      test "returns data frame based on a year #{format} file", %{user: user, derived_archive_metadata: metadata} do
+        format = unquote(format)
 
-      FileIOMock |> expect(:read, fn ^filepath -> {:ok, File.read!("test/fixtures/2023.csv.gz")} end)
-      DataFrameMock |> expect(:load_csv!, fn _data, [delimiter: "\t"] -> data_frame() end)
+        {mimetype, opts} = DerivedArchive.setting(format)
+        metadata = %{metadata | format: mimetype}
+        filepath = Path.join([user_dir(user), "#{format}", "2023.#{format}.gz"])
 
-      assert {:ok, %DataFrame{}} = DerivedArchive.read(metadata, year: 2023)
-    end
+        FileIOMock |> expect(:read, fn ^filepath -> {:ok, File.read!("test/fixtures/2023.#{format}.gz")} end)
+        DataFrameMock |> expect(:"load_#{format}!", fn _data, ^opts -> data_frame() end)
 
-    test "returns data frame based on a year Parquet file", %{user: user, derived_archive_metadata: metadata} do
-      filepath = Path.join([user_dir(user), "parquet", "2023.parquet.gz"])
-      metadata = %{metadata | format: "application/vnd.apache.parquet"}
-
-      FileIOMock |> expect(:read, fn ^filepath -> {:ok, File.read!("test/fixtures/2023.parquet.gz")} end)
-      DataFrameMock |> expect(:load_parquet!, fn _data, [] -> data_frame() end)
-
-      assert {:ok, %DataFrame{}} = DerivedArchive.read(metadata, year: 2023)
+        assert {:ok, %DataFrame{}} = DerivedArchive.read(metadata, year: 2023)
+      end
     end
 
     test "when year option given", %{derived_archive_metadata: metadata} do
