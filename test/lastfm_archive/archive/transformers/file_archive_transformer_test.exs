@@ -33,7 +33,7 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
 
   describe "apply/3" do
     for format <- DerivedArchive.formats() do
-      test "#{format} trasnformation", %{user: user, metadata: metadata} do
+      test "#{format} transformation", %{user: user, metadata: metadata} do
         {_mimetype, opts} = DerivedArchive.setting(unquote(format))
         dir = Path.join(user_dir(user), "#{unquote(format)}")
 

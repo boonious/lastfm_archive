@@ -20,6 +20,12 @@ config :lastfm_archive,
   file_io: Elixir.File,
   path_io: Elixir.Path
 
+config :lastfm_archive, :file_archive_transformer,
+  format_settings: %{
+    csv: {"text/tab-separated-values", [delimiter: "\t"]},
+    parquet: {"application/vnd.apache.parquet", []}
+  }
+
 # optional: Solr endpoint for Lastfm data loading
 config :hui, :lastfm_archive,
   url: "http://localhost:8983/solr/lastfm_archive",

@@ -8,12 +8,14 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
   alias Explorer.DataFrame
   alias LastfmArchive.Archive.DerivedArchive
   alias LastfmArchive.Archive.Metadata
+  alias LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
   alias LastfmArchive.Behaviour.Archive
+
+  use LastfmArchive.Behaviour.DataFrameIo, formats: FileArchiveTransformerSettings.available_formats()
 
   import LastfmArchive.Utils, only: [create_dir: 2, create_filepath: 2, month_range: 2, year_range: 1, write: 2]
   require Logger
 
-  @data_frame_io Application.compile_env(:lastfm_archive, :data_frame_io, DataFrame)
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
 
   @impl true
@@ -58,12 +60,10 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
     write_fun = fn df ->
       df
       |> DataFrame.collect()
-      |> dump_data_frame({format, opts})
+      |> dump_data_frame(format, opts)
       |> then(fn data -> @file_io.write(filepath, data, [:compressed]) end)
     end
 
     write(df, write_fun)
   end
-
-  defp dump_data_frame(df, {format, opts}), do: apply(@data_frame_io, :"dump_#{format}!", [df, opts])
 end

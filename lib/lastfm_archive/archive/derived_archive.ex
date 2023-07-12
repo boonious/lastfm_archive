@@ -6,10 +6,10 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   use LastfmArchive.Behaviour.Archive
   use LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
 
+  alias LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
   alias LastfmArchive.Utils
-  alias Explorer.DataFrame
 
-  @data_frame_io Application.compile_env(:lastfm_archive, :data_frame_io, DataFrame)
+  use LastfmArchive.Behaviour.DataFrameIo, formats: FileArchiveTransformerSettings.available_formats()
 
   @type read_options :: [year: integer()]
 
@@ -48,8 +48,6 @@ defmodule LastfmArchive.Archive.DerivedArchive do
 
     format
     |> then(fn format -> Utils.read(user, "#{format}/#{year}.#{format}.gz") end)
-    |> load_data_frame({format, opts})
+    |> then(fn {:ok, data} -> load_data_frame(data, format, opts) end)
   end
-
-  defp load_data_frame({:ok, data}, {format, opts}), do: apply(@data_frame_io, :"load_#{format}!", [data, opts])
 end

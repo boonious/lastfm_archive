@@ -196,7 +196,7 @@ defmodule LastfmArchive do
   @spec transform(binary, transform_options) :: any
   def transform(user \\ LastfmClient.default_user(), options \\ [format: :csv])
 
-  def transform(user, [format: format] = options) when is_binary(user) and format in [:csv, :parquet] do
+  def transform(user, options) when is_binary(user) do
     user
     |> metadata(:derived_archive, options)
     |> do_transform(options)
