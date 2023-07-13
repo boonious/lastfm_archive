@@ -1,9 +1,9 @@
 defmodule LastfmArchive.Utils do
   @moduledoc false
 
+  alias Explorer.DataFrame
   alias LastfmArchive.Archive.DerivedArchive
   alias LastfmArchive.Archive.FileArchive
-  alias Explorer.DataFrame
   alias LastfmArchive.Archive.Metadata
   require Logger
 
@@ -115,7 +115,7 @@ defmodule LastfmArchive.Utils do
 
     case @file_io.exists?(filepath) do
       false -> {:ok, filepath}
-      true -> {:error, :file_exists}
+      true -> {:error, :file_exists, filepath}
     end
   end
 

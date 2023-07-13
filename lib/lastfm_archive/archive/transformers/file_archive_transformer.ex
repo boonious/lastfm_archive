@@ -19,8 +19,8 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
 
   @impl true
-  def apply(%{creator: user} = metadata, [format: format] = opts) do
-    :ok = create_dir(user, format: format)
+  def apply(%{creator: user} = metadata, opts) do
+    :ok = create_dir(user, format: Keyword.fetch!(opts, :format))
     :ok = transform(metadata, year_range(metadata.temporal) |> Enum.to_list(), opts)
 
     {:ok, %{metadata | modified: DateTime.utc_now()}}
@@ -35,15 +35,26 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
 
   defp transform(%Metadata{creator: user} = metadata, [%Date{year: year} | _] = months, opts) do
     format = Keyword.get(opts, :format)
+    overwrite = Keyword.get(opts, :overwrite, false)
 
     case create_filepath(user, "#{format}/#{year}.#{format}.gz") do
       {:ok, filepath} ->
-        Logger.info("\nCreating #{format} file for #{year} scrobbles.")
-        :ok = create_dataframe(metadata, months) |> write_data_frame(filepath, format: format)
+        transform({metadata, year, months, filepath, format})
 
-      {:error, :file_exists} ->
-        Logger.info("\n#{format} file exists, skipping #{year} scrobbles.")
+      {:error, :file_exists, filepath} ->
+        maybe_skip_transform({metadata, year, months, filepath, format}, overwrite: overwrite)
     end
+  end
+
+  defp transform({metadata, year, months, filepath, format}) do
+    Logger.info("\nCreating #{format} file for #{year} scrobbles.")
+    :ok = create_dataframe(metadata, months) |> write_data_frame(filepath, format: format)
+  end
+
+  defp maybe_skip_transform(args, overwrite: true), do: transform(args)
+
+  defp maybe_skip_transform({_, year, _, _, format}, overwrite: false) do
+    Logger.info("\n#{format} file exists, skipping #{year} scrobbles.")
   end
 
   defp create_dataframe(metadata, months) do

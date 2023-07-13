@@ -7,7 +7,7 @@ defmodule LastfmArchive do
 
   Current usage:
   - `sync/0`, `sync/1`: sync Lastfm scrobble data to local filesystem
-  - `transform/2`: transform downloaded raw data to a CSV and Parquet archive
+  - `transform/0`, `transform/2`: transform downloaded raw data to a CSV and Parquet archive
   - `read/2`: daily amd monthly data frame of the file archive
   - `read_csv/2`, `read_parquet/2`: yearly data frame from the CSV and Parquet archive
   - `load_archive/2`: load all CSV data from the archive into Solr
@@ -98,8 +98,8 @@ defmodule LastfmArchive do
   @spec sync(binary, keyword) :: {:ok, metadata()} | {:error, :file.posix()}
   def sync(user \\ LastfmClient.default_user(), options \\ []) do
     user
-    |> metadata()
-    |> Archive.impl().archive(options, LastfmApi.new())
+    |> file_archive().describe(options)
+    |> then(fn {:ok, metadata} -> file_archive().archive(metadata, options, LastfmApi.new()) end)
   end
 
   @doc """
@@ -126,8 +126,8 @@ defmodule LastfmArchive do
   @spec read(binary, FileArchive.read_options()) :: {:ok, Explorer.DataFrame} | {:error, term()}
   def read(user \\ LastfmClient.default_user(), options) do
     user
-    |> metadata()
-    |> Archive.impl().read(options)
+    |> file_archive().describe(options)
+    |> then(fn {:ok, metadata} -> file_archive().read(metadata, options) end)
   end
 
   @doc """
@@ -147,8 +147,8 @@ defmodule LastfmArchive do
   @spec read_parquet(binary, DerivedArchive.read_options()) :: {:ok, Explorer.DataFrame} | {:error, term()}
   def read_parquet(user \\ LastfmClient.default_user(), year: year) do
     user
-    |> metadata(:derived_archive, format: :parquet)
-    |> Archive.impl(:derived_archive).read(year: year)
+    |> derived_archive().describe(format: :parquet)
+    |> then(fn {:ok, metadata} -> derived_archive().read(metadata, year: year) end)
   end
 
   @doc """
@@ -168,8 +168,8 @@ defmodule LastfmArchive do
   @spec read_csv(binary, DerivedArchive.read_options()) :: {:ok, Explorer.DataFrame} | {:error, term()}
   def read_csv(user \\ LastfmClient.default_user(), year: year) do
     user
-    |> metadata(:derived_archive, format: :csv)
-    |> Archive.impl(:derived_archive).read(year: year)
+    |> derived_archive().describe(format: :csv)
+    |> then(fn {:ok, metadata} -> derived_archive().read(metadata, year: year) end)
   end
 
   @doc """
@@ -198,25 +198,13 @@ defmodule LastfmArchive do
 
   def transform(user, options) when is_binary(user) do
     user
-    |> metadata(:derived_archive, options)
-    |> do_transform(options)
-    |> then(fn {:ok, metadata} -> update_metadata(metadata, :derived_archive, options) end)
+    |> derived_archive().describe(options)
+    |> then(fn {:ok, metadata} -> derived_archive().after_archive(metadata, FileArchiveTransformer, options) end)
+    |> then(fn {:ok, metadata} -> derived_archive().update_metadata(metadata, options) end)
   end
 
-  defp do_transform(%Metadata{} = metadata, options) do
-    Archive.impl(:derived_archive).after_archive(metadata, FileArchiveTransformer, options)
-  end
-
-  defp metadata(user, archive_type \\ :file_archive, options \\ [])
-
-  defp metadata(user, archive_type, options) do
-    {:ok, metadata} = user |> Archive.impl(archive_type).describe(options)
-    metadata
-  end
-
-  defp update_metadata(metadata, archive_type, options) do
-    Archive.impl(archive_type).update_metadata(metadata, options)
-  end
+  defp file_archive(), do: Archive.impl(:file_archive)
+  defp derived_archive(), do: Archive.impl(:derived_archive)
 
   # return all archive file paths in a list
   defp ls_archive_files(user) do

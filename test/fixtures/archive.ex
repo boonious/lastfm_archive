@@ -59,7 +59,7 @@ defmodule Fixtures.Archive do
     |> Explorer.DataFrame.new(lazy: true)
   end
 
-  def csv_data(), do: File.read!("test/fixtures/2023.csv")
+  def transformed_file_data(format \\ :csv), do: File.read!("test/fixtures/2023.#{format}")
 
   def archive_metadata(), do: File.read!("test/fixtures/metadata.json")
 

@@ -34,11 +34,12 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
   describe "apply/3" do
     for format <- DerivedArchive.formats() do
       test "#{format} transformation", %{user: user, metadata: metadata} do
-        {_mimetype, opts} = DerivedArchive.setting(unquote(format))
-        dir = Path.join(user_dir(user), "#{unquote(format)}")
+        format = unquote(format)
+        {_mimetype, opts} = DerivedArchive.setting(format)
+        dir = Path.join(user_dir(user), "#{format}")
 
-        filepath1 = Path.join([user_dir(user), "#{unquote(format)}", "2022.#{unquote(format)}.gz"])
-        filepath2 = Path.join([user_dir(user), "#{unquote(format)}", "2023.#{unquote(format)}.gz"])
+        filepath1 = Path.join([user_dir(user), "#{format}", "2022.#{format}.gz"])
+        filepath2 = Path.join([user_dir(user), "#{format}", "2023.#{format}.gz"])
 
         # read archive 16 times per 16 months scrobbles, 105 scrobbles each month
         FileArchiveMock
@@ -53,24 +54,25 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
         |> expect(:write, fn ^filepath2, _data, [:compressed] -> :ok end)
 
         DataFrameMock
-        |> expect(:"dump_#{unquote(format)}!", fn %DataFrame{} = df, ^opts ->
+        |> expect(:"dump_#{format}!", fn %DataFrame{} = df, ^opts ->
           # whole year of scrobbles
           assert df |> DataFrame.shape() == {12 * 105, 11}
-          csv_data()
+          transformed_file_data(format)
         end)
-        |> expect(:"dump_#{unquote(format)}!", fn %DataFrame{} = df, ^opts ->
+        |> expect(:"dump_#{format}!", fn %DataFrame{} = df, ^opts ->
           # 4 month of scrobbles
           assert df |> DataFrame.shape() == {4 * 105, 11}
-          csv_data()
+          transformed_file_data(format)
         end)
 
-        assert capture_log(fn -> assert {:ok, _} = FileArchiveTransformer.apply(metadata, format: unquote(format)) end) =~
+        assert capture_log(fn -> assert {:ok, _} = FileArchiveTransformer.apply(metadata, format: format) end) =~
                  "Creating"
       end
 
       test "does not overwrite existing #{format} file", %{user: user, metadata: metadata} do
-        {_mimetype, opts} = DerivedArchive.setting(unquote(format))
-        dir = Path.join(user_dir(user), "#{unquote(format)}")
+        format = unquote(format)
+        {_mimetype, opts} = DerivedArchive.setting(format)
+        dir = Path.join(user_dir(user), "#{format}")
 
         FileIOMock
         |> expect(:exists?, fn ^dir -> true end)
@@ -78,10 +80,31 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
         |> expect(:write, 0, fn __filepath, _data, [:compressed] -> :ok end)
 
         DataFrameMock
-        |> expect(:"dump_#{unquote(format)}!", 0, fn _df, ^opts -> :ok end)
+        |> expect(:"dump_#{format}!", 0, fn _df, ^opts -> :ok end)
 
-        assert capture_log(fn -> assert {:ok, _} = FileArchiveTransformer.apply(metadata, format: unquote(format)) end) =~
+        assert capture_log(fn -> assert {:ok, _} = FileArchiveTransformer.apply(metadata, format: format) end) =~
                  "skipping"
+      end
+
+      test "overwrites existing #{format} file when opted", %{metadata: metadata} do
+        format = unquote(format)
+        {_mimetype, opts} = DerivedArchive.setting(format)
+
+        FileArchiveMock
+        |> stub(:read, fn ^metadata, _option -> {:ok, data_frame()} end)
+
+        FileIOMock
+        |> expect(:exists?, fn _dir -> true end)
+        |> stub(:exists?, fn _filepath -> true end)
+        |> stub(:write, fn __filepath, _data, [:compressed] -> :ok end)
+
+        DataFrameMock
+        |> stub(:"dump_#{format}!", fn %DataFrame{}, ^opts -> transformed_file_data(format) end)
+
+        assert capture_log(fn ->
+                 assert {:ok, _} = FileArchiveTransformer.apply(metadata, format: format, overwrite: true)
+               end) =~
+                 "Creating"
       end
     end
   end

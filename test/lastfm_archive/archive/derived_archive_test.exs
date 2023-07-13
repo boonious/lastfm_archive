@@ -60,7 +60,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         |> expect(:"dump_#{format}!", fn %DataFrame{} = df, ^opts ->
           # 4 month of scrobbles
           assert df |> DataFrame.shape() == {4 * 105, 11}
-          csv_data()
+          transformed_file_data(format)
         end)
 
         assert {:ok, _metadata} = DerivedArchive.after_archive(metadata, FileArchiveTransformer, format: format)
