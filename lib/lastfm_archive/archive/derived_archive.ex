@@ -5,9 +5,7 @@ defmodule LastfmArchive.Archive.DerivedArchive do
 
   use LastfmArchive.Behaviour.Archive
   use LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
-
   alias LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
-  alias LastfmArchive.Utils
 
   use LastfmArchive.Behaviour.DataFrameIo, formats: FileArchiveTransformerSettings.available_formats()
 
@@ -44,10 +42,14 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   end
 
   defp do_read(user, mimetype, year) do
-    {format, {^mimetype, opts}} = setting(mimetype)
+    {format, %{read_opts: opts}} = setting(mimetype)
 
     format
-    |> then(fn format -> Utils.read(user, "#{format}/#{year}.#{format}.gz") end)
-    |> then(fn {:ok, data} -> load_data_frame(data, format, opts) end)
+    |> filepath(user, year)
+    |> load_data_frame(format, opts)
   end
+
+  defp filepath(format, user, year) when format == :csv, do: "#{format}/#{year}.#{format}.gz" |> filepath(user)
+  defp filepath(format, user, year), do: "#{format}/#{year}.#{format}" |> filepath(user)
+  defp filepath(path_part, user), do: Path.join(user_dir(user), path_part)
 end

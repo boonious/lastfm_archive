@@ -22,8 +22,8 @@ config :lastfm_archive,
 
 config :lastfm_archive, :file_archive_transformer,
   format_settings: %{
-    csv: {"text/tab-separated-values", [delimiter: "\t"]},
-    parquet: {"application/vnd.apache.parquet", []}
+    csv: %{mimetype: "text/tab-separated-values", read_opts: [delimiter: "\t"], write_opts: [delimiter: "\t"]},
+    parquet: %{mimetype: "application/vnd.apache.parquet", read_opts: [], write_opts: [compression: {:gzip, 9}]}
   }
 
 # optional: Solr endpoint for Lastfm data loading

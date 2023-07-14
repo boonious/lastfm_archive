@@ -29,7 +29,7 @@ defmodule LastfmArchive do
   @type time_range :: {integer, integer}
   @type solr_url :: atom | Hui.URL.t()
 
-  @type transform_options :: LastfmArchive.Behaviour.Archive.transform_options()
+  @type options :: LastfmArchive.Behaviour.Archive.options()
 
   @doc """
   Returns the total playcount and registered, i.e. earliest scrobble time for a user.
@@ -193,7 +193,7 @@ defmodule LastfmArchive do
   They are stored in a `csv` or `parquet` directory within either the default `./lastfm_data/`
   or the directory specified in config/config.exs (`:lastfm_archive, :data_dir`).
   """
-  @spec transform(binary, transform_options) :: any
+  @spec transform(binary, options) :: any
   def transform(user \\ LastfmClient.default_user(), options \\ [format: :csv])
 
   def transform(user, options) when is_binary(user) do
@@ -232,7 +232,7 @@ defmodule LastfmArchive do
   ```
 
   CSV files must be pre-created before the loading - see
-  `transform_archive/2`.
+  `transform/2`.
   """
   @spec load_archive(binary, solr_url) :: :ok | {:error, Hui.Error.t()}
   def load_archive(user, url) when is_atom(url) and url != nil do

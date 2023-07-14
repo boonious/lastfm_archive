@@ -119,7 +119,7 @@ defmodule LastfmArchive.Load do
   ```
 
   CSV files must be pre-created by transforming raw JSON Lastfm data - see
-  `LastfmArchive.transform_archive/2`.
+  `LastfmArchive.transform/2`.
 
   """
   @spec load_solr(Hui.URL.t(), binary, binary) :: {:ok, Hui.Http.t()} | {:error, :enoent}

@@ -13,7 +13,7 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
 
   use LastfmArchive.Behaviour.DataFrameIo, formats: FileArchiveTransformerSettings.available_formats()
 
-  import LastfmArchive.Utils, only: [create_dir: 2, create_filepath: 2, month_range: 2, year_range: 1, write: 2]
+  import LastfmArchive.Utils, only: [create_dir: 2, create_filepath: 3, month_range: 2, year_range: 1, write: 2]
   require Logger
 
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
@@ -37,7 +37,7 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
     format = Keyword.get(opts, :format)
     overwrite = Keyword.get(opts, :overwrite, false)
 
-    case create_filepath(user, "#{format}/#{year}.#{format}.gz") do
+    case create_filepath(user, format, "#{format}/#{year}.#{format}") do
       {:ok, filepath} ->
         transform({metadata, year, months, filepath, format})
 
@@ -66,15 +66,23 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
   end
 
   defp write_data_frame(df, filepath, format: format) do
-    {_mimetype, opts} = DerivedArchive.setting(format)
+    write(df, write_fun(filepath, format))
+  end
 
-    write_fun = fn df ->
+  defp write_fun(filepath, format) when format == :csv do
+    fn df ->
       df
       |> DataFrame.collect()
-      |> dump_data_frame(format, opts)
+      |> dump_data_frame(format, DerivedArchive.write_opts(format))
       |> then(fn data -> @file_io.write(filepath, data, [:compressed]) end)
     end
+  end
 
-    write(df, write_fun)
+  defp write_fun(filepath, format) do
+    fn df ->
+      df
+      |> DataFrame.collect()
+      |> to_data_frame(filepath, format, DerivedArchive.write_opts(format))
+    end
   end
 end

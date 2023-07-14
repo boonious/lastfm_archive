@@ -14,10 +14,10 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings do
   defmacro __before_compile__(_env) do
     quote do
       def formats, do: available_formats()
-      def mimetype(format), do: format_settings()[format] |> elem(0)
-
-      def setting(format) when is_atom(format), do: format_settings()[format]
-      def setting(mimetype), do: format_settings() |> Enum.find(fn {_format, {type, _opts}} -> type == mimetype end)
+      def mimetype(format), do: format_settings()[format][:mimetype]
+      def read_opts(format), do: format_settings()[format][:read_opts]
+      def write_opts(format), do: format_settings()[format][:write_opts]
+      def setting(mimetype), do: format_settings() |> Enum.find(fn {_format, %{mimetype: type}} -> type == mimetype end)
     end
   end
 

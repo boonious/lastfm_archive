@@ -37,15 +37,42 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
     }
   end
 
-  describe "after_archive/3" do
-    for format <- DerivedArchive.formats() do
-      test "transform FileArchive into #{format} file", %{derived_archive_metadata: metadata, user: user} do
+  describe "after_archive/3 transform FileArchive" do
+    test "into csv file", %{derived_archive_metadata: metadata, user: user} do
+      format = :csv
+
+      dir = Path.join(user_dir(user), "#{format}")
+      {opts, mimetype} = {DerivedArchive.write_opts(format), DerivedArchive.mimetype(format)}
+      metadata = %{metadata | format: mimetype}
+      filepath = Path.join([user_dir(user), "#{format}", "2023.#{format}.gz"])
+
+      # 4 read for 4 months, each with 105 scrobbles
+      FileArchiveMock
+      |> expect(:read, 4, fn ^metadata, _option -> {:ok, data_frame()} end)
+
+      FileIOMock
+      |> expect(:exists?, fn ^dir -> true end)
+      |> expect(:exists?, fn ^filepath -> false end)
+      |> expect(:write, fn ^filepath, _data, [:compressed] -> :ok end)
+
+      DataFrameMock
+      |> expect(:"dump_#{format}!", fn %DataFrame{} = df, ^opts ->
+        # 4 month of scrobbles
+        assert df |> DataFrame.shape() == {4 * 105, 11}
+        transformed_file_data(format)
+      end)
+
+      assert {:ok, _metadata} = DerivedArchive.after_archive(metadata, FileArchiveTransformer, format: format)
+    end
+
+    for format <- DerivedArchive.formats(), format != :csv do
+      test "into #{format} file", %{derived_archive_metadata: metadata, user: user} do
         format = unquote(format)
 
         dir = Path.join(user_dir(user), "#{format}")
-        {mimetype, opts} = DerivedArchive.setting(format)
+        {opts, mimetype} = {DerivedArchive.write_opts(format), DerivedArchive.mimetype(format)}
         metadata = %{metadata | format: mimetype}
-        filepath = Path.join([user_dir(user), "#{format}", "2023.#{format}.gz"])
+        filepath = Path.join([user_dir(user), "#{format}", "2023.#{format}"])
 
         # 4 read for 4 months, each with 105 scrobbles
         FileArchiveMock
@@ -54,13 +81,12 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         FileIOMock
         |> expect(:exists?, fn ^dir -> true end)
         |> expect(:exists?, fn ^filepath -> false end)
-        |> expect(:write, fn ^filepath, _data, [:compressed] -> :ok end)
 
         DataFrameMock
-        |> expect(:"dump_#{format}!", fn %DataFrame{} = df, ^opts ->
+        |> expect(:"to_#{format}!", fn %DataFrame{} = df, ^filepath, ^opts ->
           # 4 month of scrobbles
           assert df |> DataFrame.shape() == {4 * 105, 11}
-          transformed_file_data(format)
+          :ok
         end)
 
         assert {:ok, _metadata} = DerivedArchive.after_archive(metadata, FileArchiveTransformer, format: format)
@@ -129,12 +155,12 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
       test "returns data frame based on a year #{format} file", %{user: user, derived_archive_metadata: metadata} do
         format = unquote(format)
 
-        {mimetype, opts} = DerivedArchive.setting(format)
+        {opts, mimetype} = {DerivedArchive.read_opts(format), DerivedArchive.mimetype(format)}
         metadata = %{metadata | format: mimetype}
-        filepath = Path.join([user_dir(user), "#{format}", "2023.#{format}.gz"])
+        filepath = Path.join([user_dir(user), "#{format}", "2023.#{format}"])
+        filepath = if format == :csv, do: filepath <> ".gz", else: filepath
 
-        FileIOMock |> expect(:read, fn ^filepath -> {:ok, File.read!("test/fixtures/2023.#{format}.gz")} end)
-        DataFrameMock |> expect(:"load_#{format}!", fn _data, ^opts -> data_frame() end)
+        DataFrameMock |> expect(:"from_#{format}!", fn ^filepath, ^opts -> data_frame() end)
 
         assert {:ok, %DataFrame{}} = DerivedArchive.read(metadata, year: 2023)
       end

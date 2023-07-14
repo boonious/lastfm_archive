@@ -110,6 +110,9 @@ defmodule LastfmArchive.Utils do
     :ok
   end
 
+  def create_filepath(user, :csv, path), do: create_filepath(user, path <> ".gz")
+  def create_filepath(user, _format, path), do: create_filepath(user, path)
+
   def create_filepath(user, path) do
     filepath = Path.join([user_dir(user), path])
 
