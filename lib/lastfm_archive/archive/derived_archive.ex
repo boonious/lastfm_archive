@@ -2,14 +2,13 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   @moduledoc """
   An archive derived from local data extracted from Lastfm.
   """
-
   use LastfmArchive.Behaviour.Archive
   use LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
   alias LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
 
   use LastfmArchive.Behaviour.DataFrameIo, formats: FileArchiveTransformerSettings.available_formats()
 
-  @type read_options :: [year: integer()]
+  @type read_options :: [year: integer(), columns: list(atom())]
 
   @impl true
   def after_archive(metadata, transformer, options), do: transformer.apply(metadata, options)
@@ -35,19 +34,24 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   @impl true
   @spec read(Archive.metadata(), read_options()) :: {:ok, Explorer.DataFrame.t()} | {:error, term()}
   def read(%{creator: user, format: mimetype} = _metadata, options) do
-    case Keyword.fetch(options, :year) do
-      {:ok, year} -> {:ok, do_read(user, mimetype, year)}
-      _error -> {:error, :einval}
+    with {format, %{read_opts: config_opts}} <- setting(mimetype),
+         {:ok, {year, opts}} <- fetch_opts(config_opts, options) do
+      format
+      |> filepath(user, year)
+      |> load_data_frame(format, opts)
+      |> then(fn df -> {:ok, df} end)
     end
   end
 
-  defp do_read(user, mimetype, year) do
-    {format, %{read_opts: opts}} = setting(mimetype)
-
-    format
-    |> filepath(user, year)
-    |> load_data_frame(format, opts)
+  defp fetch_opts(config_opts, options) do
+    with {:ok, year} <- Keyword.fetch(options, :year),
+         columns <- Keyword.get(options, :columns) do
+      fetch_opts(config_opts, year, columns)
+    end
   end
+
+  defp fetch_opts(opts, year, nil), do: {:ok, {year, opts}}
+  defp fetch_opts(opts, year, columns), do: {:ok, {year, Keyword.put(opts, :columns, columns)}}
 
   defp filepath(format, user, year) when format == :csv, do: "#{format}/#{year}.#{format}.gz" |> filepath(user)
   defp filepath(format, user, year), do: "#{format}/#{year}.#{format}" |> filepath(user)

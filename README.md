@@ -62,14 +62,15 @@ LastfmArchive.transform("a_lastfm_user", format: :parquet)
 
 See [`transform/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#transform/2).
 
-This following functions return a data frame containing scrobbles for a particular year.
+The read function can be used to return a data frame containing scrobbles for a particular year.
+A `columns` is also available to read only a subset of columns.
 
 ```elixir
 # from the CSV archive
-LastfmArchive.read_csv("a_lastfm_user", year: 2023)
+LastfmArchive.read("a_lastfm_user", format: :csv, year: 2023)
 
-# from the Parquet archive
-LastfmArchive.read_parquet("a_lastfm_user", year: 2023)
+# from the Parquet archive, and only specific columns
+LastfmArchive.read("a_lastfm_user", format: :parquet, year: 2023, columns: [:id, :artist, :album])
 ```
 
 ## Livebook Support

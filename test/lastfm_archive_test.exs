@@ -23,12 +23,7 @@ defmodule LastfmArchiveTest do
         type: LastfmArchive.Archive.FileArchive
       )
 
-    %{
-      user: user,
-      file_archive_metadata: file_archive_metadata,
-      csv_archive_metadata: new_derived_archive_metadata(file_archive_metadata, format: :csv),
-      parquet_archive_metadata: new_derived_archive_metadata(file_archive_metadata, format: :parquet)
-    }
+    %{user: user, file_archive_metadata: file_archive_metadata}
   end
 
   describe "sync/2" do
@@ -62,26 +57,34 @@ defmodule LastfmArchiveTest do
 
       assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read(user, option)
     end
-  end
 
-  test "read_parquet/2", %{user: user, parquet_archive_metadata: metadata} do
-    options = [year: 2023]
+    for format <- DerivedArchive.formats() do
+      test "#{format} derived archive", %{user: user, file_archive_metadata: metadata} do
+        format = unquote(format)
+        metadata = new_derived_archive_metadata(metadata, format: format)
+        options = [format: format, year: 2023]
 
-    DerivedArchiveMock
-    |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-    |> expect(:read, fn ^metadata, ^options -> {:ok, data_frame()} end)
+        DerivedArchiveMock
+        |> expect(:describe, fn ^user, ^options -> {:ok, metadata} end)
+        |> expect(:read, fn ^metadata, ^options -> {:ok, data_frame()} end)
 
-    assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read_parquet(user, options)
-  end
+        assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read(user, options)
+      end
 
-  test "read_csv/2", %{user: user, csv_archive_metadata: metadata} do
-    options = [year: 2023]
+      test "#{format} with columns option", %{user: user, file_archive_metadata: metadata} do
+        format = unquote(format)
+        metadata = new_derived_archive_metadata(metadata, format: format)
 
-    DerivedArchiveMock
-    |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-    |> expect(:read, fn ^metadata, ^options -> {:ok, data_frame()} end)
+        columns = [:artist, :album]
+        options = [format: format, year: 2023, columns: columns]
 
-    assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read_csv(user, options)
+        DerivedArchiveMock
+        |> expect(:describe, fn ^user, ^options -> {:ok, metadata} end)
+        |> expect(:read, fn ^metadata, ^options -> {:ok, data_frame()} end)
+
+        assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read(user, options)
+      end
+    end
   end
 
   describe "transform/2" do
@@ -99,7 +102,8 @@ defmodule LastfmArchiveTest do
       end
     end
 
-    test "scrobbles of default user with default (CSV) format", %{csv_archive_metadata: metadata} do
+    test "scrobbles of default user with default (CSV) format", %{file_archive_metadata: metadata} do
+      metadata = new_derived_archive_metadata(metadata, format: :csv)
       user = Application.get_env(:lastfm_archive, :user)
 
       DerivedArchiveMock

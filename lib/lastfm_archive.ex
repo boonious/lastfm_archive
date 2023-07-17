@@ -8,13 +8,11 @@ defmodule LastfmArchive do
   Current usage:
   - `sync/0`, `sync/1`: sync Lastfm scrobble data to local filesystem
   - `transform/0`, `transform/2`: transform downloaded raw data to a CSV and Parquet archive
-  - `read/2`: daily amd monthly data frame of the file archive
-  - `read_csv/2`, `read_parquet/2`: yearly data frame from the CSV and Parquet archive
+  - `read/2`: daily amd monthly data frame of the file archive, or yearly data frame from the CSV and Parquet archive
   - `load_archive/2`: load all CSV data from the archive into Solr
 
   """
 
-  alias LastfmArchive.Archive.FileArchive
   alias LastfmArchive.Archive.Transformers.FileArchiveTransformer
   alias LastfmArchive.Archive.Metadata
 
@@ -98,14 +96,14 @@ defmodule LastfmArchive do
   @spec sync(binary, keyword) :: {:ok, metadata()} | {:error, :file.posix()}
   def sync(user \\ LastfmClient.default_user(), options \\ []) do
     user
-    |> file_archive().describe(options)
-    |> then(fn {:ok, metadata} -> file_archive().archive(metadata, options, LastfmApi.new()) end)
+    |> impl().describe(options)
+    |> then(fn {:ok, metadata} -> impl().archive(metadata, options, LastfmApi.new()) end)
   end
 
   @doc """
-  Read scrobbles from an archive of a Lastfm user.
+  Read from an archive of a Lastfm user.
 
-  This returns scrobbles for a single day  or month period
+  This returns scrobbles for a single day or month period
   in a lazy Explorer.DataFrame for further data manipulation
   and visualisation.
 
@@ -122,54 +120,26 @@ defmodule LastfmArchive do
   Options:
   - `:day` - read scrobbles for this particular date (`Date.t()`)
   - `:month` - read scrobbles for this particular month (`Date.t()`)
+
+  This function can also return a data frame
+  containing scrobbles spanning a single year from derived archive,
+  i.e. CSV, Parquet archives created via `transform/2`.
+
+  ### Example
+  ```
+    # read a year of scrobbles for a user from Parquet archive
+    LastfmArchive.read("a_lastfm_user", format: :parquet, year: 2023)
+  ```
+
+  Options:
+  - `:format` - archive format such as `:csv`, `:parquet`
+  - `:year` - read scrobbles for this particular year
   """
-  @spec read(binary, FileArchive.read_options()) :: {:ok, Explorer.DataFrame} | {:error, term()}
+  @spec read(binary, keyword()) :: {:ok, Explorer.DataFrame} | {:error, term()}
   def read(user \\ LastfmClient.default_user(), options) do
     user
-    |> file_archive().describe(options)
-    |> then(fn {:ok, metadata} -> file_archive().read(metadata, options) end)
-  end
-
-  @doc """
-  Read scrobbles data from an Apache Parquet archive created via `transform/2`.
-
-  Returns a data frame containing scrobbles spanning a single year.
-
-  ### Example
-  ```
-    # read a year of scrobbles for a user
-    LastfmArchive.read_parquet("a_lastfm_user", year: 2023)
-  ```
-
-  Options:
-  - `:year` - read scrobbles for this particular year
-  """
-  @spec read_parquet(binary, DerivedArchive.read_options()) :: {:ok, Explorer.DataFrame} | {:error, term()}
-  def read_parquet(user \\ LastfmClient.default_user(), year: year) do
-    user
-    |> derived_archive().describe(format: :parquet)
-    |> then(fn {:ok, metadata} -> derived_archive().read(metadata, year: year) end)
-  end
-
-  @doc """
-  Read scrobbles data from a CSV archive created via `transform/2`
-
-  Returns a data frame containing scrobbles spanning a single year.
-
-  ### Example
-  ```
-    # read a year of scrobbles for a user
-    LastfmArchive.read_csv("a_lastfm_user", year: 2023)
-  ```
-
-  Options:
-  - `:year` - read scrobbles for this particular year
-  """
-  @spec read_csv(binary, DerivedArchive.read_options()) :: {:ok, Explorer.DataFrame} | {:error, term()}
-  def read_csv(user \\ LastfmClient.default_user(), year: year) do
-    user
-    |> derived_archive().describe(format: :csv)
-    |> then(fn {:ok, metadata} -> derived_archive().read(metadata, year: year) end)
+    |> impl(options).describe(options)
+    |> then(fn {:ok, metadata} -> impl(options).read(metadata, options) end)
   end
 
   @doc """
@@ -198,13 +168,17 @@ defmodule LastfmArchive do
 
   def transform(user, options) when is_binary(user) do
     user
-    |> derived_archive().describe(options)
-    |> then(fn {:ok, metadata} -> derived_archive().after_archive(metadata, FileArchiveTransformer, options) end)
-    |> then(fn {:ok, metadata} -> derived_archive().update_metadata(metadata, options) end)
+    |> impl(options).describe(options)
+    |> then(fn {:ok, metadata} -> impl(options).after_archive(metadata, FileArchiveTransformer, options) end)
+    |> then(fn {:ok, metadata} -> impl(options).update_metadata(metadata, options) end)
   end
 
-  defp file_archive(), do: Archive.impl(:file_archive)
-  defp derived_archive(), do: Archive.impl(:derived_archive)
+  defp impl(options \\ []) do
+    case Keyword.has_key?(options, :format) do
+      true -> Archive.impl(:derived_archive)
+      false -> Archive.impl(:file_archive)
+    end
+  end
 
   # return all archive file paths in a list
   defp ls_archive_files(user) do

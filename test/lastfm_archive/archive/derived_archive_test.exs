@@ -19,7 +19,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
   setup do
     user = "a_lastfm_user"
 
-    file_archive_metadata =
+    metadata =
       new_archive_metadata(
         user: user,
         start: DateTime.from_iso8601("2023-01-01T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
@@ -28,22 +28,16 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
       )
       |> Map.put(:modified, DateTime.utc_now())
 
-    derived_archive_metadata = file_archive_metadata |> new_derived_archive_metadata(format: :csv)
-
-    %{
-      derived_archive_metadata: derived_archive_metadata,
-      file_archive_metadata: file_archive_metadata,
-      user: user
-    }
+    %{file_archive_metadata: metadata, user: user}
   end
 
   describe "after_archive/3 transform FileArchive" do
-    test "into csv file", %{derived_archive_metadata: metadata, user: user} do
+    test "into csv file", %{file_archive_metadata: metadata, user: user} do
       format = :csv
-
       dir = Path.join(user_dir(user), "#{format}")
-      {opts, mimetype} = {DerivedArchive.write_opts(format), DerivedArchive.mimetype(format)}
-      metadata = %{metadata | format: mimetype}
+      opts = DerivedArchive.write_opts(format)
+      metadata = metadata |> new_derived_archive_metadata(format: format)
+
       filepath = Path.join([user_dir(user), "#{format}", "2023.#{format}.gz"])
 
       # 4 read for 4 months, each with 105 scrobbles
@@ -66,12 +60,11 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
     end
 
     for format <- DerivedArchive.formats(), format != :csv do
-      test "into #{format} file", %{derived_archive_metadata: metadata, user: user} do
+      test "into #{format} file", %{file_archive_metadata: metadata, user: user} do
         format = unquote(format)
-
         dir = Path.join(user_dir(user), "#{format}")
-        {opts, mimetype} = {DerivedArchive.write_opts(format), DerivedArchive.mimetype(format)}
-        metadata = %{metadata | format: mimetype}
+        opts = DerivedArchive.write_opts(format)
+        metadata = metadata |> new_derived_archive_metadata(format: format)
         filepath = Path.join([user_dir(user), "#{format}", "2023.#{format}"])
 
         # 4 read for 4 months, each with 105 scrobbles
@@ -95,68 +88,79 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
   end
 
   describe "describe/2" do
-    test "an existing derived archive", %{user: user, derived_archive_metadata: metadata} do
-      metadata_filepath = metadata_filepath(user, format: :csv)
-      LastfmArchive.FileIOMock |> expect(:read, fn ^metadata_filepath -> {:ok, metadata |> Jason.encode!()} end)
+    for format <- DerivedArchive.formats() do
+      test "existing #{format} derived archive", %{user: user, file_archive_metadata: metadata} do
+        format = unquote(format)
+        metadata = metadata |> new_derived_archive_metadata(format: format)
+        metadata_filepath = metadata_filepath(user, format: format)
+        mimetype = DerivedArchive.mimetype(format)
 
-      assert {
-               :ok,
-               %Metadata{
-                 created: %{__struct__: DateTime},
-                 creator: ^user,
-                 description: "Lastfm archive of a_lastfm_user in csv format",
-                 format: "text/tab-separated-values",
-                 identifier: ^user,
-                 source: "local file archive",
-                 title: "Lastfm archive of a_lastfm_user",
-                 type: DerivedArchive,
-                 extent: 400,
-                 date: %{__struct__: Date},
-                 temporal: {1_672_599_007, 1_680_547_807},
-                 modified: _now
-               }
-             } = DerivedArchive.describe(user, format: :csv)
-    end
+        LastfmArchive.FileIOMock |> expect(:read, fn ^metadata_filepath -> {:ok, metadata |> Jason.encode!()} end)
 
-    test "returns new metadata when file archive exists", %{
-      user: user,
-      derived_archive_metadata: _metadata,
-      file_archive_metadata: file_archive_metadata
-    } do
-      file_archive_metadata_filepath = metadata_filepath(user, [])
-      derived_archive_metadata_filepath = metadata_filepath(user, format: :csv)
+        assert {
+                 :ok,
+                 %Metadata{
+                   created: %{__struct__: DateTime},
+                   creator: ^user,
+                   description: description,
+                   format: ^mimetype,
+                   identifier: ^user,
+                   source: "local file archive",
+                   title: "Lastfm archive of a_lastfm_user",
+                   type: DerivedArchive,
+                   extent: 400,
+                   date: %{__struct__: Date},
+                   temporal: {1_672_599_007, 1_680_547_807},
+                   modified: _now
+                 }
+               } = DerivedArchive.describe(user, format: format)
 
-      LastfmArchive.FileIOMock
-      |> expect(:read, fn ^derived_archive_metadata_filepath -> {:error, :enoent} end)
-      |> expect(:read, fn ^file_archive_metadata_filepath -> {:ok, file_archive_metadata |> Jason.encode!()} end)
+        assert description == "Lastfm archive of a_lastfm_user in #{format} format"
+      end
 
-      assert {
-               :ok,
-               %Metadata{
-                 created: %{__struct__: DateTime},
-                 creator: ^user,
-                 description: "Lastfm archive of a_lastfm_user in csv format",
-                 format: "text/tab-separated-values",
-                 identifier: ^user,
-                 source: "local file archive",
-                 title: "Lastfm archive of a_lastfm_user",
-                 type: DerivedArchive,
-                 date: %{__struct__: Date},
-                 extent: 400,
-                 modified: _now,
-                 temporal: {1_672_599_007, 1_680_547_807}
-               }
-             } = DerivedArchive.describe(user, format: :csv)
+      test "#{format} returns new metadata when file archive exists", %{
+        user: user,
+        file_archive_metadata: file_archive_metadata
+      } do
+        format = unquote(format)
+        file_archive_metadata_filepath = metadata_filepath(user, [])
+        derived_archive_metadata_filepath = metadata_filepath(user, format: format)
+        mimetype = DerivedArchive.mimetype(format)
+
+        LastfmArchive.FileIOMock
+        |> expect(:read, fn ^derived_archive_metadata_filepath -> {:error, :enoent} end)
+        |> expect(:read, fn ^file_archive_metadata_filepath -> {:ok, file_archive_metadata |> Jason.encode!()} end)
+
+        assert {
+                 :ok,
+                 %Metadata{
+                   created: %{__struct__: DateTime},
+                   creator: ^user,
+                   description: description,
+                   format: ^mimetype,
+                   identifier: ^user,
+                   source: "local file archive",
+                   title: "Lastfm archive of a_lastfm_user",
+                   type: DerivedArchive,
+                   date: %{__struct__: Date},
+                   extent: 400,
+                   modified: _now,
+                   temporal: {1_672_599_007, 1_680_547_807}
+                 }
+               } = DerivedArchive.describe(user, format: format)
+
+        assert description == "Lastfm archive of a_lastfm_user in #{format} format"
+      end
     end
   end
 
   describe "read/2" do
     for format <- DerivedArchive.formats() do
-      test "returns data frame based on a year #{format} file", %{user: user, derived_archive_metadata: metadata} do
+      test "#{format} returns data frame given a year option", %{user: user, file_archive_metadata: metadata} do
         format = unquote(format)
+        metadata = metadata |> new_derived_archive_metadata(format: format)
+        opts = DerivedArchive.read_opts(format)
 
-        {opts, mimetype} = {DerivedArchive.read_opts(format), DerivedArchive.mimetype(format)}
-        metadata = %{metadata | format: mimetype}
         filepath = Path.join([user_dir(user), "#{format}", "2023.#{format}"])
         filepath = if format == :csv, do: filepath <> ".gz", else: filepath
 
@@ -164,10 +168,26 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
 
         assert {:ok, %DataFrame{}} = DerivedArchive.read(metadata, year: 2023)
       end
-    end
 
-    test "when year option given", %{derived_archive_metadata: metadata} do
-      assert {:error, _reason} = DerivedArchive.read(metadata, [])
+      test "#{format} when columns options is given", %{user: user, file_archive_metadata: metadata} do
+        format = unquote(format)
+        columns = [:id, :album, :artist]
+        metadata = metadata |> new_derived_archive_metadata(format: format)
+        opts = DerivedArchive.read_opts(format) |> Keyword.put(:columns, columns)
+
+        filepath = Path.join([user_dir(user), "#{format}", "2023.#{format}"])
+        filepath = if format == :csv, do: filepath <> ".gz", else: filepath
+
+        DataFrameMock |> expect(:"from_#{format}!", fn ^filepath, ^opts -> data_frame() end)
+
+        assert {:ok, %DataFrame{}} = DerivedArchive.read(metadata, year: 2023, columns: columns)
+      end
+
+      test "#{format} when no year option given", %{file_archive_metadata: metadata} do
+        format = unquote(format)
+        metadata = metadata |> new_derived_archive_metadata(format: format)
+        assert :error = DerivedArchive.read(metadata, [])
+      end
     end
   end
 end
