@@ -1,9 +1,9 @@
 defmodule LastfmArchive.Utils do
   @moduledoc false
 
+  alias Explorer.DataFrame
   alias LastfmArchive.Archive.DerivedArchive
   alias LastfmArchive.Archive.FileArchive
-  alias Explorer.DataFrame
   alias LastfmArchive.Archive.Metadata
   require Logger
 
@@ -89,7 +89,7 @@ defmodule LastfmArchive.Utils do
   ### Example
 
   ```
-    LastfmArchive.Utils.read("a_lastfm_user", "tsv/2007.tsv.gz")
+    LastfmArchive.Utils.read("a_lastfm_user", "csv/2007.csv.gz")
   ```
   """
   def read(user, filename) do
@@ -110,12 +110,15 @@ defmodule LastfmArchive.Utils do
     :ok
   end
 
+  def create_filepath(user, :csv, path), do: create_filepath(user, path <> ".gz")
+  def create_filepath(user, _format, path), do: create_filepath(user, path)
+
   def create_filepath(user, path) do
     filepath = Path.join([user_dir(user), path])
 
     case @file_io.exists?(filepath) do
       false -> {:ok, filepath}
-      true -> {:error, :file_exists}
+      true -> {:error, :file_exists, filepath}
     end
   end
 

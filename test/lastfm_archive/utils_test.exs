@@ -48,15 +48,15 @@ defmodule LastfmArchive.UtilsTest do
 
   test "read/2 file from the archive for a given user and file location" do
     test_user = "load_test_user"
-    tsv_file = Path.join(Utils.user_dir("load_test_user"), "tsv/2018.tsv.gz")
-    non_existing_file = Path.join(Utils.user_dir("load_test_user"), "non_existing_file.tsv.gz")
+    csv_file = Path.join(Utils.user_dir("load_test_user"), "csv/2018.csv.gz")
+    non_existing_file = Path.join(Utils.user_dir("load_test_user"), "non_existing_file.csv.gz")
 
     LastfmArchive.FileIOMock
     |> expect(:read, fn ^non_existing_file -> {:error, :enoent} end)
-    |> expect(:read, fn ^tsv_file -> {:ok, tsv_gzip_data()} end)
+    |> expect(:read, fn ^csv_file -> {:ok, csv_gzip_data()} end)
 
-    assert {:error, :enoent} = Utils.read(test_user, "non_existing_file.tsv.gz")
-    assert {:ok, resp} = Utils.read(test_user, "tsv/2018.tsv.gz")
+    assert {:error, :enoent} = Utils.read(test_user, "non_existing_file.csv.gz")
+    assert {:ok, resp} = Utils.read(test_user, "csv/2018.csv.gz")
 
     [_header | scrobbles] = resp |> String.split("\n")
     assert length(scrobbles) > 0

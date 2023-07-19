@@ -4,6 +4,7 @@ defmodule LastfmArchiveTest do
   import Fixtures.Archive
   import Hammox
 
+  alias LastfmArchive.Archive.DerivedArchive
   alias LastfmArchive.Archive.DerivedArchiveMock
   alias LastfmArchive.Archive.FileArchiveMock
   alias LastfmArchive.Archive.Transformers.FileArchiveTransformer
@@ -22,12 +23,7 @@ defmodule LastfmArchiveTest do
         type: LastfmArchive.Archive.FileArchive
       )
 
-    %{
-      user: user,
-      file_archive_metadata: file_archive_metadata,
-      tsv_archive_metadata: new_derived_archive_metadata(file_archive_metadata, format: :tsv),
-      parquet_archive_metadata: new_derived_archive_metadata(file_archive_metadata, format: :parquet)
-    }
+    %{user: user, file_archive_metadata: file_archive_metadata}
   end
 
   describe "sync/2" do
@@ -61,54 +57,59 @@ defmodule LastfmArchiveTest do
 
       assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read(user, option)
     end
-  end
 
-  test "read_parquet/2", %{user: user, parquet_archive_metadata: metadata} do
-    options = [year: 2023]
+    for format <- DerivedArchive.formats() do
+      test "#{format} derived archive", %{user: user, file_archive_metadata: metadata} do
+        format = unquote(format)
+        metadata = new_derived_archive_metadata(metadata, format: format)
+        options = [format: format, year: 2023]
 
-    DerivedArchiveMock
-    |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-    |> expect(:read, fn ^metadata, ^options -> {:ok, data_frame()} end)
+        DerivedArchiveMock
+        |> expect(:describe, fn ^user, ^options -> {:ok, metadata} end)
+        |> expect(:read, fn ^metadata, ^options -> {:ok, data_frame()} end)
 
-    assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read_parquet(user, options)
-  end
+        assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read(user, options)
+      end
 
-  test "read_tsv/2", %{user: user, tsv_archive_metadata: metadata} do
-    options = [year: 2023]
+      test "#{format} with columns option", %{user: user, file_archive_metadata: metadata} do
+        format = unquote(format)
+        metadata = new_derived_archive_metadata(metadata, format: format)
 
-    DerivedArchiveMock
-    |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-    |> expect(:read, fn ^metadata, ^options -> {:ok, data_frame()} end)
+        columns = [:artist, :album]
+        options = [format: format, year: 2023, columns: columns]
 
-    assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read_tsv(user, options)
+        DerivedArchiveMock
+        |> expect(:describe, fn ^user, ^options -> {:ok, metadata} end)
+        |> expect(:read, fn ^metadata, ^options -> {:ok, data_frame()} end)
+
+        assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read(user, options)
+      end
+    end
   end
 
   describe "transform/2" do
-    test "scrobbles of a user into TSV files", %{user: user, tsv_archive_metadata: metadata} do
-      DerivedArchiveMock
-      |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-      |> expect(:update_metadata, 2, fn metadata, _options -> {:ok, metadata} end)
-      |> expect(:after_archive, fn ^metadata, FileArchiveTransformer, [format: :tsv] -> {:ok, metadata} end)
+    for format <- DerivedArchive.formats() do
+      test "scrobbles of a user into #{format} files", %{user: user, file_archive_metadata: file_archive_metadata} do
+        format = unquote(format)
+        metadata = new_derived_archive_metadata(file_archive_metadata, format: format)
 
-      LastfmArchive.transform(user, format: :tsv)
+        DerivedArchiveMock
+        |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
+        |> expect(:after_archive, fn ^metadata, FileArchiveTransformer, [format: ^format] -> {:ok, metadata} end)
+        |> expect(:update_metadata, fn metadata, _options -> {:ok, metadata} end)
+
+        LastfmArchive.transform(user, format: format)
+      end
     end
 
-    test "scrobbles of a user into Apache Parquet files", %{user: user, parquet_archive_metadata: metadata} do
-      DerivedArchiveMock
-      |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-      |> expect(:update_metadata, 2, fn metadata, _options -> {:ok, metadata} end)
-      |> expect(:after_archive, fn ^metadata, FileArchiveTransformer, [format: :parquet] -> {:ok, metadata} end)
-
-      LastfmArchive.transform(user, format: :parquet)
-    end
-
-    test "scrobbles of default user with default (TSV) format", %{tsv_archive_metadata: metadata} do
+    test "scrobbles of default user with default (CSV) format", %{file_archive_metadata: metadata} do
+      metadata = new_derived_archive_metadata(metadata, format: :csv)
       user = Application.get_env(:lastfm_archive, :user)
 
       DerivedArchiveMock
       |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-      |> expect(:update_metadata, 2, fn metadata, _options -> {:ok, metadata} end)
-      |> expect(:after_archive, fn ^metadata, FileArchiveTransformer, [format: :tsv] -> {:ok, metadata} end)
+      |> expect(:after_archive, fn ^metadata, FileArchiveTransformer, [format: :csv] -> {:ok, metadata} end)
+      |> expect(:update_metadata, fn metadata, _options -> {:ok, metadata} end)
 
       LastfmArchive.transform()
     end

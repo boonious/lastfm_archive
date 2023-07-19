@@ -20,7 +20,7 @@ defmodule LastfmArchive.Behaviour.Archive do
   Archives all scrobbles data for a Lastfm user.
 
   Optional for post-hoc archives that are based on existing
-  local archive such as TSV, Parquet archives.
+  local archive such as CSV, Parquet archives.
   """
   @callback archive(metadata(), options(), api()) :: {:ok, metadata()} | {:error, term()}
 

@@ -59,7 +59,7 @@ defmodule LastfmArchive.Archive.Metadata do
     %{
       metadata
       | description: "Lastfm archive of #{metadata.creator} in #{format} format",
-        format: DerivedArchive.format_mimetypes()[format],
+        format: DerivedArchive.mimetype(format),
         source: "local file archive",
         type: DerivedArchive
     }

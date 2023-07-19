@@ -7,13 +7,15 @@ defmodule LastfmArchive do
 
   Current usage:
   - `sync/0`, `sync/1`: sync Lastfm scrobble data to local filesystem
-  - `transform_archive/2`: transform downloaded raw data and create a TSV file archive
-  - `load_archive/2`: load all (TSV) data from the archive into Solr
+  - `transform/0`, `transform/2`: transform downloaded raw data to a CSV and Parquet archive
+  - `read/2`: daily amd monthly data frame of the file archive, or yearly data frame from the CSV and Parquet archive
+  - `load_archive/2`: load all CSV data from the archive into Solr
 
   """
 
-  alias LastfmArchive.Archive.FileArchive
   alias LastfmArchive.Archive.Transformers.FileArchiveTransformer
+  alias LastfmArchive.Archive.Metadata
+
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.LastfmClient.Impl, as: LastfmClient
   alias LastfmArchive.LastfmClient.LastfmApi
@@ -21,11 +23,11 @@ defmodule LastfmArchive do
 
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
 
-  @type metadata :: LastfmArchive.Archive.Metadata.t()
+  @type metadata :: Metadata.t()
   @type time_range :: {integer, integer}
   @type solr_url :: atom | Hui.URL.t()
 
-  @type transform_options :: LastfmArchive.Behaviour.Archive.transform_options()
+  @type options :: LastfmArchive.Behaviour.Archive.options()
 
   @doc """
   Returns the total playcount and registered, i.e. earliest scrobble time for a user.
@@ -94,14 +96,14 @@ defmodule LastfmArchive do
   @spec sync(binary, keyword) :: {:ok, metadata()} | {:error, :file.posix()}
   def sync(user \\ LastfmClient.default_user(), options \\ []) do
     user
-    |> metadata()
-    |> Archive.impl().archive(options, LastfmApi.new())
+    |> impl().describe(options)
+    |> then(fn {:ok, metadata} -> impl().archive(metadata, options, LastfmApi.new()) end)
   end
 
   @doc """
-  Read scrobbles from an archive of a Lastfm user.
+  Read from an archive of a Lastfm user.
 
-  This returns scrobbles for a single day  or month period
+  This returns scrobbles for a single day or month period
   in a lazy Explorer.DataFrame for further data manipulation
   and visualisation.
 
@@ -118,102 +120,64 @@ defmodule LastfmArchive do
   Options:
   - `:day` - read scrobbles for this particular date (`Date.t()`)
   - `:month` - read scrobbles for this particular month (`Date.t()`)
+
+  This function can also return a data frame
+  containing scrobbles spanning a single year from derived archive,
+  i.e. CSV, Parquet archives created via `transform/2`.
+
+  ### Example
+  ```
+    # read a year of scrobbles for a user from Parquet archive
+    LastfmArchive.read("a_lastfm_user", format: :parquet, year: 2023)
+  ```
+
+  Options:
+  - `:format` - archive format such as `:csv`, `:parquet`
+  - `:year` - read scrobbles for this particular year
   """
-  @spec read(binary, FileArchive.read_options()) :: {:ok, Explorer.DataFrame} | {:error, term()}
+  @spec read(binary, keyword()) :: {:ok, Explorer.DataFrame} | {:error, term()}
   def read(user \\ LastfmClient.default_user(), options) do
     user
-    |> metadata()
-    |> Archive.impl().read(options)
+    |> impl(options).describe(options)
+    |> then(fn {:ok, metadata} -> impl(options).read(metadata, options) end)
   end
 
   @doc """
-  Read scrobbles data from an Apache Parquet archive created via `transform/2`.
-
-  Returns a data frame containing scrobbles spanning a single year.
-
-  ### Example
-  ```
-    # read a year of scrobbles for a user
-    LastfmArchive.read_parquet("a_lastfm_user", year: 2023)
-  ```
-
-  Options:
-  - `:year` - read scrobbles for this particular year
-  """
-  @spec read_parquet(binary, DerivedArchive.read_options()) :: {:ok, Explorer.DataFrame} | {:error, term()}
-  def read_parquet(user \\ LastfmClient.default_user(), year: year) do
-    user
-    |> metadata(:derived_archive, format: :parquet)
-    |> Archive.impl(:derived_archive).read(year: year)
-  end
-
-  @doc """
-  Read scrobbles data from a TSV archive created via `transform/2`
-
-  Returns a data frame containing scrobbles spanning a single year.
-
-  ### Example
-  ```
-    # read a year of scrobbles for a user
-    LastfmArchive.read_tsv("a_lastfm_user", year: 2023)
-  ```
-
-  Options:
-  - `:year` - read scrobbles for this particular year
-  """
-  @spec read_tsv(binary, DerivedArchive.read_options()) :: {:ok, Explorer.DataFrame} | {:error, term()}
-  def read_tsv(user \\ LastfmClient.default_user(), year: year) do
-    user
-    |> metadata(:derived_archive, format: :tsv)
-    |> Archive.impl(:derived_archive).read(year: year)
-  end
-
-  @doc """
-  Transform downloaded file archive into TSV or Apache Parquet formats for a Lastfm user.
+  Transform downloaded file archive into CSV or Apache Parquet formats for a Lastfm user.
 
   ### Example
 
   ```
-    LastfmArchive.transform("a_lastfm_user", format: :tsv)
+    LastfmArchive.transform("a_lastfm_user", format: :csv)
 
-    # transform archive of the default user into TSV files
+    # transform archive of the default user into CSV files
     LastfmArchive.transform()
   ```
 
-  Current output transform formats: `:tsv`, `:parquet`.
+  Current output transform formats: `:csv`, `:parquet`.
 
   The function only transforms downloaded archive data on local filesystem. It does not fetch data from Lastfm,
   which can be done via `sync/2`.
 
   The transformed files are created on a yearly basis and stored in `gzip` compressed format.
-  They are stored in a `tsv` or `parquet` directory within either the default `./lastfm_data/`
+  They are stored in a `csv` or `parquet` directory within either the default `./lastfm_data/`
   or the directory specified in config/config.exs (`:lastfm_archive, :data_dir`).
   """
-  @spec transform(binary, transform_options) :: any
-  def transform(user \\ LastfmClient.default_user(), options \\ [format: :tsv])
+  @spec transform(binary, options) :: any
+  def transform(user \\ LastfmClient.default_user(), options \\ [format: :csv])
 
-  def transform(user, [format: format] = options) when is_binary(user) and format in [:tsv, :parquet] do
+  def transform(user, options) when is_binary(user) do
     user
-    |> metadata(:derived_archive, options)
-    |> update_metadata(:derived_archive, options)
-    |> do_transform(options)
-    |> update_metadata(:derived_archive, options)
+    |> impl(options).describe(options)
+    |> then(fn {:ok, metadata} -> impl(options).after_archive(metadata, FileArchiveTransformer, options) end)
+    |> then(fn {:ok, metadata} -> impl(options).update_metadata(metadata, options) end)
   end
 
-  defp do_transform({:ok, metadata}, options) do
-    {:ok, metadata} = Archive.impl(:derived_archive).after_archive(metadata, FileArchiveTransformer, options)
-    metadata
-  end
-
-  defp metadata(user, archive_type \\ :file_archive, options \\ [])
-
-  defp metadata(user, archive_type, options) do
-    {:ok, metadata} = user |> Archive.impl(archive_type).describe(options)
-    metadata
-  end
-
-  defp update_metadata(metadata, archive_type, options) do
-    Archive.impl(archive_type).update_metadata(metadata, options)
+  defp impl(options \\ []) do
+    case Keyword.has_key?(options, :format) do
+      true -> Archive.impl(:derived_archive)
+      false -> Archive.impl(:file_archive)
+    end
   end
 
   # return all archive file paths in a list
@@ -224,9 +188,9 @@ defmodule LastfmArchive do
   end
 
   @doc """
-  Load all TSV data from the archive into Solr for a Lastfm user.
+  Load all CSV data from the archive into Solr for a Lastfm user.
 
-  The function finds TSV files from the archive and sends them to
+  The function finds CSV files from the archive and sends them to
   Solr for ingestion one at a time. It uses `Hui` client to interact
   with Solr and the `t:Hui.URL.t/0` struct
   for Solr endpoint specification.
@@ -241,8 +205,8 @@ defmodule LastfmArchive do
     LastfmArchive.load_archive("a_lastfm_user", url)
   ```
 
-  TSV files must be pre-created before the loading - see
-  `transform_archive/2`.
+  CSV files must be pre-created before the loading - see
+  `transform/2`.
   """
   @spec load_archive(binary, solr_url) :: :ok | {:error, Hui.Error.t()}
   def load_archive(user, url) when is_atom(url) and url != nil do
@@ -266,7 +230,7 @@ defmodule LastfmArchive do
   defp _load_archive(user, url) do
     archive_files = ls_archive_files(user)
 
-    for tsv_file <- archive_files, String.match?(tsv_file, ~r/^tsv/) do
+    for tsv_file <- archive_files, String.match?(tsv_file, ~r/^csv/) do
       IO.puts("Loading #{tsv_file} into Solr")
       {status, _resp} = LastfmArchive.Load.load_solr(url, user, tsv_file)
       IO.puts("#{status}\n")

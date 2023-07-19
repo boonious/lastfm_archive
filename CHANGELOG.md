@@ -1,4 +1,12 @@
 # Changelog
+## 0.10.2 (2023-07-18)
+
+* `overwrite` option for file archive transformer and `transform/2`
+* `read/2` CSV and Parquet data (deprecate `read_csv`, `read_parquet`)
+* `columns` option to load only required CSV, Parquet columns into data frames 
+* use Explorer DataFrame I/O functions to compress Parquet data
+* refactor: DataFrame I/O macro, generate tests for transform formats 
+
 ## 0.10.1 (2023-07-07)
 
 * `read/2` callback and implementation to return data in `Explorer` data frame

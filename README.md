@@ -48,13 +48,13 @@ You can also load more data, i.e. the entire archive (forthcoming) and per-year 
 from transformed archive - see below.
 
 ### Transform Into Other Storage Formats
-You can transform the file archive into other common storage formats such as TSV and 
+You can transform the file archive into other common storage formats such as CSV and 
 columnar data structure such as [Apache Parquet](https://parquet.apache.org). 
 These formats facilitate data interoperability, as well as OLAP, analytics use cases.
 
 ```elixir
-# transform data in a file archive into local TSV files
-LastfmArchive.transform("a_lastfm_user", format: :tsv)
+# transform data in a file archive into local CSV files
+LastfmArchive.transform("a_lastfm_user", format: :csv)
 
 # transform data in a file archive into local Apache Parquet files
 LastfmArchive.transform("a_lastfm_user", format: :parquet)
@@ -62,14 +62,15 @@ LastfmArchive.transform("a_lastfm_user", format: :parquet)
 
 See [`transform/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#transform/2).
 
-This following functions return a data frame containing scrobbles for a particular year.
+The read function can be used to return a data frame containing scrobbles for a particular year.
+A `columns` is also available to read only a subset of columns.
 
 ```elixir
-# from the TSV archive
-LastfmArchive.read_tsv("a_lastfm_user", year: 2023)
+# from the CSV archive
+LastfmArchive.read("a_lastfm_user", format: :csv, year: 2023)
 
-# from the Parquet archive
-LastfmArchive.read_parquet("a_lastfm_user", year: 2023)
+# from the Parquet archive, and only specific columns
+LastfmArchive.read("a_lastfm_user", format: :parquet, year: 2023, columns: [:id, :artist, :album])
 ```
 
 ## Livebook Support
@@ -88,7 +89,7 @@ Usage:
 - visualise archiving progress via playcount heatmap and table
 
 ## Other Usage
-To load all transformed TSV data from the archive into Solr:
+To load all transformed CSV data from the archive into Solr:
 
 
 ```elixir
@@ -99,7 +100,7 @@ To load all transformed TSV data from the archive into Solr:
   LastfmArchive.load_archive("a_lastfm_user", url)
 ```
 
-The function finds TSV files from the archive and send them to
+The function finds CSV files from the archive and send them to
 Solr for ingestion one at a time. It uses `Hui` client to interact
 with Solr and the `t:Hui.URL.t/0` struct for Solr endpoint specification.
 

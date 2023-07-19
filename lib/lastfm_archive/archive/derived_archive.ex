@@ -2,16 +2,13 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   @moduledoc """
   An archive derived from local data extracted from Lastfm.
   """
-
   use LastfmArchive.Behaviour.Archive
+  use LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
+  alias LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
 
-  alias LastfmArchive.Utils
-  alias Explorer.DataFrame
+  use LastfmArchive.Behaviour.DataFrameIo, formats: FileArchiveTransformerSettings.available_formats()
 
-  @data_frame_io Application.compile_env(:lastfm_archive, :data_frame_io, DataFrame)
-  @format_mimetypes %{tsv: "text/tab-separated-values", parquet: "application/vnd.apache.parquet"}
-
-  @type read_options :: [year: integer()]
+  @type read_options :: [year: integer(), columns: list(atom())]
 
   @impl true
   def after_archive(metadata, transformer, options), do: transformer.apply(metadata, options)
@@ -26,7 +23,7 @@ defmodule LastfmArchive.Archive.DerivedArchive do
 
   defp file_archive_metadata(user) do
     with {:ok, metadata} <- @file_io.read(metadata_filepath(user)) do
-      {:ok, Jason.decode!(metadata, keys: :atoms!) |> Metadata.new()}
+      {:ok, Jason.decode!(metadata, keys: :atoms) |> Metadata.new()}
     end
   end
 
@@ -37,28 +34,26 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   @impl true
   @spec read(Archive.metadata(), read_options()) :: {:ok, Explorer.DataFrame.t()} | {:error, term()}
   def read(%{creator: user, format: mimetype} = _metadata, options) do
-    case Keyword.fetch(options, :year) do
-      {:ok, year} -> {:ok, do_read(user, mimetype, year)}
-      _error -> {:error, :einval}
+    with {format, %{read_opts: config_opts}} <- setting(mimetype),
+         {:ok, {year, opts}} <- fetch_opts(config_opts, options) do
+      format
+      |> filepath(user, year)
+      |> load_data_frame(format, opts)
+      |> then(fn df -> {:ok, df} end)
     end
   end
 
-  defp do_read(user, mimetype, year) do
-    format = format(mimetype)
-    {func_format, opts} = if format == :tsv, do: {:csv, [delimiter: "\t"]}, else: {format, []}
-
-    format
-    |> then(fn format -> Utils.read(user, "#{format}/#{year}.#{format}.gz") end)
-    |> load_data_frame({func_format, opts})
+  defp fetch_opts(config_opts, options) do
+    with {:ok, year} <- Keyword.fetch(options, :year),
+         columns <- Keyword.get(options, :columns) do
+      fetch_opts(config_opts, year, columns)
+    end
   end
 
-  defp format(mimetype) do
-    format_mimetypes()
-    |> Enum.find(fn {_format, type} -> type == mimetype end)
-    |> elem(0)
-  end
+  defp fetch_opts(opts, year, nil), do: {:ok, {year, opts}}
+  defp fetch_opts(opts, year, columns), do: {:ok, {year, Keyword.put(opts, :columns, columns)}}
 
-  defp load_data_frame({:ok, data}, {format, opts}), do: apply(@data_frame_io, :"load_#{format}!", [data, opts])
-
-  def format_mimetypes, do: @format_mimetypes
+  defp filepath(format, user, year) when format == :csv, do: "#{format}/#{year}.#{format}.gz" |> filepath(user)
+  defp filepath(format, user, year), do: "#{format}/#{year}.#{format}" |> filepath(user)
+  defp filepath(path_part, user), do: Path.join(user_dir(user), path_part)
 end
