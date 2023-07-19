@@ -154,14 +154,17 @@ defmodule LastfmArchive do
     LastfmArchive.transform()
   ```
 
-  Current output transform formats: `:csv`, `:parquet`.
-
   The function only transforms downloaded archive data on local filesystem. It does not fetch data from Lastfm,
   which can be done via `sync/2`.
 
   The transformed files are created on a yearly basis and stored in `gzip` compressed format.
   They are stored in a `csv` or `parquet` directory within either the default `./lastfm_data/`
   or the directory specified in config/config.exs (`:lastfm_archive, :data_dir`).
+
+  Options:
+  - `:format` - target format: `:csv`, `:parquet`
+  - `:overwrite` existing data, default: false
+  - `:year` - transform data for this particular year
   """
   @spec transform(binary, options) :: any
   def transform(user \\ LastfmClient.default_user(), options \\ [format: :csv])
