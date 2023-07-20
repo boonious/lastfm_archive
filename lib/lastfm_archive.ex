@@ -121,19 +121,21 @@ defmodule LastfmArchive do
   - `:day` - read scrobbles for this particular date (`Date.t()`)
   - `:month` - read scrobbles for this particular month (`Date.t()`)
 
-  This function can also return a data frame
-  containing scrobbles spanning a single year from derived archive,
+  This function can also return a lazy data frame from derived archive.
   i.e. CSV, Parquet archives created via `transform/2`.
 
   ### Example
   ```
-    # read a year of scrobbles for a user from Parquet archive
+    # read a single year of scrobbles for a user from Parquet archive
     LastfmArchive.read("a_lastfm_user", format: :parquet, year: 2023)
+
+    # read everything for a user from Parquet archive
+    LastfmArchive.read("a_lastfm_user", format: :parquet)
   ```
 
   Options:
-  - `:format` - archive format such as `:csv`, `:parquet`
-  - `:year` - read scrobbles for this particular year
+  - `:format` - derived archive format: `:csv`, `:parquet`
+  - `:year` - only read scrobbles for this particular year
   """
   @spec read(binary, keyword()) :: {:ok, Explorer.DataFrame} | {:error, term()}
   def read(user \\ LastfmClient.default_user(), options) do
@@ -162,7 +164,7 @@ defmodule LastfmArchive do
   or the directory specified in config/config.exs (`:lastfm_archive, :data_dir`).
 
   Options:
-  - `:format` - target format: `:csv`, `:parquet`
+  - `:format` - format into which file archive is transformed: `:csv`, `:parquet`
   - `:overwrite` existing data, default: false
   - `:year` - transform data for this particular year
   """

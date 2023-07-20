@@ -42,7 +42,7 @@ defmodule LastfmArchive.MixProject do
   defp deps do
     [
       {:elixir_uuid, "~> 1.2"},
-      {:explorer, "~> 0.5.0"},
+      {:explorer, "~> 0.6"},
       {:hui, "0.10.4"},
       {:jason, "~> 1.4"},
       {:kino, "~> 0.9.4"},

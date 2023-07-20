@@ -4,6 +4,8 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   """
   use LastfmArchive.Behaviour.Archive
   use LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
+
+  alias LastfmArchive.Archive.Metadata
   alias LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
 
   use LastfmArchive.Behaviour.DataFrameIo, formats: FileArchiveTransformerSettings.available_formats()
@@ -33,27 +35,38 @@ defmodule LastfmArchive.Archive.DerivedArchive do
 
   @impl true
   @spec read(Archive.metadata(), read_options()) :: {:ok, Explorer.DataFrame.t()} | {:error, term()}
-  def read(%{creator: user, format: mimetype} = _metadata, options) do
+  def read(%Metadata{creator: user, format: mimetype} = metadata, options) do
     with {format, %{read_opts: config_opts}} <- setting(mimetype),
-         {:ok, {year, opts}} <- fetch_opts(config_opts, options) do
-      format
-      |> filepath(user, year)
-      |> load_data_frame(format, opts)
+         {:ok, {years, opts}} <- fetch_opts(metadata, config_opts, options) do
+      years
+      |> create_lazy_dataframe(user, format, opts)
       |> then(fn df -> {:ok, df} end)
     end
   end
 
-  defp fetch_opts(config_opts, options) do
-    with {:ok, year} <- Keyword.fetch(options, :year),
+  defp fetch_opts(%Metadata{} = metadata, config_opts, options) do
+    with {:ok, years} <- fetch_years(metadata, Keyword.get(options, :year)),
          columns <- Keyword.get(options, :columns) do
-      fetch_opts(config_opts, year, columns)
+      fetch_opts(config_opts, years, columns)
     end
   end
 
-  defp fetch_opts(opts, year, nil), do: {:ok, {year, opts}}
-  defp fetch_opts(opts, year, columns), do: {:ok, {year, Keyword.put(opts, :columns, columns)}}
+  defp fetch_opts(config_opts, years, nil), do: {:ok, {years, config_opts}}
+  defp fetch_opts(config_opts, years, columns), do: {:ok, {years, Keyword.put(config_opts, :columns, columns)}}
+
+  defp fetch_years(%Metadata{} = metadata, nil), do: {:ok, year_range(metadata.temporal) |> Enum.to_list()}
+  defp fetch_years(%Metadata{} = _metadata, year), do: {:ok, [year]}
 
   defp filepath(format, user, year) when format == :csv, do: "#{format}/#{year}.#{format}.gz" |> filepath(user)
   defp filepath(format, user, year), do: "#{format}/#{year}.#{format}" |> filepath(user)
   defp filepath(path_part, user), do: Path.join(user_dir(user), path_part)
+
+  defp create_lazy_dataframe(years, user, format, opts) do
+    for year <- years do
+      filepath(format, user, year)
+      |> load_data_frame(format, opts)
+      |> Explorer.DataFrame.to_lazy()
+    end
+    |> Explorer.DataFrame.concat_rows()
+  end
 end
