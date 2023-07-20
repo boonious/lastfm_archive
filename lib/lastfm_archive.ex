@@ -134,7 +134,7 @@ defmodule LastfmArchive do
   ```
 
   Options:
-  - `:format` - derived archive format: `:csv`, `:parquet`
+  - `:format` - derived archive format: `:csv`, `:parquet`, `:ipc`, `:ipc_stream`
   - `:year` - only read scrobbles for this particular year
   """
   @spec read(binary, keyword()) :: {:ok, Explorer.DataFrame} | {:error, term()}
@@ -164,7 +164,7 @@ defmodule LastfmArchive do
   or the directory specified in config/config.exs (`:lastfm_archive, :data_dir`).
 
   Options:
-  - `:format` - format into which file archive is transformed: `:csv`, `:parquet`
+  - `:format` - format into which file archive is transformed: `:csv`, `:parquet`, `:ipc`, `:ipc_stream`
   - `:overwrite` existing data, default: false
   - `:year` - transform data for this particular year
   """
