@@ -15,6 +15,7 @@ defmodule LastfmArchive.MixProject do
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [coveralls: :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test],
+      aliases: [docs: ["docs", &copy_images/1]],
 
       # Docs
       name: "lastfm_archive",
@@ -24,7 +25,8 @@ defmodule LastfmArchive.MixProject do
       homepage_url: "https://github.com/boonious/lastfm_archive",
       docs: [
         main: "LastfmArchive",
-        extras: ["README.md", "CHANGELOG.md"]
+        extras: ["README.md", "CHANGELOG.md", "guides/archiving.livemd": [title: "Archiving listening data"]],
+        groups_for_extras: ["Livebook Guides": Path.wildcard("guides/*.livemd")]
       ]
     ]
   end
@@ -54,7 +56,7 @@ defmodule LastfmArchive.MixProject do
       {:bypass, "~> 2.1", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.16", only: :test},
-      {:ex_doc, "~> 0.29", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.30", only: :dev, runtime: false},
       {:hammox, "~> 0.7", only: :test}
     ]
   end
@@ -69,5 +71,9 @@ defmodule LastfmArchive.MixProject do
         GitHub: "https://github.com/boonious/lastfm_archive"
       }
     ]
+  end
+
+  defp copy_images(_) do
+    File.cp_r("assets", "doc/assets")
   end
 end

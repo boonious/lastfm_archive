@@ -81,12 +81,12 @@ LastfmArchive.read("a_lastfm_user", format: :parquet, year: 2023, columns: [:id,
 `LastfmArchive` supports the use of [Livebook](https://livebook.dev) interactive notebook 
 for running archiving jobs, visualising archived data and analytics (forthcoming).
 
-![archive data visualisation](docs/img/livebook_heatmap.png)
+![archive data visualisation](assets/img/livebook_heatmap.png)
 
 Usage:
 - [install](https://livebook.dev/#install) the interactive notebooks app
 - start the app in a browser
-- open the [archiving notebook](livebook/archiving.livemd) 
+- open the [archiving notebook](guides/archiving.livemd) 
 - follow the configuration steps
 - execute / evaluate code blocks to initiate archiving
 - visualise archiving progress via playcount heatmap and table

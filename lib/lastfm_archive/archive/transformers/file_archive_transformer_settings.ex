@@ -1,9 +1,6 @@
 defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings do
   @moduledoc false
 
-  @format_settings Application.compile_env!(:lastfm_archive, :file_archive_transformer)[:format_settings]
-  @available_formats @format_settings |> Map.keys()
-
   defmacro __using__(_opts) do
     quote do
       import unquote(__MODULE__)
@@ -21,6 +18,14 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings do
     end
   end
 
-  def available_formats, do: @available_formats
-  def format_settings, do: @format_settings
+  def available_formats, do: format_settings() |> Map.keys()
+
+  def format_settings do
+    %{
+      csv: %{mimetype: "text/tab-separated-values", read_opts: [delimiter: "\t"], write_opts: [delimiter: "\t"]},
+      parquet: %{mimetype: "application/vnd.apache.parquet", read_opts: [], write_opts: [compression: {:gzip, 9}]},
+      ipc: %{mimetype: "application/vnd.apache.arrow.file", read_opts: [], write_opts: [compression: :zstd]},
+      ipc_stream: %{mimetype: "application/vnd.apache.arrow.stream", read_opts: [], write_opts: [compression: :zstd]}
+    }
+  end
 end
