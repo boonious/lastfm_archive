@@ -62,12 +62,15 @@ LastfmArchive.transform("a_lastfm_user", format: :parquet)
 
 See [`transform/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#transform/2).
 
-The read function can be used to return a data frame containing scrobbles for a particular year.
+The read function can also be used to return a lazy data frame containing all or single-year scrobbles.
 A `columns` is also available to read only a subset of columns.
 
 ```elixir
-# from the CSV archive
+# data frame containing 2023 data from the CSV archive
 LastfmArchive.read("a_lastfm_user", format: :csv, year: 2023)
+
+# data frame containing everything from the Parquet archive
+LastfmArchive.read("a_lastfm_user", format: :parquet)
 
 # from the Parquet archive, and only specific columns
 LastfmArchive.read("a_lastfm_user", format: :parquet, year: 2023, columns: [:id, :artist, :album])
@@ -78,12 +81,12 @@ LastfmArchive.read("a_lastfm_user", format: :parquet, year: 2023, columns: [:id,
 `LastfmArchive` supports the use of [Livebook](https://livebook.dev) interactive notebook 
 for running archiving jobs, visualising archived data and analytics (forthcoming).
 
-![archive data visualisation](docs/img/livebook_heatmap.png)
+![archive data visualisation](assets/img/livebook_heatmap.png)
 
 Usage:
 - [install](https://livebook.dev/#install) the interactive notebooks app
 - start the app in a browser
-- open the [archiving notebook](livebook/archiving.livemd) 
+- open the [archiving notebook](guides/archiving.livemd) 
 - follow the configuration steps
 - execute / evaluate code blocks to initiate archiving
 - visualise archiving progress via playcount heatmap and table

@@ -22,7 +22,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
     metadata =
       new_archive_metadata(
         user: user,
-        start: DateTime.from_iso8601("2023-01-01T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
+        start: DateTime.from_iso8601("2022-01-01T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
         end: DateTime.from_iso8601("2023-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
         type: DerivedArchive
       )
@@ -38,18 +38,26 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
       opts = DerivedArchive.write_opts(format)
       metadata = metadata |> new_derived_archive_metadata(format: format)
 
-      filepath = Path.join([user_dir(user), "#{format}", "2023.#{format}.gz"])
+      filepath1 = Path.join([user_dir(user), "#{format}", "2022.#{format}.gz"])
+      filepath2 = Path.join([user_dir(user), "#{format}", "2023.#{format}.gz"])
 
-      # 4 read for 4 months, each with 105 scrobbles
+      # 16 read for 16 months, each with 105 scrobbles
       FileArchiveMock
-      |> expect(:read, 4, fn ^metadata, _option -> {:ok, data_frame()} end)
+      |> expect(:read, 16, fn ^metadata, _option -> {:ok, data_frame()} end)
 
       FileIOMock
       |> expect(:exists?, fn ^dir -> true end)
-      |> expect(:exists?, fn ^filepath -> false end)
-      |> expect(:write, fn ^filepath, _data, [:compressed] -> :ok end)
+      |> expect(:exists?, fn ^filepath1 -> false end)
+      |> expect(:exists?, fn ^filepath2 -> false end)
+      |> expect(:write, fn ^filepath1, _data, [:compressed] -> :ok end)
+      |> expect(:write, fn ^filepath2, _data, [:compressed] -> :ok end)
 
       DataFrameMock
+      |> expect(:"dump_#{format}!", fn %DataFrame{} = df, ^opts ->
+        # 4 month of scrobbles
+        assert df |> DataFrame.shape() == {12 * 105, 11}
+        transformed_file_data(format)
+      end)
       |> expect(:"dump_#{format}!", fn %DataFrame{} = df, ^opts ->
         # 4 month of scrobbles
         assert df |> DataFrame.shape() == {4 * 105, 11}
@@ -65,18 +73,25 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         dir = Path.join(user_dir(user), "#{format}")
         opts = DerivedArchive.write_opts(format)
         metadata = metadata |> new_derived_archive_metadata(format: format)
-        filepath = Path.join([user_dir(user), "#{format}", "2023.#{format}"])
+        filepath1 = Path.join([user_dir(user), "#{format}", "2022.#{format}"])
+        filepath2 = Path.join([user_dir(user), "#{format}", "2023.#{format}"])
 
-        # 4 read for 4 months, each with 105 scrobbles
+        # 16 read for 16 months, each with 105 scrobbles
         FileArchiveMock
-        |> expect(:read, 4, fn ^metadata, _option -> {:ok, data_frame()} end)
+        |> expect(:read, 16, fn ^metadata, _option -> {:ok, data_frame()} end)
 
         FileIOMock
         |> expect(:exists?, fn ^dir -> true end)
-        |> expect(:exists?, fn ^filepath -> false end)
+        |> expect(:exists?, fn ^filepath1 -> false end)
+        |> expect(:exists?, fn ^filepath2 -> false end)
 
         DataFrameMock
-        |> expect(:"to_#{format}!", fn %DataFrame{} = df, ^filepath, ^opts ->
+        |> expect(:"to_#{format}!", fn %DataFrame{} = df, ^filepath1, ^opts ->
+          # 12 month of scrobbles
+          assert df |> DataFrame.shape() == {12 * 105, 11}
+          :ok
+        end)
+        |> expect(:"to_#{format}!", fn %DataFrame{} = df, ^filepath2, ^opts ->
           # 4 month of scrobbles
           assert df |> DataFrame.shape() == {4 * 105, 11}
           :ok
@@ -110,7 +125,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
                    type: DerivedArchive,
                    extent: 400,
                    date: %{__struct__: Date},
-                   temporal: {1_672_599_007, 1_680_547_807},
+                   temporal: {1_641_063_007, 1_680_547_807},
                    modified: _now
                  }
                } = DerivedArchive.describe(user, format: format)
@@ -145,7 +160,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
                    date: %{__struct__: Date},
                    extent: 400,
                    modified: _now,
-                   temporal: {1_672_599_007, 1_680_547_807}
+                   temporal: {1_641_063_007, 1_680_547_807}
                  }
                } = DerivedArchive.describe(user, format: format)
 
@@ -183,10 +198,13 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         assert {:ok, %DataFrame{}} = DerivedArchive.read(metadata, year: 2023, columns: columns)
       end
 
-      test "#{format} when no year option given", %{file_archive_metadata: metadata} do
+      test "all #{format} (years) when no year option specified", %{file_archive_metadata: metadata} do
         format = unquote(format)
         metadata = metadata |> new_derived_archive_metadata(format: format)
-        assert :error = DerivedArchive.read(metadata, [])
+
+        # read all (2) years from files
+        DataFrameMock |> expect(:"from_#{format}!", 2, fn _filepath, _opts -> data_frame() end)
+        assert {:ok, %DataFrame{}} = DerivedArchive.read(metadata, [])
       end
     end
   end

@@ -21,7 +21,14 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
   @impl true
   def apply(%{creator: user} = metadata, opts) do
     :ok = create_dir(user, format: Keyword.fetch!(opts, :format))
-    :ok = transform(metadata, year_range(metadata.temporal) |> Enum.to_list(), opts)
+
+    case Keyword.get(opts, :year) do
+      nil ->
+        :ok = transform(metadata, year_range(metadata.temporal) |> Enum.to_list(), opts)
+
+      year ->
+        :ok = transform(metadata, [year], opts)
+    end
 
     {:ok, %{metadata | modified: DateTime.utc_now()}}
   end

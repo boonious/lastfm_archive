@@ -105,7 +105,7 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
         end
       end
 
-      test "does not overwrite existing #{format} file", %{user: user, metadata: metadata} do
+      test "does not overwrite existing #{format} files", %{user: user, metadata: metadata} do
         format = unquote(format)
         opts = DerivedArchive.write_opts(format)
         dir = Path.join(user_dir(user), "#{format}")
@@ -123,7 +123,7 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
                  "skipping"
       end
 
-      test "overwrites existing #{format} file when opted", %{metadata: metadata} do
+      test "overwrites existing #{format} files when opted", %{metadata: metadata} do
         format = unquote(format)
         opts = DerivedArchive.write_opts(format)
 
@@ -141,8 +141,33 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformerTest do
 
         assert capture_log(fn ->
                  assert {:ok, _} = FileArchiveTransformer.apply(metadata, format: format, overwrite: true)
-               end) =~
-                 "Creating"
+               end) =~ "Creating"
+      end
+
+      test "write #{format} file for an opted year", %{user: user, metadata: metadata} do
+        format = unquote(format)
+        opts = DerivedArchive.write_opts(format)
+        filepath = Path.join([user_dir(user), "#{format}", "2023.#{format}"])
+        filepath = if format == :csv, do: filepath <> ".gz", else: filepath
+
+        FileIOMock
+        |> expect(:exists?, fn _dir -> true end)
+        |> expect(:exists?, fn ^filepath -> false end)
+
+        FileArchiveMock
+        |> stub(:read, fn ^metadata, _option -> {:ok, data_frame()} end)
+
+        DataFrameMock
+        |> stub(:"dump_#{format}!", fn %DataFrame{}, ^opts -> transformed_file_data(format) end)
+        |> stub(:"to_#{format}!", fn %DataFrame{}, ^filepath, ^opts -> :ok end)
+
+        if format == :csv do
+          FileIOMock |> expect(:write, fn ^filepath, _data, [:compressed] -> :ok end)
+        end
+
+        assert capture_log(fn ->
+                 assert {:ok, _} = FileArchiveTransformer.apply(metadata, format: format, year: 2023)
+               end) =~ "Creating"
       end
     end
   end

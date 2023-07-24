@@ -1,7 +1,5 @@
 <!-- livebook:{"app_settings":{"access_type":"public","show_source":true,"slug":"archiving"},"autosave_interval_s":null} -->
 
-# Lastfm Archive Livebook
-
 ```elixir
 Mix.install(
   [{:lastfm_archive, "~> 0.10"}],
@@ -34,7 +32,7 @@ To access the API provided by Lastfm, you also need to [apply for a key](https:/
 
 Once you have this key, add it as `LFM_API_KEY` secret either for this session or to My Hub - see [Secrets management](https://hackmd.io/@hugobarauna/By6ulTnMi#Secret-management) for further details.
 
-## Scrobbles archiving
+## Lastfm Scrobbles archiving
 
 ```elixir
 LFM_LB.info()
