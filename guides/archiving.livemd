@@ -33,8 +33,8 @@ music tracks that Lastfm users have been listening to. It downloads scrobbles vi
 
 Lastfm archive has been configured as a dependency in `Setup` above. You need to check and modify the following configs:
 
-1. **`user`**: specify your Lastfm username in this config
-2. **`data_dir`** (optional): by default scrobbles data is stored in `~/lastfm_data/` folder of your home directory. You can modifiy this location
+1. **`user`**: specify a Lastfm username in this config
+2. **`data_dir`** (optional): by default scrobbles data is stored in `~/lastfm_data/` directory within your home directory. Modifiy this location if other directory is preferred
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -72,5 +72,3 @@ Run the following for a heatmap and counts, checking the archiving progress. Rer
 [LFM_LB.monthly_playcounts_heatmap(), LFM_LB.yearly_playcounts_table()]
 |> Kino.Layout.grid(columns: 2)
 ```
-
-<!-- livebook:{"offset":2495,"stamp":{"token":"QTEyOEdDTQ.mZztyzj3aT66FH5dgYp311Y9-Ux_kAj3rPD8bkRn8wj-AAMXALYRRLdga-Y.4p33TriPmE4evVWY.MnVo026a2zEqtMmfqAcj6m1OI3hxK_qPPz_C7qmirsMW9Y1viceg3nhGHz0AFw.iw83J3JaUBjzIy0Pc7ATcA","version":1}} -->

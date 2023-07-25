@@ -35,6 +35,11 @@ defmodule LastfmArchive do
   defdelegate info, to: LastfmClient
 
   @doc """
+  Returns the default coofigured Lastfm user
+  """
+  defdelegate default_user, to: LastfmClient
+
+  @doc """
   Sync scrobbles for a Lastfm user.
 
   ### Example
@@ -94,7 +99,7 @@ defmodule LastfmArchive do
   ```
   """
   @spec sync(binary, keyword) :: {:ok, metadata()} | {:error, :file.posix()}
-  def sync(user \\ LastfmClient.default_user(), options \\ []) do
+  def sync(user \\ default_user(), options \\ []) do
     user
     |> impl().describe(options)
     |> then(fn {:ok, metadata} -> impl().archive(metadata, options, LastfmApi.new()) end)
@@ -138,7 +143,7 @@ defmodule LastfmArchive do
   - `:year` - only read scrobbles for this particular year
   """
   @spec read(binary, keyword()) :: {:ok, Explorer.DataFrame} | {:error, term()}
-  def read(user \\ LastfmClient.default_user(), options) do
+  def read(user \\ default_user(), options) do
     user
     |> impl(options).describe(options)
     |> then(fn {:ok, metadata} -> impl(options).read(metadata, options) end)
@@ -169,7 +174,7 @@ defmodule LastfmArchive do
   - `:year` - transform data for this particular year
   """
   @spec transform(binary, options) :: any
-  def transform(user \\ LastfmClient.default_user(), options \\ [format: :csv])
+  def transform(user \\ default_user(), options \\ [format: :csv])
 
   def transform(user, options) when is_binary(user) do
     user

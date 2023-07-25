@@ -66,9 +66,12 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
 
   defp create_dataframe(metadata, months) do
     for month <- months do
-      {:ok, df} = Archive.impl().read(metadata, month: month)
-      df
+      Archive.impl().read(metadata, month: month)
     end
+    |> Enum.flat_map(fn
+      {:ok, %DataFrame{} = df} -> [df]
+      _ -> []
+    end)
     |> DataFrame.concat_rows()
   end
 

@@ -5,7 +5,7 @@ A tool for creating local Last.fm scrobble file archive and analytics.
 The software is currently experimental and in preliminary development. It should
 eventually provide capability to perform ETL and analytic tasks on Lastfm scrobble data.
 
-## Current Usage
+## Current usage
 
 Download and create a file archive of Lastfm scrobble tracks via an [Elixir](https://elixir-lang.org)
 application or [interactive Elixir](https://elixir-lang.org/getting-started/introduction.html#interactive-mode)
@@ -47,51 +47,59 @@ LastfmArchive.read("a_lastfm_user",  month: ~D[2022-12-31])
 You can also load more data, i.e. the entire archive (forthcoming) and per-year data
 from transformed archive - see below.
 
-### Transform Into Other Storage Formats
+### Transform into columnar formats for storage and analytics
 You can transform the file archive into other common storage formats such as CSV and 
 columnar data structure such as [Apache Parquet](https://parquet.apache.org). 
 These formats facilitate data interoperability, as well as OLAP, analytics use cases.
 
 ```elixir
-# transform data in a file archive into local CSV files
-LastfmArchive.transform("a_lastfm_user", format: :csv)
-
-# transform data in a file archive into local Apache Parquet files
+# transform data from a file archive into columnar Apache Parquet files
 LastfmArchive.transform("a_lastfm_user", format: :parquet)
+
+# CSV format also available
+LastfmArchive.transform("a_lastfm_user", format: :csv)
 ```
+
+Available formats: 
+- CSV (tab-delimited)
+- [Apache Arrow](https://arrow.apache.org) columnar format
+- [Apache Parquet](https://parquet.apache.org) columnar format
 
 See [`transform/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#transform/2).
 
-The read function can also be used to return a lazy data frame containing all or single-year scrobbles.
-A `columns` is also available to read only a subset of columns.
+### Read from columnar format for analytics
+
+The read function can also be used to return a lazy data frame containing all (entire dataset)
+or single-year scrobbles. A `columns` option is also available to retrieve only a subset of columns.
 
 ```elixir
-# data frame containing 2023 data from the CSV archive
-LastfmArchive.read("a_lastfm_user", format: :csv, year: 2023)
+# data frame containing 2023 data from a Parquet archive
+LastfmArchive.read("a_lastfm_user", format: :parquet, year: 2023)
 
-# data frame containing everything from the Parquet archive
-LastfmArchive.read("a_lastfm_user", format: :parquet)
+# data frame containing everything from an Arrow IPC archive
+LastfmArchive.read("a_lastfm_user", format: :ipc_stream)
 
 # from the Parquet archive, and only specific columns
 LastfmArchive.read("a_lastfm_user", format: :parquet, year: 2023, columns: [:id, :artist, :album])
 ```
 
-## Livebook Support
+See [`read/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#read/2).
 
-`LastfmArchive` supports the use of [Livebook](https://livebook.dev) interactive notebook 
-for running archiving jobs, visualising archived data and analytics (forthcoming).
+## Livebook guides
 
-![archive data visualisation](assets/img/livebook_heatmap.png)
+`LastfmArchive` provides the following [Livebook](https://livebook.dev) interactive and step-by-step guides: 
+  - [Creating a file archive](https://hexdocs.pm/lastfm_archive/archiving.html) guide for creating a local file archive consisting data fetched from Lastfm API. It provides a heatmap and count visualisation for checking ongoing archiving status.
 
-Usage:
-- [install](https://livebook.dev/#install) the interactive notebooks app
-- start the app in a browser
-- open the [archiving notebook](guides/archiving.livemd) 
-- follow the configuration steps
-- execute / evaluate code blocks to initiate archiving
-- visualise archiving progress via playcount heatmap and table
+    [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fgithub.com%2Fboonious%2Flastfm_archive%2Fblob%2F6e24d95b2965ec9ad64358c42cf82838d35f2acf%2Fguides%2Farchiving.livemd)
 
-## Other Usage
+    ![archiving progress visualisation](assets/img/livebook_heatmap.png)
+  - [Columnar data transforms](https://hexdocs.pm/lastfm_archive/transforming.html) guide for transforming the local file archive to columnar data formats (Arrow, Parquet). It demonstrates how `read/2` can be used to load single-year single-column data, as well as an entire dataset into data frame for various analytics. 
+
+    [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fboonious%2Flastfm_archive%2Fmaster%2Fguides%2Ftransforming.livemd)
+
+    ![unique tracks by artists analytics](assets/img/livebook_unique_tracks_analytics.png)   
+ 
+## Other usage
 To load all transformed CSV data from the archive into Solr:
 
 
