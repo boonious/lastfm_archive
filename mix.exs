@@ -25,7 +25,7 @@ defmodule LastfmArchive.MixProject do
       homepage_url: "https://github.com/boonious/lastfm_archive",
       docs: [
         main: "LastfmArchive",
-        extras: ["README.md", "CHANGELOG.md", "guides/archiving.livemd": [title: "Archiving listening data"]],
+        extras: ["README.md", "CHANGELOG.md", "guides/archiving.livemd": [title: "Creating a file archive"]],
         groups_for_extras: ["Livebook Guides": Path.wildcard("guides/*.livemd")]
       ]
     ]
