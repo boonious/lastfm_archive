@@ -52,7 +52,10 @@ defmodule LastfmArchive.Archive.FileArchive do
     for filepath <- ls_archive_files(user, option) do
       create_lazy_data_frame(user, filepath)
     end
-    |> Explorer.DataFrame.concat_rows()
+    |> case do
+      [] -> {:error, :einval}
+      dfs -> dfs |> Explorer.DataFrame.concat_rows()
+    end
   end
 
   defp create_lazy_data_frame(user, filepath) do

@@ -1,4 +1,10 @@
 # Changelog
+## 0.10.3 (2023-07-26)
+
+* additional data storage formats (Apache Arrow IPC) via `Explorer.DataFrame` i/o functions
+* `read/2` all scrobbles, i.e. entire dataset into a lazy data frame by default
+* update and create new Livebook guides for archiving and columnar data transformation
+
 ## 0.10.2 (2023-07-18)
 
 * `overwrite` option for file archive transformer and `transform/2`
