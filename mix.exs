@@ -15,7 +15,6 @@ defmodule LastfmArchive.MixProject do
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [coveralls: :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test],
-      aliases: [docs: ["docs", &copy_images/1]],
 
       # Docs
       name: "lastfm_archive",
@@ -31,7 +30,9 @@ defmodule LastfmArchive.MixProject do
           "guides/archiving.livemd": [title: "Creating a file archive"],
           "guides/transforming.livemd": [title: "Columnar data transforms"]
         ],
-        groups_for_extras: ["Livebook Guides": Path.wildcard("guides/*.livemd")]
+        groups_for_extras: ["Livebook Guides": Path.wildcard("guides/*.livemd")],
+        assets: "assets",
+        source_ref: "master"
       ]
     ]
   end
@@ -76,9 +77,5 @@ defmodule LastfmArchive.MixProject do
         GitHub: "https://github.com/boonious/lastfm_archive"
       }
     ]
-  end
-
-  defp copy_images(_) do
-    File.cp_r("assets", "doc/assets")
   end
 end

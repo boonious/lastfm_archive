@@ -90,7 +90,7 @@ See [`read/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#read/2).
 `LastfmArchive` provides the following [Livebook](https://livebook.dev) interactive and step-by-step guides: 
   - [Creating a file archive](https://hexdocs.pm/lastfm_archive/archiving.html) guide for creating a local file archive consisting data fetched from Lastfm API. It provides a heatmap and count visualisation for checking ongoing archiving status.
 
-    [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fgithub.com%2Fboonious%2Flastfm_archive%2Fblob%2F6e24d95b2965ec9ad64358c42cf82838d35f2acf%2Fguides%2Farchiving.livemd)
+    [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fboonious%2Flastfm_archive%2Fmaster%2Fguides%2Farchiving.livemd)
 
     ![archiving progress visualisation](assets/img/livebook_heatmap.png)
   - [Columnar data transforms](https://hexdocs.pm/lastfm_archive/transforming.html) guide for transforming the local file archive to columnar data formats (Arrow, Parquet). It demonstrates how `read/2` can be used to load single-year single-column data, as well as an entire dataset into data frame for various analytics. 
