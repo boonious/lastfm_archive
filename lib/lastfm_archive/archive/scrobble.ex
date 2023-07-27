@@ -10,9 +10,11 @@ defmodule LastfmArchive.Archive.Scrobble do
     field(:id, String.t())
     field(:mbid, String.t())
     field(:name, String.t())
+    field(:url, String.t())
+
     field(:datetime_unix, integer())
     field(:datetime, String.t())
-    field(:url, String.t())
+    field(:year, integer())
 
     field(:artist, String.t())
     field(:artist_mbid, String.t())
@@ -38,13 +40,15 @@ defmodule LastfmArchive.Archive.Scrobble do
 
   def new(%{"name" => _} = track) do
     unix_time = track["date"]["uts"] |> String.to_integer()
+    date_time = DateTime.from_unix!(unix_time)
 
     %__MODULE__{
       id: UUID.uuid4(),
       mbid: track["mbid"],
       name: track["name"],
       datetime_unix: unix_time,
-      datetime: DateTime.from_unix!(unix_time) |> DateTime.to_string(),
+      datetime: date_time |> DateTime.to_string(),
+      year: date_time.year,
       url: track["url"],
       artist: track["artist"]["name"] || track["artist"]["#text"],
       artist_mbid: track["artist"]["mbid"],

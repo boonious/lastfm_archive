@@ -14,6 +14,8 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
   alias Explorer.DataFrame
   alias Explorer.DataFrameMock
 
+  @column_count (%LastfmArchive.Archive.Scrobble{} |> Map.keys() |> length()) - 1
+
   setup :verify_on_exit!
 
   setup do
@@ -55,12 +57,12 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
       DataFrameMock
       |> expect(:"dump_#{format}!", fn %DataFrame{} = df, ^opts ->
         # 4 month of scrobbles
-        assert df |> DataFrame.shape() == {12 * 105, 11}
+        assert df |> DataFrame.shape() == {12 * 105, @column_count}
         transformed_file_data(format)
       end)
       |> expect(:"dump_#{format}!", fn %DataFrame{} = df, ^opts ->
         # 4 month of scrobbles
-        assert df |> DataFrame.shape() == {4 * 105, 11}
+        assert df |> DataFrame.shape() == {4 * 105, @column_count}
         transformed_file_data(format)
       end)
 
@@ -88,12 +90,12 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         DataFrameMock
         |> expect(:"to_#{format}!", fn %DataFrame{} = df, ^filepath1, ^opts ->
           # 12 month of scrobbles
-          assert df |> DataFrame.shape() == {12 * 105, 11}
+          assert df |> DataFrame.shape() == {12 * 105, @column_count}
           :ok
         end)
         |> expect(:"to_#{format}!", fn %DataFrame{} = df, ^filepath2, ^opts ->
           # 4 month of scrobbles
-          assert df |> DataFrame.shape() == {4 * 105, 11}
+          assert df |> DataFrame.shape() == {4 * 105, @column_count}
           :ok
         end)
 
