@@ -1,0 +1,41 @@
+<!-- livebook:{"autosave_interval_s":60} -->
+
+# On this day ♫
+
+```elixir
+Mix.install(
+  [{:lastfm_archive, "~> 0.10"}, {:kino_explorer, "~> 0.1.4"}],
+  config: [
+    lastfm_archive: [
+      data_dir: "./lastfm_data/",
+      user: ""
+    ]
+  ]
+)
+
+alias LastfmArchive.Analytics.OnThisDay
+alias Explorer.DataFrame
+
+data_frame = OnThisDay.data_frame(format: :ipc_stream)
+
+:ok
+```
+
+## Introduction
+
+All about the music played on this day, today in this past. This Livebook uses data created by [lastfm_archive](https://github.com/boonious/lastfm_archive).
+
+### Prerequisite
+
+* [Columnar data transforms](transforming.html): please create an archive suitable for analytics workloads, in Apache Arrow format, i.e. transform with `format: :ipc_stream` option
+
+### Requirement
+
+* [install](https://livebook.dev/#install) and run this Livebook
+* configure this guide as instructued below, click on `Notebook dependencies and setup`, `Setup` (above)
+
+### Configuration
+
+`lastfm_archive` has been configured as a dependency in `Setup` above, modify the following config:
+
+* **`user`**: add your Lastfm username

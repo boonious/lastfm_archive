@@ -12,6 +12,8 @@ defmodule Fixtures.Lastfm do
     """
   end
 
+  def recent_tracks_on_this_day(user, now \\ DateTime.utc_now() |> DateTime.to_unix()), do: recent_tracks(user, 1, now)
+
   def recent_tracks(user \\ "a_lastfm_user", count \\ 1, time \\ 1_618_327_602) do
     ~s"""
     {
