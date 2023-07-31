@@ -63,4 +63,16 @@ defmodule LastfmArchive.Analytics.OnThisDayTest do
       assert {:error, :einval} = OnThisDay.data_frame(options)
     end
   end
+
+  describe "this_day/1" do
+    test "default day string" do
+      day = Date.utc_today() |> Calendar.strftime("-%m-%d")
+      assert ^day = OnThisDay.this_day()
+    end
+
+    test "other formatted day string" do
+      day = Date.utc_today() |> Calendar.strftime("%B")
+      assert ^day = OnThisDay.this_day("%B")
+    end
+  end
 end

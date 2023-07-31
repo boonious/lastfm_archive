@@ -1,5 +1,6 @@
 defmodule LastfmArchive.Analytics.OnThisDay do
   @moduledoc false
+
   require Explorer.DataFrame
   alias Explorer.DataFrame
 
@@ -9,14 +10,11 @@ defmodule LastfmArchive.Analytics.OnThisDay do
     |> filter_data_frame()
   end
 
+  def this_day(format \\ "-%m-%d"), do: Date.utc_today() |> Calendar.strftime(format)
+
   defp filter_data_frame({:ok, df}) do
-    df |> DataFrame.filter(contains(datetime, on_this_day()))
+    df |> DataFrame.filter(contains(datetime, this_day()))
   end
 
   defp filter_data_frame(error), do: error
-
-  defp on_this_day do
-    %Date{month: month, day: day} = Date.utc_today()
-    "-#{Integer.to_string(month) |> String.pad_leading(2, "0")}-#{Integer.to_string(day) |> String.pad_leading(2, "0")}"
-  end
 end

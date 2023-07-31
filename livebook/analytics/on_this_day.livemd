@@ -4,7 +4,7 @@
 
 ```elixir
 Mix.install(
-  [{:lastfm_archive, "~> 0.10"}, {:kino_explorer, "~> 0.1.4"}],
+  [{:lastfm_archive, path: "elixir/lastfm_archive"}, {:kino_explorer, "~> 0.1.4"}],
   config: [
     lastfm_archive: [
       data_dir: "./lastfm_data/",
@@ -13,17 +13,14 @@ Mix.install(
   ]
 )
 
-alias LastfmArchive.Analytics.OnThisDay
-alias Explorer.DataFrame
-
-data_frame = OnThisDay.data_frame(format: :ipc_stream)
+data_frame = LastfmArchive.Analytics.OnThisDay.data_frame(format: :ipc_stream)
 
 :ok
 ```
 
 ## Introduction
 
-All about the music played on this day, today in this past. This Livebook uses data created by [lastfm_archive](https://github.com/boonious/lastfm_archive).
+Analytics of all music played on this day, today in this past. This Livebook uses data created by [lastfm_archive](https://github.com/boonious/lastfm_archive).
 
 ### Prerequisite
 
@@ -39,3 +36,11 @@ All about the music played on this day, today in this past. This Livebook uses d
 `lastfm_archive` has been configured as a dependency in `Setup` above, modify the following config:
 
 * **`user`**: add your Lastfm username
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Most played
+
+```elixir
+data_frame |> LastfmArchive.Analytics.Livebook.most_played_this_day()
+```
