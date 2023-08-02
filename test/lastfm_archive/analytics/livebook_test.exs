@@ -4,15 +4,18 @@ defmodule LastfmArchive.Analytics.LivebookTest do
   import Fixtures.Archive
   import Fixtures.Lastfm
 
-  alias Explorer.DataFrame
   alias LastfmArchive.Analytics.Livebook, as: LFM_LB
 
-  test "most_played_this_day/1" do
-    df =
-      LastfmArchive.default_user()
-      |> recent_tracks_on_this_day()
-      |> data_frame()
+  setup do
+    %{data_frame: LastfmArchive.default_user() |> recent_tracks_on_this_day() |> data_frame()}
+  end
 
-    assert %Kino.Layout{} = LFM_LB.most_played_this_day(df)
+  test "render_overview/1", %{data_frame: df} do
+    assert %Kino.Markdown{content: content} = LFM_LB.render_overview(df)
+    assert content =~ "**1** scrobbles"
+  end
+
+  test "render_most_played/1", %{data_frame: df} do
+    assert %Kino.Layout{} = LFM_LB.render_most_played(df)
   end
 end

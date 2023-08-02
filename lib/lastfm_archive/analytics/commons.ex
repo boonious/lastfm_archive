@@ -7,15 +7,14 @@ defmodule LastfmArchive.Analytics.Commons do
   require Explorer.DataFrame
 
   @doc """
-  Returns a data frame containing most played stats (artists, album etc.) of a data frame.
+  Returns a lazy data frame containing most played stats (artists, album etc.) for a data frame.
   """
-  @spec most_played(DataFrame.t(), list(String.t()), integer()) :: DataFrame.t()
-  def most_played(data_frame, fields, rows \\ 5) do
+  @spec most_played(DataFrame.t(), list(String.t())) :: DataFrame.t()
+  def most_played(data_frame, fields) do
     data_frame
     |> DataFrame.to_lazy()
     |> DataFrame.group_by(fields)
-    |> DataFrame.summarise(playcount: count(name))
+    |> DataFrame.summarise(playcount: count(id))
     |> DataFrame.arrange(desc: playcount)
-    |> DataFrame.head(rows)
   end
 end

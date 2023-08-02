@@ -2,13 +2,13 @@ defmodule LastfmArchive.MixProject do
   use Mix.Project
 
   @description """
-    A tool for creating local Last.fm scrobble file archive and analytics.
+    A tool for creating local file archives and analytics of Last.fm listening data or scrobbles
   """
 
   def project do
     [
       app: :lastfm_archive,
-      version: "0.10.3",
+      version: "0.10.4",
       elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,

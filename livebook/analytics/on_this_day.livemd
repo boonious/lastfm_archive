@@ -4,7 +4,7 @@
 
 ```elixir
 Mix.install(
-  [{:lastfm_archive, path: "elixir/lastfm_archive"}, {:kino_explorer, "~> 0.1.4"}],
+  [{:lastfm_archive, "~> 0.10"}, {:kino_explorer, "~> 0.1.4"}],
   config: [
     lastfm_archive: [
       data_dir: "./lastfm_data/",
@@ -13,14 +13,15 @@ Mix.install(
   ]
 )
 
-data_frame = LastfmArchive.Analytics.OnThisDay.data_frame(format: :ipc_stream)
+alias LastfmArchive.Analytics.Livebook, as: LFM_LB
+dataframe = LastfmArchive.Analytics.OnThisDay.data_frame(format: :ipc_stream)
 
 :ok
 ```
 
 ## Introduction
 
-Analytics of all music played on this day, today in this past. This Livebook uses data created by [lastfm_archive](https://github.com/boonious/lastfm_archive).
+Analytics of all music played on this day, today in this past. This Livebook is based on data created by [lastfm_archive](https://github.com/boonious/lastfm_archive).
 
 ### Prerequisite
 
@@ -42,5 +43,24 @@ Analytics of all music played on this day, today in this past. This Livebook use
 ## Most played
 
 ```elixir
-data_frame |> LastfmArchive.Analytics.Livebook.most_played_this_day()
+dataframe
+|> tap(fn df -> LFM_LB.render_overview(df) end)
+|> LFM_LB.render_most_played()
+```
+
+## Explore the data
+
+In due course, further analytics and visualisation will be presented. These include newly discovered and most frequently played music on this day over the years. Meanwhile you can interactively delve into the data using [Kino explorer](https://hexdocs.pm/kino_explorer/Kino.Explorer.html) below.
+
+<!-- livebook:{"attrs":{"assign_to":null,"collect":true,"data_frame":"dataframe","data_frame_alias":"Elixir.Explorer.DataFrame","is_data_frame":true,"missing_require":"Elixir.Explorer.DataFrame","operations":[{"active":true,"columns":["artist","year","name"],"data_options":{"album":"string","artist":"string","datetime":"string","id":"string","name":"string","year":"integer"},"operation_type":"group_by"},{"active":false,"column":"year","data_options":{"album":"string","artist":"string","datetime":"string","id":"string","name":"string","year":"integer"},"datalist":[],"filter":"equal","message":null,"operation_type":"filters","type":"integer","value":"2020"},{"active":true,"columns":["id"],"data_options":{"album":"string","artist":"string","datetime":"string","id":"string","name":"string","year":"integer"},"operation_type":"summarise","query":"count"},{"active":true,"data_options":{"artist":"string","id_count":"integer","name":"string","year":"integer"},"direction":"desc","operation_type":"sorting","sort_by":"id_count"}]},"chunks":null,"kind":"Elixir.KinoExplorer.DataTransformCell","livebook_object":"smart_cell"} -->
+
+```elixir
+require Explorer.DataFrame
+
+dataframe
+|> Explorer.DataFrame.to_lazy()
+|> Explorer.DataFrame.group_by(["artist", "year", "name"])
+|> Explorer.DataFrame.summarise(id_count: count(id))
+|> Explorer.DataFrame.arrange(desc: id_count)
+|> Explorer.DataFrame.collect()
 ```

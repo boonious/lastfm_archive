@@ -1,4 +1,8 @@
 # Changelog
+## 0.10.4 (2023-08-03)
+
+* new Livebook to present analytics of all music played "on this day"
+
 ## 0.10.3 (2023-07-26)
 
 * additional data storage formats (Apache Arrow IPC) via `Explorer.DataFrame` i/o functions

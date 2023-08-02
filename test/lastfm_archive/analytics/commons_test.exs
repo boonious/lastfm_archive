@@ -12,7 +12,7 @@ defmodule LastfmArchive.Analytics.CommonsTest do
     single_scrobble_on_this_day = recent_tracks_on_this_day(user)
     df = data_frame(single_scrobble_on_this_day)
 
-    assert %DataFrame{} = df = Commons.most_played(df, ["artist", "year"], 1) |> DataFrame.collect()
+    assert %DataFrame{} = df = Commons.most_played(df, ["artist", "year"]) |> DataFrame.collect()
     assert {1, 3} == df |> DataFrame.shape()
   end
 end

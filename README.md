@@ -1,11 +1,10 @@
 # Lastfm Archive [![Build Status](https://github.com/boonious/lastfm_archive/actions/workflows/elixir.yml/badge.svg)](https://github.com/boonious/lastfm_archive/actions/workflows/elixir.yml) [![Hex pm](http://img.shields.io/hexpm/v/lastfm_archive.svg?style=flat)](https://hex.pm/packages/lastfm_archive) [![Coverage Status](https://coveralls.io/repos/github/boonious/lastfm_archive/badge.svg)](https://coveralls.io/github/boonious/lastfm_archive?branch=master)
 
-A tool for creating local Last.fm scrobble file archive and analytics.
+A tool for creating local file archive and analytics of Last.fm music listening data or scrobbles.
 
-The software is currently experimental and in preliminary development. It should
-eventually provide capability to perform ETL and analytic tasks on Lastfm scrobble data.
+♫♫ Check out the new [on this day](#livebook-analytics) analytics Livebook.
 
-## Current usage
+## Usage
 
 Download and create a file archive of Lastfm scrobble tracks via an [Elixir](https://elixir-lang.org)
 application or [interactive Elixir](https://elixir-lang.org/getting-started/introduction.html#interactive-mode)
@@ -85,17 +84,27 @@ LastfmArchive.read("a_lastfm_user", format: :parquet, year: 2023, columns: [:id,
 
 See [`read/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#read/2).
 
+## Livebook analytics
+
+[On this day ♫](https://hexdocs.pm/lastfm_archive/on_this_day.html) analytics [Livebook](https://livebook.dev) presenting
+analytics of all music played on this day, i.e. today in this past. The page also features an interactive 
+[Kino explorer](https://hexdocs.pm/kino_explorer/Kino.Explorer.html) to help delving into the data.
+
+[![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fboonious%2Flastfm_archive%2Fmaster%2Flivebook%2Fanalytics%2Fon_this_day.livemd)
+
+![on this day most played analytics](assets/img/livebook_on_this_day_most_played_analytics.png)
+
 ## Livebook guides
 
-`LastfmArchive` provides the following [Livebook](https://livebook.dev) interactive and step-by-step guides: 
+`LastfmArchive` also provides the following [Livebook](https://livebook.dev) interactive and step-by-step guides: 
   - [Creating a file archive](https://hexdocs.pm/lastfm_archive/archiving.html) guide for creating a local file archive consisting data fetched from Lastfm API. It provides a heatmap and count visualisation for checking ongoing archiving status.
 
-    [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fboonious%2Flastfm_archive%2Fmaster%2Fguides%2Farchiving.livemd)
+    [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fboonious%2Flastfm_archive%2Fmaster%2Flivebook%2Fguides%2Farchiving.livemd)
 
     ![archiving progress visualisation](assets/img/livebook_heatmap.png)
   - [Columnar data transforms](https://hexdocs.pm/lastfm_archive/transforming.html) guide for transforming the local file archive to columnar data formats (Arrow, Parquet). It demonstrates how `read/2` can be used to load single-year single-column data, as well as an entire dataset into data frame for various analytics. 
 
-    [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fboonious%2Flastfm_archive%2Fmaster%2Fguides%2Ftransforming.livemd)
+    [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fboonious%2Flastfm_archive%2Fmaster%2Flivebook%2Fguides%2Ftransforming.livemd)
 
     ![unique tracks by artists analytics](assets/img/livebook_unique_tracks_analytics.png)   
  
