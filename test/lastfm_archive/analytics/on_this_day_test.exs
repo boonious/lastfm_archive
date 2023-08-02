@@ -28,39 +28,39 @@ defmodule LastfmArchive.Analytics.OnThisDayTest do
   end
 
   describe "data_frame/1" do
-    test "contains data on this day", %{user: user, file_archive_metadata: metadata} do
-      options = [format: :ipc_stream]
+    setup do
+      %{options: [format: :ipc_stream, columns: OnThisDay.columns()]}
+    end
+
+    test "contains data on this day", %{user: user, file_archive_metadata: metadata, options: opts} do
       single_scrobble_on_this_day = recent_tracks_on_this_day(user)
 
       DerivedArchiveMock
-      |> expect(:describe, fn ^user, ^options -> {:ok, metadata} end)
-      |> expect(:read, fn ^metadata, ^options -> {:ok, data_frame(single_scrobble_on_this_day)} end)
+      |> expect(:describe, fn ^user, ^opts -> {:ok, metadata} end)
+      |> expect(:read, fn ^metadata, ^opts -> {:ok, data_frame(single_scrobble_on_this_day)} end)
 
-      assert %DataFrame{} = df = OnThisDay.data_frame(options) |> Explorer.DataFrame.collect()
+      assert %DataFrame{} = df = OnThisDay.data_frame(format: opts[:format]) |> Explorer.DataFrame.collect()
       assert {1, _column_count} = df |> DataFrame.shape()
     end
 
-    test "return no data without scrobble on this day", %{user: user, file_archive_metadata: metadata} do
-      options = [format: :ipc_stream]
+    test "return no data without scrobble on this day", %{user: user, file_archive_metadata: metadata, options: opts} do
       not_now = DateTime.utc_now() |> DateTime.add(-5, :day) |> DateTime.to_unix()
       single_scrobble_not_on_this_day = recent_tracks_on_this_day(user, not_now)
 
       DerivedArchiveMock
-      |> expect(:describe, fn ^user, ^options -> {:ok, metadata} end)
-      |> expect(:read, fn ^metadata, ^options -> {:ok, data_frame(single_scrobble_not_on_this_day)} end)
+      |> expect(:describe, fn ^user, ^opts -> {:ok, metadata} end)
+      |> expect(:read, fn ^metadata, ^opts -> {:ok, data_frame(single_scrobble_not_on_this_day)} end)
 
-      assert %DataFrame{} = df = OnThisDay.data_frame(options) |> Explorer.DataFrame.collect()
+      assert %DataFrame{} = df = OnThisDay.data_frame(format: opts[:format]) |> Explorer.DataFrame.collect()
       assert {0, _column_count} = df |> DataFrame.shape()
     end
 
-    test "handles archive read error", %{user: user, file_archive_metadata: metadata} do
-      options = [format: :ipc_stream]
-
+    test "handles archive read error", %{user: user, file_archive_metadata: metadata, options: opts} do
       DerivedArchiveMock
-      |> expect(:describe, fn ^user, ^options -> {:ok, metadata} end)
-      |> expect(:read, fn ^metadata, ^options -> {:error, :einval} end)
+      |> expect(:describe, fn ^user, ^opts -> {:ok, metadata} end)
+      |> expect(:read, fn ^metadata, ^opts -> {:error, :einval} end)
 
-      assert {:error, :einval} = OnThisDay.data_frame(options)
+      assert {:error, :einval} = OnThisDay.data_frame(format: opts[:format])
     end
   end
 
