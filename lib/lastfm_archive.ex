@@ -136,8 +136,10 @@ defmodule LastfmArchive do
   ```
 
   Options:
-  - `:format` - derived archive format: `:csv`, `:parquet`, `:ipc`, `:ipc_stream`
+  - `:format` (required) - derived archive format: `:csv`, `:parquet`, `:ipc`, `:ipc_stream`
   - `:year` - only read scrobbles for this particular year
+  - `:columns` - an atom list for retrieving only a columns subset, available columns:
+  #{%LastfmArchive.Archive.Scrobble{} |> Map.keys() |> List.delete(:__struct__) |> Enum.map_join(", ", &(("`:" <> Atom.to_string(&1)) <> "`"))}
   """
   @spec read(binary, keyword()) :: {:ok, Explorer.DataFrame} | {:error, term()}
   def read(user \\ default_user(), options) do
