@@ -13,6 +13,8 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
   alias LastfmArchive.Behaviour.LastfmClient
   alias LastfmArchive.Utils
 
+  @column_count (%LastfmArchive.Archive.Scrobble{} |> Map.keys() |> length()) - 1
+
   setup :verify_on_exit!
 
   setup do
@@ -204,7 +206,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       |> expect(:read, fn ^file_path -> {:ok, gzipped_scrobbles()} end)
 
       {:ok, %DataFrame{} = df} = FileArchive.read(metadata, day: date)
-      assert {105, 11} == df |> DataFrame.collect() |> DataFrame.shape()
+      assert {105, @column_count} == df |> DataFrame.collect() |> DataFrame.shape()
     end
 
     test "concats multi-page scrobbles of a day into a single data frame", %{metadata: metadata} do
@@ -215,7 +217,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       |> expect(:read, 2, fn _file_path -> {:ok, gzipped_scrobbles()} end)
 
       {:ok, %DataFrame{} = df} = FileArchive.read(metadata, day: date)
-      assert {105 * 2, 11} == df |> DataFrame.collect() |> DataFrame.shape()
+      assert {105 * 2, @column_count} == df |> DataFrame.collect() |> DataFrame.shape()
     end
 
     test "returns data frame for a month's scrobbles", %{metadata: metadata} do
@@ -234,7 +236,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       LastfmArchive.FileIOMock |> expect(:read, 3, fn _file_path -> {:ok, gzipped_scrobbles()} end)
 
       {:ok, %DataFrame{} = df} = FileArchive.read(metadata, month: date)
-      assert {105 * 3, 11} == df |> DataFrame.collect() |> DataFrame.shape()
+      assert {105 * 3, @column_count} == df |> DataFrame.collect() |> DataFrame.shape()
     end
 
     test "when no day or month option given", %{metadata: metadata} do

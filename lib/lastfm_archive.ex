@@ -1,14 +1,11 @@
 defmodule LastfmArchive do
   @moduledoc """
-  `lastfm_archive` is a tool for creating local Last.fm scrobble file archive, Solr archive and analytics.
-
-  The software is currently experimental and in preliminary development. It should
-  eventually provide capability to perform ETL and analytic tasks on Lastfm scrobble data.
+  `lastfm_archive` is a tool for creating local file archive and analytics of Last.fm music listening data.
 
   Current usage:
   - `sync/0`, `sync/1`: sync Lastfm scrobble data to local filesystem
-  - `transform/0`, `transform/2`: transform downloaded raw data to a CSV and Parquet archive
-  - `read/2`: daily amd monthly data frame of the file archive, or yearly data frame from the CSV and Parquet archive
+  - `transform/0`, `transform/2`: transform downloaded raw data to archive in other formats, e.g. CSV, Apache Parquet, Arrow
+  - `read/2`: daily amd monthly data frame of the file archive, or yearly data frame from various archive formats
   - `load_archive/2`: load all CSV data from the archive into Solr
 
   """
@@ -139,8 +136,10 @@ defmodule LastfmArchive do
   ```
 
   Options:
-  - `:format` - derived archive format: `:csv`, `:parquet`, `:ipc`, `:ipc_stream`
+  - `:format` (required) - derived archive format: `:csv`, `:parquet`, `:ipc`, `:ipc_stream`
   - `:year` - only read scrobbles for this particular year
+  - `:columns` - an atom list for retrieving only a columns subset, available columns:
+  #{%LastfmArchive.Archive.Scrobble{} |> Map.keys() |> List.delete(:__struct__) |> Enum.map_join(", ", &(("`:" <> Atom.to_string(&1)) <> "`"))}
   """
   @spec read(binary, keyword()) :: {:ok, Explorer.DataFrame} | {:error, term()}
   def read(user \\ default_user(), options) do

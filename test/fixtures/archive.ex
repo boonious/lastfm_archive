@@ -50,9 +50,8 @@ defmodule Fixtures.Archive do
     }
   end
 
-  def data_frame() do
-    gzipped_scrobbles()
-    |> :zlib.gunzip()
+  def data_frame(data \\ scrobbles_json()) do
+    data
     |> Jason.decode!()
     |> LastfmArchive.Archive.Scrobble.new()
     |> Enum.map(&Map.from_struct/1)
@@ -63,6 +62,7 @@ defmodule Fixtures.Archive do
 
   def archive_metadata(), do: File.read!("test/fixtures/metadata.json")
 
+  def scrobbles_json(), do: gzipped_scrobbles() |> :zlib.gunzip()
   def gzipped_scrobbles(), do: File.read!("test/fixtures/200_001.gz")
   def gzip_data(), do: File.read!("test/fixtures/200_34.gz")
   def csv_gzip_data(), do: File.read!("test/fixtures/2018.csv.gz")

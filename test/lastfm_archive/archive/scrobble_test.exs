@@ -16,6 +16,7 @@ defmodule LastfmArchive.Archive.ScrobbleTest do
              url: "https://www.last.fm/music/Roxette/_/Physical+Fascination+(guitar+solo+version)",
              datetime: "2021-04-13 15:26:42Z",
              datetime_unix: 1_618_327_602,
+             year: 2021,
              name: "Physical Fascination (guitar solo version)",
              mbid: "cd000775-0a7c-38ea-96ab-4dacfae789fe",
              id: _uuid
