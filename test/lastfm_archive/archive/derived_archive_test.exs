@@ -25,8 +25,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
       new_archive_metadata(
         user: user,
         start: DateTime.from_iso8601("2022-01-01T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
-        end: DateTime.from_iso8601("2023-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
-        type: DerivedArchive
+        end: DateTime.from_iso8601("2023-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix()
       )
       |> Map.put(:modified, DateTime.utc_now())
 
@@ -108,11 +107,15 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
     for format <- DerivedArchive.formats() do
       test "existing #{format} derived archive", %{user: user, file_archive_metadata: metadata} do
         format = unquote(format)
-        metadata = metadata |> new_derived_archive_metadata(format: format)
-        metadata_filepath = metadata_filepath(user, format: format)
+
+        derived_archive_metadata = metadata |> new_derived_archive_metadata(format: format)
+        derived_archive_metadata_filepath = metadata_filepath(user, format: format)
+        file_archive_metadata_filepath = metadata_filepath(user, [])
         mimetype = DerivedArchive.mimetype(format)
 
-        LastfmArchive.FileIOMock |> expect(:read, fn ^metadata_filepath -> {:ok, metadata |> Jason.encode!()} end)
+        LastfmArchive.FileIOMock
+        |> expect(:read, fn ^file_archive_metadata_filepath -> {:ok, metadata |> Jason.encode!()} end)
+        |> expect(:read, fn ^derived_archive_metadata_filepath -> {:ok, derived_archive_metadata |> Jason.encode!()} end)
 
         assert {
                  :ok,
@@ -137,16 +140,17 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
 
       test "#{format} returns new metadata when file archive exists", %{
         user: user,
-        file_archive_metadata: file_archive_metadata
+        file_archive_metadata: metadata
       } do
         format = unquote(format)
+
         file_archive_metadata_filepath = metadata_filepath(user, [])
         derived_archive_metadata_filepath = metadata_filepath(user, format: format)
         mimetype = DerivedArchive.mimetype(format)
 
         LastfmArchive.FileIOMock
+        |> expect(:read, fn ^file_archive_metadata_filepath -> {:ok, metadata |> Jason.encode!()} end)
         |> expect(:read, fn ^derived_archive_metadata_filepath -> {:error, :enoent} end)
-        |> expect(:read, fn ^file_archive_metadata_filepath -> {:ok, file_archive_metadata |> Jason.encode!()} end)
 
         assert {
                  :ok,

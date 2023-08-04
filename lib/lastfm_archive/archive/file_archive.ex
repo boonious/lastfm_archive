@@ -138,7 +138,7 @@ defmodule LastfmArchive.Archive.FileArchive do
 
     with {:ok, {total, registered_time}} <- client_impl().info(user, %{api | method: "user.getinfo"}),
          {:ok, {_, last_scrobble_time}} <- client_impl().playcount(user, {registered_time, now}, api) do
-      Metadata.new(archive, total, registered_time, last_scrobble_time)
+      Metadata.new(archive, total, {registered_time, last_scrobble_time})
       |> Archive.impl().update_metadata(options)
     end
   end

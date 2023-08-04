@@ -65,7 +65,7 @@ defmodule LastfmArchive.Archive.Metadata do
     }
   end
 
-  def new(%__MODULE__{} = metadata, total, registered_time, last_scrobble_time) do
+  def new(%__MODULE__{} = metadata, total, {registered_time, last_scrobble_time}) do
     %{
       metadata
       | temporal: {registered_time, last_scrobble_time},
