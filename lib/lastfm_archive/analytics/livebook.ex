@@ -2,7 +2,9 @@ defmodule LastfmArchive.Analytics.Livebook do
   @moduledoc false
 
   alias Explorer.DataFrame
-  import LastfmArchive.Analytics.Commons, only: [most_played: 2]
+  require Explorer.DataFrame
+
+  import LastfmArchive.Analytics.Commons, only: [mutate_pivot_rows: 4]
   import LastfmArchive.Analytics.OnThisDay, only: [this_day: 0, this_day: 1]
 
   def render_overview(%DataFrame{} = df) do
@@ -21,21 +23,36 @@ defmodule LastfmArchive.Analytics.Livebook do
 
   def render_most_played(df) do
     {
-      most_played(df, ["artist", "year"]) |> collect(),
-      most_played(df, ["album", "artist", "year"]) |> collect(),
-      most_played(df, ["name", "album", "artist", "year"]) |> collect()
+      frequencies(df, ["artist", "year"]) |> collect() |> derive_stats("artist") |> finalise(),
+      frequencies(df, ["album", "year"]) |> collect() |> derive_stats("album") |> finalise(),
+      frequencies(df, ["name", "year"]) |> collect() |> derive_stats("name") |> finalise(10)
     }
     |> render()
   end
 
-  defp collect(df, rows \\ 5) do
+  defp derive_stats(df, group) do
+    mutate_fun = fn df -> DataFrame.mutate(df, freq: count(year), total_plays: sum(counts)) end
+    pivot_fun = fn df -> DataFrame.pivot_wider(df, "year", ["counts"]) end
+    mutate_pivot_rows(df, group, mutate_fun, pivot_fun)
+  end
+
+  defp finalise(df, rows \\ 5) do
     df
-    |> DataFrame.collect()
-    |> DataFrame.pivot_wider("year", "playcount")
+    |> DataFrame.arrange(desc: total_plays)
     |> DataFrame.head(rows)
     |> DataFrame.to_rows()
     |> Enum.map(fn row -> map_years(row) end)
   end
+
+  defp collect(df), do: df |> DataFrame.collect()
+
+  defp frequencies(df, ["album", "year"]) do
+    df
+    |> DataFrame.filter(album != "")
+    |> DataFrame.frequencies(["album", "year"])
+  end
+
+  defp frequencies(df, columns), do: df |> DataFrame.frequencies(columns)
 
   defp render({artists, albums, tracks}) do
     artists =
@@ -54,11 +71,12 @@ defmodule LastfmArchive.Analytics.Livebook do
     albums =
       [
         "#### Top albums",
-        for %{"artist" => artist, "album" => album, "years" => years} <- albums do
+        for %{"album" => album, "years" => years} <- albums do
           count = years |> Map.values() |> Enum.sum()
           years = render_years(years)
 
-          "- **#{album}** <sup>#{count}x</sup> <br/> <small>by #{artist}</small> <br/>" <> years
+          # "- **#{album}** <sup>#{count}x</sup> <br/> <small>by #{artist}</small> <br/>" <> years
+          "- **#{album}** <sup>#{count}x</sup> <br/>" <> years
         end
       ]
       |> List.flatten()
@@ -67,11 +85,12 @@ defmodule LastfmArchive.Analytics.Livebook do
     tracks =
       [
         "#### Top tracks",
-        for %{"name" => track, "artist" => artist, "album" => album, "years" => years} <- tracks do
+        for %{"name" => track, "years" => years} <- tracks do
           count = years |> Map.values() |> Enum.sum()
           years = render_years(years)
 
-          "- **#{track}** <sup>#{count}x</sup> <br/> <small> #{album} by #{artist}</small> <br/>" <> years
+          # "- **#{track}** <sup>#{count}x</sup> <br/> <small> #{album} by #{artist}</small> <br/>" <> years
+          "- **#{track}** <sup>#{count}x</sup> <br/>" <> years
         end
       ]
       |> List.flatten()
