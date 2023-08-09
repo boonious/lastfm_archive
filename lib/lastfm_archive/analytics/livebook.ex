@@ -1,10 +1,14 @@
 defmodule LastfmArchive.Analytics.Livebook do
   @moduledoc false
 
+  use LastfmArchive.Behaviour.Analytics, facets: LastfmArchive.Analytics.Settings.available_facets()
+
   alias Explorer.DataFrame
+  alias Explorer.Series
+
   require Explorer.DataFrame
 
-  import LastfmArchive.Analytics.Commons, only: [mutate_pivot_rows: 4]
+  import LastfmArchive.Analytics.Commons, only: [frequencies: 2, create_group_stats: 2, create_facet_stats: 2]
   import LastfmArchive.Analytics.OnThisDay, only: [this_day: 0, this_day: 1]
 
   def render_overview(%DataFrame{} = df) do
@@ -22,67 +26,47 @@ defmodule LastfmArchive.Analytics.Livebook do
   end
 
   def render_most_played(df) do
-    {
-      frequencies(df, ["artist", "year"]) |> collect() |> derive_stats("artist") |> finalise(),
-      frequencies(df, ["album", "year"]) |> collect() |> derive_stats("album") |> finalise(),
-      frequencies(df, ["name", "year"]) |> collect() |> derive_stats("name") |> finalise(10)
-    }
-    |> render()
+    [top_artists(df), top_albums(df), top_tracks(df, rows: 10)] |> render()
   end
 
-  defp derive_stats(df, group) do
-    df
-    |> mutate_pivot_rows(
-      group,
-      fn df -> DataFrame.mutate(df, years_freq: count(year), total_plays: sum(counts)) end,
-      fn df -> DataFrame.pivot_wider(df, "year", ["counts"]) end
-    )
-  end
+  defp render([artists_info, albums_info, tracks_info]) do
+    {top_n, extra} = artists_info
 
-  defp finalise(df, rows \\ 5) do
-    df
-    |> DataFrame.arrange(desc: total_plays)
-    |> DataFrame.head(rows)
-  end
-
-  defp collect(df), do: df |> DataFrame.collect()
-
-  defp frequencies(df, ["album", "year"]) do
-    df
-    |> DataFrame.filter(album != "")
-    |> DataFrame.frequencies(["album", "year"])
-  end
-
-  defp frequencies(df, columns), do: df |> DataFrame.frequencies(columns)
-
-  defp render({artists, albums, tracks}) do
     artists =
       [
         "#### Top artists",
-        for %{"artist" => artist, "total_plays" => count} = row <- artists |> DataFrame.to_rows() do
-          "- **#{artist}** <sup>#{count}x</sup> <br/>" <> (row |> map_years() |> render_years())
+        for {%{"artist" => artist, "total_plays" => count} = row, index} <-
+              top_n |> DataFrame.to_rows() |> Enum.with_index() do
+          "- **#{artist}** <sup>#{count}x</sup> <br/>" <>
+            render_extra(extra[index], "artist") <> (row |> map_years() |> render_years())
         end
       ]
       |> List.flatten()
       |> Enum.join("\n")
+
+    {top_n, extra} = albums_info
 
     albums =
       [
         "#### Top albums",
-        for %{"album" => album, "total_plays" => count} = row <- albums |> DataFrame.to_rows() do
-          # "- **#{album}** <sup>#{count}x</sup> <br/> <small>by #{artist}</small> <br/>" <> years
-          "- **#{album}** <sup>#{count}x</sup> <br/>" <> (row |> map_years() |> render_years())
+        for {%{"album" => album, "total_plays" => count} = row, index} <-
+              top_n |> DataFrame.to_rows() |> Enum.with_index() do
+          "- **#{album}** <sup>#{count}x</sup> <br/>" <>
+            render_extra(extra[index], "album") <> (row |> map_years() |> render_years())
         end
       ]
       |> List.flatten()
       |> Enum.join("\n")
 
+    {top_n, extra} = tracks_info
+
     tracks =
       [
         "#### Top tracks",
-        for %{"name" => track, "total_plays" => count} = row <- tracks |> DataFrame.to_rows() do
-          # "- **#{track}** <sup>#{count}x</sup> <br/> <small> #{album} by #{artist}</small> <br/>" <> years
-          "- **#{track}** <sup>#{count}x</sup> <br/>" <> (row |> map_years() |> render_years())
+        for {%{"name" => track, "total_plays" => count} = row, index} <-
+              top_n |> DataFrame.to_rows() |> Enum.with_index() do
+          "- **#{track}** <sup>#{count}x</sup> <br/>" <>
+            render_extra(extra[index], "track") <> (row |> map_years() |> render_years())
         end
       ]
       |> List.flatten()
@@ -100,4 +84,52 @@ defmodule LastfmArchive.Analytics.Livebook do
   end
 
   defp render_years(years), do: for(year <- years, do: "<small>#{year}#{this_day()}</small>") |> Enum.join(", ")
+
+  defp render_extra(extra, "artist") do
+    %{"num_albums_played" => num_albums, "num_tracks_played" => num_tracks} =
+      extra |> DataFrame.head(1) |> DataFrame.to_rows() |> hd
+
+    "<small>#{item("album", num_albums)} , #{item("track", num_tracks)}</small> <br/>"
+  end
+
+  defp render_extra(extra, "album") do
+    %{"num_artists_played" => num_artists, "num_tracks_played" => num_tracks} =
+      extra |> DataFrame.head(1) |> DataFrame.to_rows() |> hd
+
+    "<small>#{item("artist", num_artists, extra)} , #{item("track", num_tracks)}</small> <br/>"
+  end
+
+  defp render_extra(extra, "track") do
+    item("track_album", extra |> DataFrame.n_rows(), extra) <> "<br/>"
+  end
+
+  defp item(type, num, extra \\ nil)
+
+  defp item("track_album", num, extra) when num <= 2 do
+    for %{"album" => album, "artist" => artist} <-
+          extra |> DataFrame.select(["album", "artist"]) |> DataFrame.distinct() |> DataFrame.to_rows() do
+      "<small>#{album} by #{artist}</small>"
+    end
+    |> Enum.join("<br/>")
+  end
+
+  defp item("track_album", _num, extra) do
+    %{"num_artists_played" => num_artists, "num_albums_played" => num_albums} =
+      extra |> DataFrame.head(1) |> DataFrame.to_rows() |> hd
+
+    "<small>#{item("artist", num_artists)} , #{item("album", num_albums)}</small>"
+  end
+
+  defp item("artist", num, extra) when num <= 2 and extra != nil do
+    artists =
+      for(artist <- extra["artist"] |> Series.distinct() |> Series.to_list(), do: artist)
+      |> Enum.join(", ")
+
+    "by #{artists}"
+  end
+
+  defp item("artist", num, _extra), do: "#{num} various artists"
+
+  defp item(type, 1, _extra), do: "1 #{type}"
+  defp item(type, num, _extra), do: "#{num} #{type}s"
 end
