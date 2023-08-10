@@ -13,8 +13,8 @@ Mix.install(
   ]
 )
 
-alias LastfmArchive.Analytics.Livebook, as: LFM_LB
-dataframe = LastfmArchive.Analytics.OnThisDay.data_frame(format: :ipc_stream)
+alias LastfmArchive.Analytics.OnThisDay
+dataframe = OnThisDay.data_frame(format: :ipc_stream)
 
 :ok
 ```
@@ -44,8 +44,8 @@ Analytics of all music played on this day, today in this past. This Livebook is 
 
 ```elixir
 dataframe
-|> tap(fn df -> LFM_LB.render_overview(df) end)
-|> LFM_LB.render_most_played()
+|> tap(fn df -> OnThisDay.render_overview(df) end)
+|> OnThisDay.render_most_played()
 ```
 
 ## Explore the data
@@ -64,3 +64,5 @@ dataframe
 |> Explorer.DataFrame.arrange(desc: id_count)
 |> Explorer.DataFrame.collect()
 ```
+
+<!-- livebook:{"offset":2981,"stamp":{"token":"QTEyOEdDTQ.RYoWrA9zdaSol9C6qbwx0v9LtAD_5PrWGkJ5lSH9YZsIMz_oXZOi-kvhq0U.8w3V6bS3E3Jy9wSe.KsEM12UxteC54BfeP7-Wj5R5VHrR3xMwPQiECB1DOgsebPL548lDQ4qKJI1VUw.0I2sJl43vSmoUgcrgd-7xA","version":1}} -->

@@ -2,6 +2,7 @@ defmodule LastfmArchive.Behaviour.Analytics do
   @moduledoc """
   Behaviour, macro and functions for Explorer.DataFrame analytics
   """
+
   alias Explorer.DataFrame
   import LastfmArchive.Analytics.Settings
 
@@ -9,8 +10,15 @@ defmodule LastfmArchive.Behaviour.Analytics do
   @type group :: DataFrame.column_name() | DataFrame.column_names()
   @type options :: Keyword.t()
 
+  @type top_facets :: DataFrame.t()
+  @type top_facets_stats :: map()
+
+  @type facets :: {top_facets(), top_facets_stats()}
+
+  @callback data_frame(format: atom()) :: {:ok, data_frame()} | {:error, term}
+
   for facet <- available_facets() do
-    @callback unquote(:"top_#{facet}s")(data_frame(), options()) :: data_frame()
+    @callback unquote(:"top_#{facet}s")(data_frame(), options()) :: facets()
   end
 
   defmacro __using__(opts) do

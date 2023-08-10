@@ -1,5 +1,10 @@
 defmodule LastfmArchive.Analytics.OnThisDay do
-  @moduledoc false
+  @moduledoc """
+  Create on this day analytics and display them in Livebook.
+  """
+
+  use LastfmArchive.Behaviour.Analytics, facets: LastfmArchive.Analytics.Settings.available_facets()
+  use LastfmArchive.Behaviour.LivebookAnalytics, facets: LastfmArchive.Analytics.Settings.available_facets()
 
   require Explorer.DataFrame
   alias Explorer.DataFrame
@@ -20,4 +25,19 @@ defmodule LastfmArchive.Analytics.OnThisDay do
   defp filter_data_frame(error), do: error
 
   def this_day(format \\ "-%m-%d"), do: Date.utc_today() |> Calendar.strftime(format)
+
+  def render_overview(%Explorer.DataFrame{} = df) do
+    df
+    |> overview_ui()
+    |> Kino.render()
+  end
+
+  def render_most_played(df) do
+    [
+      top_artists(df, rows: 8) |> most_played_ui(),
+      top_albums(df, rows: 8) |> most_played_ui(),
+      top_tracks(df, rows: 8) |> most_played_ui()
+    ]
+    |> Kino.Layout.grid(columns: 3)
+  end
 end

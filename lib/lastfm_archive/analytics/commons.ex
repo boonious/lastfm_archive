@@ -50,11 +50,13 @@ defmodule LastfmArchive.Analytics.Commons do
     df
     |> DataFrame.to_rows()
     |> then(fn facets ->
+      facet_type = facets |> hd |> facet_type()
+
       {
         df,
-        facets
-        |> Enum.with_index()
-        |> Enum.into(%{}, fn {facet, index} -> create_facet_stats(df_source, facet, index) end)
+        for {facet, index} <- facets |> Enum.with_index(), into: %{"type" => facet_type} do
+          create_facet_stats(df_source, facet, index)
+        end
       }
     end)
   end
