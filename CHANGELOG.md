@@ -1,4 +1,14 @@
 # Changelog
+## 0.11.0 (2023-08-11)
+
+* new `Analytics` (generated callbacks) and `LivebookAnalytics` behaviours, with default implementations to separate the concerns of data frame analytics and Livebook rendering
+* analyics improvement:
+    * includes various artists albums
+    * more overall stats
+    * stats per facet, e.g. number of albums, tracks per artist
+* resolve on-this-day analytics ranking issue
+* fix issue that caused subsequent columnar data transforms to stuck at previous (first) date of transform
+
 ## 0.10.4 (2023-08-03)
 
 * new Livebook to present analytics of all music played "on this day"

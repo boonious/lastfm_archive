@@ -6,11 +6,12 @@ defmodule LastfmArchive.Behaviour.LivebookAnalytics do
   import LastfmArchive.Analytics.Settings
 
   @type data_frame :: LastfmArchive.Behaviour.Analytics.data_frame()
+  @type data_frame_stats :: LastfmArchive.Behaviour.Analytics.data_frame_stats()
   @type facets :: LastfmArchive.Behaviour.Analytics.facets()
   @type kino_ui :: Kino.Markdown.t() | struct()
   @type options :: keyword()
 
-  @callback overview(data_frame()) :: kino_ui()
+  @callback overview(data_frame_stats()) :: kino_ui()
   @callback most_played_ui(facets(), options) :: kino_ui()
 
   defmacro __using__(opts) do
@@ -43,18 +44,15 @@ defmodule LastfmArchive.Behaviour.LivebookAnalytics do
     end
   end
 
-  def overview_ui(df) do
-    # move data frame mechanisms into Analytics behaviour
-    df
-    |> Explorer.DataFrame.collect()
-    |> Explorer.DataFrame.n_rows()
-    |> then(fn total ->
-      Kino.Markdown.new("""
-      ###
-      There are **#{total}** scrobbles on **#{Date.utc_today() |> Calendar.strftime("%B %d")}** over the years.
-      <br/><br/>
-      """)
-    end)
+  def overview_ui(df_stats) do
+    Kino.Markdown.new("""
+    ###
+    There are **#{df_stats.id.count}** scrobbles on **#{Date.utc_today() |> Calendar.strftime("%B %d")}**,
+    over **#{df_stats.year.count}** years
+    (earliest **#{df_stats.year.min}**, latest  **#{df_stats.year.max}**):
+    - **#{df_stats.album.count}** albums, **#{df_stats.artist.count}** artists, **#{df_stats.name.count}** tracks
+    <br/><br/>
+    """)
   end
 
   def render(stats, "artist") do

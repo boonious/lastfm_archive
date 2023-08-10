@@ -11,6 +11,7 @@ defmodule LastfmArchive.Analytics.OnThisDay do
 
   def columns, do: ["id", "artist", "datetime", "year", "album", "name"]
 
+  @impl true
   def data_frame(format: format) do
     [format: format]
     |> read_data_frame()
@@ -28,6 +29,7 @@ defmodule LastfmArchive.Analytics.OnThisDay do
 
   def render_overview(%Explorer.DataFrame{} = df) do
     df
+    |> data_frame_stats()
     |> overview_ui()
     |> Kino.render()
   end

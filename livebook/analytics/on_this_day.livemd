@@ -4,7 +4,7 @@
 
 ```elixir
 Mix.install(
-  [{:lastfm_archive, "~> 0.10"}, {:kino_explorer, "~> 0.1.4"}],
+  [{:lastfm_archive, "~> 0.11"}, {:kino_explorer, "~> 0.1.4"}],
   config: [
     lastfm_archive: [
       data_dir: "./lastfm_data/",
@@ -65,4 +65,4 @@ dataframe
 |> Explorer.DataFrame.collect()
 ```
 
-<!-- livebook:{"offset":2981,"stamp":{"token":"QTEyOEdDTQ.RYoWrA9zdaSol9C6qbwx0v9LtAD_5PrWGkJ5lSH9YZsIMz_oXZOi-kvhq0U.8w3V6bS3E3Jy9wSe.KsEM12UxteC54BfeP7-Wj5R5VHrR3xMwPQiECB1DOgsebPL548lDQ4qKJI1VUw.0I2sJl43vSmoUgcrgd-7xA","version":1}} -->
+<!-- livebook:{"offset":2981,"stamp":{"token":"QTEyOEdDTQ.PBNc7nYMc52kPh9dZW5SOKNd1_JJyu5-JtV63YmC5OxOgLcB7WG-5wuebgE.GMPZwzEG6T8uWjGg.okFcDHEa883_PZVaQ9PbIrIyTlp_pzpQ76L44kHLKx2HEPavhWN4WWufgi1XQQ.WPXCsr6IR6E5EQnFs09UbQ","version":1}} -->

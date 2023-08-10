@@ -71,6 +71,17 @@ defmodule LastfmArchive.Analytics.OnThisDayTest do
     end
   end
 
+  test "data_frame_stats/0", %{data_frame: df} do
+    assert %{
+             album: %{count: 1},
+             artist: %{count: 1},
+             datetime: %{count: 1},
+             id: %{count: 1},
+             name: %{count: 1},
+             year: %{count: 1, max: 2023, min: 2023}
+           } = df |> OnThisDay.data_frame_stats()
+  end
+
   describe "this_day/1" do
     test "default day string" do
       day = Date.utc_today() |> Calendar.strftime("-%m-%d")

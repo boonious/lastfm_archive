@@ -4,18 +4,30 @@ defmodule LastfmArchive.Behaviour.Analytics do
   """
 
   alias Explorer.DataFrame
+  alias Explorer.Series
+
   import LastfmArchive.Analytics.Settings
 
   @type data_frame :: DataFrame.t()
+  @type data_frame_stats :: %{
+          album: %{count: integer()},
+          artist: %{count: integer()},
+          datetime: %{count: integer()},
+          id: %{count: integer()},
+          name: %{count: integer()},
+          year: %{count: integer(), max: integer(), min: integer()}
+        }
+
   @type group :: DataFrame.column_name() | DataFrame.column_names()
   @type options :: Keyword.t()
 
   @type top_facets :: DataFrame.t()
-  @type top_facets_stats :: map()
+  @type top_facets_stats :: %{integer() => data_frame()}
 
   @type facets :: {top_facets(), top_facets_stats()}
 
   @callback data_frame(format: atom()) :: {:ok, data_frame()} | {:error, term}
+  @callback data_frame_stats(data_frame()) :: data_frame_stats()
 
   for facet <- available_facets() do
     @callback unquote(:"top_#{facet}s")(data_frame(), options()) :: facets()
@@ -27,6 +39,24 @@ defmodule LastfmArchive.Behaviour.Analytics do
 
       import LastfmArchive.Analytics.Commons,
         only: [frequencies: 2, create_group_stats: 2, create_facet_stats: 2, most_played: 2]
+
+      @impl true
+      def data_frame_stats(df) do
+        for {column, series} <- df |> DataFrame.collect() |> DataFrame.to_series(atom_keys: true), into: %{} do
+          case series |> Series.dtype() do
+            :string ->
+              {column, %{count: series |> Series.distinct() |> Series.count()}}
+
+            _ ->
+              {column,
+               %{
+                 count: series |> Series.distinct() |> Series.count(),
+                 max: series |> Series.max(),
+                 min: series |> Series.min()
+               }}
+          end
+        end
+      end
 
       for facet <- Keyword.fetch!(opts, :facets) do
         @impl true
