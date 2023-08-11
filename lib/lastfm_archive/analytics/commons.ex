@@ -14,16 +14,25 @@ defmodule LastfmArchive.Analytics.Commons do
 
   @doc """
   Compute frequency for a columns subset, filter untitled albums.
-  """
-  @spec frequencies(data_frame(), group()) :: data_frame()
-  def frequencies(df, group) do
-    group = group |> List.wrap()
 
-    case "album" in group do
-      true -> df |> DataFrame.filter(album != "")
-      false -> df
-    end
-    |> DataFrame.frequencies(group)
+  Options:
+  - `filter` - an `Explorer.DataFrame` filter function that excludes data in analytics
+  """
+  @spec frequencies(data_frame(), group(), keyword()) :: data_frame()
+  def frequencies(df, group, opts \\ [])
+  def frequencies(df, group, []), do: df |> DataFrame.frequencies(group |> List.wrap())
+
+  def frequencies(df, group, opts) when is_list(opts) do
+    opts = Keyword.validate!(opts, default_opts())
+
+    df
+    |> then(fn df ->
+      case opts[:filter] do
+        nil -> df
+        _ -> df |> DataFrame.filter_with(opts[:filter])
+      end
+    end)
+    |> DataFrame.frequencies(group |> List.wrap())
   end
 
   @doc """
@@ -95,5 +104,5 @@ defmodule LastfmArchive.Analytics.Commons do
     |> DataFrame.head(opts[:rows])
   end
 
-  def default_opts, do: [rows: 5, sort_by: "total_plays"]
+  def default_opts, do: [rows: 5, sort_by: "total_plays", filter: nil]
 end

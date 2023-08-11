@@ -38,7 +38,7 @@ defmodule LastfmArchive.Behaviour.Analytics do
       @behaviour LastfmArchive.Behaviour.Analytics
 
       import LastfmArchive.Analytics.Commons,
-        only: [default_opts: 0, frequencies: 2, create_group_stats: 2, create_facet_stats: 2, most_played: 2]
+        only: [create_group_stats: 2, create_facet_stats: 2, default_opts: 0, frequencies: 3, most_played: 2]
 
       @impl true
       def data_frame_stats(df) do
@@ -66,7 +66,7 @@ defmodule LastfmArchive.Behaviour.Analytics do
           opts = Keyword.validate!(options, default_opts())
 
           df
-          |> frequencies(group)
+          |> frequencies(group, filter: opts[:filter])
           |> create_group_stats(facet)
           |> most_played(opts)
           |> create_facet_stats(df)

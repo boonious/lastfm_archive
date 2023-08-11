@@ -82,7 +82,7 @@ defmodule LastfmArchive.Behaviour.LivebookAnalytics do
   end
 
   def render_years(years) do
-    for(year <- years, do: "<small>#{year}#{Date.utc_today() |> Calendar.strftime("-%m-%d")}</small>")
+    for(year <- years, do: "<small>#{year}</small>")
     |> Enum.join(", ")
   end
 
