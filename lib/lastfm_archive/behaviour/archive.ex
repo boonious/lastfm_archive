@@ -57,11 +57,13 @@ defmodule LastfmArchive.Behaviour.Archive do
 
       @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
 
+      @impl true
       def update_metadata(%Metadata{creator: user} = metadata, options)
           when user != nil and is_binary(user) do
         write(metadata, options)
       end
 
+      @impl true
       def describe(user, options \\ []) do
         case @file_io.read(metadata_filepath(user, options)) do
           {:ok, metadata} -> {:ok, Jason.decode!(metadata, keys: :atoms!) |> Metadata.new()}

@@ -45,6 +45,6 @@ defmodule LastfmArchive.Archive.MetadataTest do
              temporal: {^registered_time, ^latest_scrobble_time},
              extent: ^total_scrobbles,
              date: ^date
-           } = Metadata.new(archive, total_scrobbles, registered_time, latest_scrobble_time)
+           } = Metadata.new(archive, total_scrobbles, {registered_time, latest_scrobble_time})
   end
 end

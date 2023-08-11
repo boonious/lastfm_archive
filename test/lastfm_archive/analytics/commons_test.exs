@@ -5,14 +5,50 @@ defmodule LastfmArchive.Analytics.CommonsTest do
   import Fixtures.Lastfm
 
   alias Explorer.DataFrame
+  alias Explorer.Series
   alias LastfmArchive.Analytics.Commons
 
-  test "most_played/3" do
-    user = LastfmArchive.default_user()
-    single_scrobble_on_this_day = recent_tracks_on_this_day(user)
-    df = data_frame(single_scrobble_on_this_day)
+  setup do
+    %{data_frame: LastfmArchive.default_user() |> recent_tracks_on_this_day() |> data_frame()}
+  end
 
-    assert %DataFrame{} = df = Commons.most_played(df, ["artist", "year"]) |> DataFrame.collect()
-    assert {1, 3} == df |> DataFrame.shape()
+  describe "frequencies/2" do
+    test "for a data frame", %{data_frame: df} do
+      group = ["artist", "year"]
+
+      assert %Explorer.DataFrame{} = df = Commons.frequencies(df, group) |> DataFrame.collect()
+      assert df |> DataFrame.names() == group ++ ["counts"]
+      assert df["counts"] |> Series.to_list() == [1]
+    end
+
+    test "filters out untitled albums" do
+      df = recent_tracks_without_album_title() |> data_frame()
+
+      group = ["album", "year"]
+      assert %Explorer.DataFrame{} = df = Commons.frequencies(df, group) |> DataFrame.collect()
+      assert df["counts"] |> Series.to_list() == []
+
+      group = "album"
+      assert %Explorer.DataFrame{} = df = Commons.frequencies(df, group) |> DataFrame.collect()
+      assert df["counts"] |> Series.to_list() == []
+    end
+  end
+
+  test "create_group_stats/2", %{data_frame: df} do
+    group = "album"
+    df_freq = Commons.frequencies(df, [group, "year"])
+
+    assert %Explorer.DataFrame{} = df = Commons.create_group_stats(df_freq, group)
+    assert df["2023"] |> Series.to_list() == [1]
+    assert df["years_freq"] |> Series.to_list() == [1]
+    assert df["total_plays"] |> Series.to_list() == [1]
+    assert "album" in (df |> DataFrame.names())
+    assert "year" not in (df |> DataFrame.names())
+  end
+
+  test "most_played/2", %{data_frame: df} do
+    group = "album"
+    df = Commons.frequencies(df, [group, "year"]) |> Commons.create_group_stats(group)
+    assert %Explorer.DataFrame{} = Commons.most_played(df)
   end
 end
