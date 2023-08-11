@@ -4,7 +4,7 @@
 
 ```elixir
 Mix.install(
-  [{:lastfm_archive, "~> 0.10"}, {:kino_explorer, "~> 0.1.4"}],
+  [{:lastfm_archive, "~> 0.11"}, {:kino_explorer, "~> 0.1.4"}],
   config: [
     lastfm_archive: [
       data_dir: "./lastfm_data/",
@@ -119,3 +119,5 @@ To compute all unique tracks by artists:
 ```elixir
 df_all |> Explorer.DataFrame.collect() |> Explorer.DataFrame.frequencies([:name, :artist])
 ```
+
+<!-- livebook:{"offset":4994,"stamp":{"token":"QTEyOEdDTQ.zPldplK86uTBbmaxjyDxubCexKHFsQ06pBAJ2GAw4v3W1Ojv98WvVa2FRyI.XFdkwWKFygs6Kn5d.VtWvHwGDB0EG2B8DztuGzX-uYt-4N4LAXt8yWxJSxTKwloL4Uw-qVsJam-FTac9inVcINNMLKDyJhVY.HDwiQklOpD-eibuErioAFA","version":1}} -->
