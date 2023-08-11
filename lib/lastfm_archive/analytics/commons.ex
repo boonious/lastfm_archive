@@ -16,14 +16,14 @@ defmodule LastfmArchive.Analytics.Commons do
   Compute frequency for a columns subset, filter untitled albums.
   """
   @spec frequencies(data_frame(), group()) :: data_frame()
-  def frequencies(df, "album"), do: df |> DataFrame.filter(album != "") |> DataFrame.frequencies(["album"])
-
   def frequencies(df, group) do
+    group = group |> List.wrap()
+
     case "album" in group do
       true -> df |> DataFrame.filter(album != "")
       false -> df
     end
-    |> DataFrame.frequencies(group |> List.wrap())
+    |> DataFrame.frequencies(group)
   end
 
   @doc """
@@ -86,10 +86,14 @@ defmodule LastfmArchive.Analytics.Commons do
   @doc """
   Rank data frame by total plays count and return top n rows.
   """
-  @spec most_played(data_frame(), integer) :: data_frame()
-  def most_played(df, rows \\ 5) do
+  @spec most_played(data_frame(), list()) :: data_frame()
+  def most_played(df, opts \\ []) do
+    opts = Keyword.validate!(opts, default_opts())
+
     df
-    |> DataFrame.arrange(desc: total_plays)
-    |> DataFrame.head(rows)
+    |> DataFrame.arrange_with(&[desc: &1[opts[:sort_by]]])
+    |> DataFrame.head(opts[:rows])
   end
+
+  def default_opts, do: [rows: 5, sort_by: "total_plays"]
 end

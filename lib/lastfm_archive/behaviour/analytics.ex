@@ -38,7 +38,7 @@ defmodule LastfmArchive.Behaviour.Analytics do
       @behaviour LastfmArchive.Behaviour.Analytics
 
       import LastfmArchive.Analytics.Commons,
-        only: [frequencies: 2, create_group_stats: 2, create_facet_stats: 2, most_played: 2]
+        only: [default_opts: 0, frequencies: 2, create_group_stats: 2, create_facet_stats: 2, most_played: 2]
 
       @impl true
       def data_frame_stats(df) do
@@ -63,12 +63,12 @@ defmodule LastfmArchive.Behaviour.Analytics do
         def unquote(:"top_#{facet}s")(df, options \\ []) do
           facet = if unquote(facet) == :track, do: :name, else: unquote(facet)
           group = [facet, :year]
-          rows = Keyword.get(options, :rows, 5)
+          opts = Keyword.validate!(options, default_opts())
 
           df
           |> frequencies(group)
           |> create_group_stats(facet)
-          |> most_played(rows)
+          |> most_played(opts)
           |> create_facet_stats(df)
         end
 

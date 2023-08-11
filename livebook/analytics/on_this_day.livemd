@@ -44,7 +44,7 @@ Analytics of all music played on this day, today in this past. This Livebook is 
 
 ```elixir
 dataframe
-|> tap(fn df -> OnThisDay.render_overview(df) end)
+|> tap(fn df -> OnThisDay.render_overview(df) |> Kino.render() end)
 |> OnThisDay.render_most_played()
 ```
 

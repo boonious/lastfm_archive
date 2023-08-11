@@ -31,15 +31,29 @@ defmodule LastfmArchive.Analytics.OnThisDay do
     df
     |> data_frame_stats()
     |> overview_ui()
-    |> Kino.render()
   end
 
   def render_most_played(df) do
     [
-      top_artists(df, rows: 8) |> most_played_ui(),
-      top_albums(df, rows: 8) |> most_played_ui(),
-      top_tracks(df, rows: 8) |> most_played_ui()
+      {
+        "<< most plays >>",
+        [
+          top_artists(df, rows: 8) |> most_played_ui(),
+          top_albums(df, rows: 8) |> most_played_ui(),
+          top_tracks(df, rows: 8) |> most_played_ui()
+        ]
+        |> Kino.Layout.grid(columns: 3)
+      },
+      {
+        "<< most frequent over the years >>",
+        [
+          top_artists(df, rows: 8, sort_by: "years_freq") |> most_played_ui(),
+          top_albums(df, rows: 8, sort_by: "years_freq") |> most_played_ui(),
+          top_tracks(df, rows: 8, sort_by: "years_freq") |> most_played_ui()
+        ]
+        |> Kino.Layout.grid(columns: 3)
+      }
     ]
-    |> Kino.Layout.grid(columns: 3)
+    |> Kino.Layout.tabs()
   end
 end

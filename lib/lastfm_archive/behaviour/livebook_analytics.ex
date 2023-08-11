@@ -27,11 +27,12 @@ defmodule LastfmArchive.Behaviour.LivebookAnalytics do
         facet_type = "#{facet_type}"
 
         [
+          "#### ",
           "#### #{facet_type |> String.capitalize()}s",
           for {%{"total_plays" => count} = row, index} <- facets |> Explorer.DataFrame.to_rows() |> Enum.with_index() do
             type = if facet_type == "track", do: "name", else: facet_type
 
-            "- **#{row[type]}** <sup>#{count}x</sup> <br/>" <>
+            "#{index + 1}. **#{row[type]}** <sup>#{count}x</sup> <br/>" <>
               render(stats[index], facet_type) <> (row |> map_years() |> render_years())
           end
         ]
