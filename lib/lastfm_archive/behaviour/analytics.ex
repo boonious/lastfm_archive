@@ -6,6 +6,7 @@ defmodule LastfmArchive.Behaviour.Analytics do
   alias Explorer.DataFrame
   alias Explorer.Series
 
+  require Explorer.DataFrame
   import LastfmArchive.Analytics.Settings
 
   @type data_frame :: DataFrame.t()
@@ -31,6 +32,7 @@ defmodule LastfmArchive.Behaviour.Analytics do
 
   for facet <- available_facets() do
     @callback unquote(:"top_#{facet}s")(data_frame(), options()) :: facets()
+    @callback unquote(:"sample_#{facet}s")(data_frame(), options()) :: facets()
   end
 
   defmacro __using__(opts) do
@@ -38,7 +40,7 @@ defmodule LastfmArchive.Behaviour.Analytics do
       @behaviour LastfmArchive.Behaviour.Analytics
 
       import LastfmArchive.Analytics.Commons,
-        only: [create_group_stats: 2, create_facet_stats: 2, default_opts: 0, frequencies: 3, most_played: 2]
+        only: [create_group_stats: 2, create_facet_stats: 2, frequencies: 3, most_played: 2, sample: 2]
 
       @impl true
       def data_frame_stats(df) do
@@ -72,7 +74,18 @@ defmodule LastfmArchive.Behaviour.Analytics do
           |> create_facet_stats(df)
         end
 
-        defoverridable [{:"top_#{facet}s", 2}]
+        @impl true
+        def unquote(:"sample_#{facet}s")(df, options \\ []) do
+          facet = if unquote(facet) == :track, do: :name, else: unquote(facet)
+          opts = Keyword.validate!(options, default_opts())
+
+          df
+          |> frequencies([facet], counts: opts[:counts])
+          |> sample(rows: opts[:rows])
+          |> create_facet_stats(df)
+        end
+
+        defoverridable [{:"top_#{facet}s", 2}, {:"sample_#{facet}s", 2}]
       end
     end
   end

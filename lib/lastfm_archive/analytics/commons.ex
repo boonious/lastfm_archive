@@ -17,6 +17,7 @@ defmodule LastfmArchive.Analytics.Commons do
 
   Options:
   - `filter` - an `Explorer.DataFrame` filter function that excludes data in analytics
+  - `counts` - includes only facets with this counts (integer)
   """
   @spec frequencies(data_frame(), group(), keyword()) :: data_frame()
   def frequencies(df, group, opts \\ [])
@@ -26,14 +27,16 @@ defmodule LastfmArchive.Analytics.Commons do
     opts = Keyword.validate!(opts, default_opts())
 
     df
-    |> then(fn df ->
-      case opts[:filter] do
-        nil -> df
-        _ -> df |> DataFrame.filter_with(opts[:filter])
-      end
-    end)
+    |> maybe_pre_filter(opts[:filter])
     |> DataFrame.frequencies(group |> List.wrap())
+    |> maybe_post_filter(opts[:counts])
   end
+
+  defp maybe_pre_filter(df, nil), do: df
+  defp maybe_pre_filter(df, filter) when is_function(filter), do: df |> DataFrame.filter_with(filter)
+
+  defp maybe_post_filter(df, -1), do: df
+  defp maybe_post_filter(df, counts) when is_integer(counts), do: df |> DataFrame.filter(counts == ^counts)
 
   @doc """
   Calculate stats for a single group such as "artist", "album".
@@ -104,5 +107,9 @@ defmodule LastfmArchive.Analytics.Commons do
     |> DataFrame.head(opts[:rows])
   end
 
-  def default_opts, do: [rows: 5, sort_by: "total_plays", filter: nil]
+  def sample(df, rows: rows) do
+    df
+    |> DataFrame.collect()
+    |> DataFrame.sample(rows, replace: true)
+  end
 end

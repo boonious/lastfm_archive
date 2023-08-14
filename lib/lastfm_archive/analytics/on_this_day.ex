@@ -56,6 +56,15 @@ defmodule LastfmArchive.Analytics.OnThisDay do
           top_tracks(df, rows: 8, sort_by: "years_freq") |> most_played_ui()
         ]
         |> Kino.Layout.grid(columns: 3)
+      },
+      {
+        "<< play once samples >>",
+        [
+          sample_artists(df, rows: 8, counts: 1) |> most_played_ui(),
+          sample_albums(df, rows: 8, counts: 1, filter: not_untitled_albums) |> most_played_ui(),
+          sample_tracks(df, rows: 8, counts: 1) |> most_played_ui()
+        ]
+        |> Kino.Layout.grid(columns: 3)
       }
     ]
     |> Kino.Layout.tabs()

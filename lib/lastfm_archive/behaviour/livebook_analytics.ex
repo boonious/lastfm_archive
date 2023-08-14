@@ -3,6 +3,9 @@ defmodule LastfmArchive.Behaviour.LivebookAnalytics do
   Behaviour and default implementation of a Livebook analytics UI.
   """
 
+  alias Explorer.DataFrame
+  alias Explorer.Series
+
   import LastfmArchive.Analytics.Settings
 
   @type data_frame :: LastfmArchive.Behaviour.Analytics.data_frame()
@@ -29,11 +32,11 @@ defmodule LastfmArchive.Behaviour.LivebookAnalytics do
         [
           "#### ",
           "#### #{facet_type |> String.capitalize()}s",
-          for {%{"total_plays" => count} = row, index} <- facets |> Explorer.DataFrame.to_rows() |> Enum.with_index() do
+          for {row, index} <- facets |> DataFrame.to_rows() |> Enum.with_index() do
+            count = row["total_plays"] || row["counts"]
             type = if facet_type == "track", do: "name", else: facet_type
 
-            "#{index + 1}. **#{row[type]}** <sup>#{count}x</sup> <br/>" <>
-              render(stats[index], facet_type) <> (row |> map_years() |> render_years())
+            "#{index + 1}. **#{row[type]}** <sup>#{count}x</sup> <br/>" <> render(stats[index], facet_type)
           end
         ]
         |> List.flatten()
@@ -58,63 +61,67 @@ defmodule LastfmArchive.Behaviour.LivebookAnalytics do
 
   def render(stats, "artist") do
     %{"num_albums_played" => num_albums, "num_tracks_played" => num_tracks} =
-      stats |> Explorer.DataFrame.head(1) |> Explorer.DataFrame.to_rows() |> hd
+      stats |> DataFrame.head(1) |> DataFrame.to_rows() |> hd
 
-    "<small>#{item("album", num_albums)} , #{item("track", num_tracks)}</small> <br/>"
+    [
+      "<small>#{item("album", num_albums)} , #{item("track", num_tracks)}</small>",
+      for(year <- stats["year"] |> to_list(), do: "<small>#{year}</small>") |> Enum.join(", ")
+    ]
+    |> Enum.join("<br/>")
   end
 
   def render(stats, "album") do
     %{"num_artists_played" => num_artists, "num_tracks_played" => num_tracks} =
-      stats |> Explorer.DataFrame.head(1) |> Explorer.DataFrame.to_rows() |> hd
+      stats |> DataFrame.head(1) |> DataFrame.to_rows() |> hd
 
-    "<small>#{item("artist", num_artists, stats)} , #{item("track", num_tracks)}</small> <br/>"
+    [
+      "<small>#{item("artist", num_artists, stats)} , #{item("track", num_tracks)}</small>",
+      for(year <- stats["year"] |> to_list(), do: "<small>#{year}</small>") |> Enum.join(", ")
+    ]
+    |> Enum.join("<br/>")
   end
 
   def render(stats, "track") do
-    item("track_album", stats |> Explorer.DataFrame.n_rows(), stats) <> "<br/>"
-  end
-
-  def map_years(row) do
-    Enum.flat_map(row, fn
-      {_k, nil} -> []
-      {k, _v} -> if String.match?(k, ~r/^\d{4}$/), do: [k], else: []
-    end)
-  end
-
-  def render_years(years) do
-    for(year <- years, do: "<small>#{year}</small>")
-    |> Enum.join(", ")
+    item("track_album", stats |> DataFrame.n_rows(), stats) <> "<br/>"
   end
 
   def item(type, num, stats \\ nil)
 
-  def item("track_album", num, stats) when num <= 2 do
-    for %{"album" => album, "artist" => artist} <-
-          stats
-          |> Explorer.DataFrame.select(["album", "artist"])
-          |> Explorer.DataFrame.distinct()
-          |> Explorer.DataFrame.to_rows() do
-      "<small>#{album} by #{artist}</small>"
-    end
+  def item("track_album", num, stats) when num <= 3 do
+    [
+      for %{"album" => album, "artist" => artist} <-
+            stats
+            |> DataFrame.select(["album", "artist"])
+            |> DataFrame.distinct()
+            |> DataFrame.to_rows() do
+        "<small>#{album} by #{artist}</small>"
+      end
+      |> Enum.join("<br/>"),
+      for(year <- stats["year"] |> to_list(), do: "<small>#{year}</small>") |> Enum.join(", ")
+    ]
     |> Enum.join("<br/>")
   end
 
   def item("track_album", _num, stats) do
     %{"num_artists_played" => num_artists, "num_albums_played" => num_albums} =
-      stats |> Explorer.DataFrame.head(1) |> Explorer.DataFrame.to_rows() |> hd
+      stats |> DataFrame.head(1) |> DataFrame.to_rows() |> hd
 
-    "<small>#{item("artist", num_artists)} , #{item("album", num_albums)}</small>"
+    [
+      "<small>#{item("artist", num_artists)} , #{item("album", num_albums)}</small>",
+      for(year <- stats["year"] |> to_list(), do: "<small>#{year}</small>") |> Enum.join(", ")
+    ]
+    |> Enum.join("<br/>")
   end
 
   def item("artist", num, stats) when num <= 2 and stats != nil do
-    artists =
-      for(artist <- stats["artist"] |> Explorer.Series.distinct() |> Explorer.Series.to_list(), do: artist)
-      |> Enum.join(", ")
-
-    "by #{artists}"
+    for(artist <- stats["artist"] |> to_list(), do: artist)
+    |> Enum.join(", ")
+    |> then(&"by #{&1}")
   end
 
   def item("artist", num, _stats), do: "#{num} various artists"
   def item(type, 1, _stats), do: "1 #{type}"
   def item(type, num, _stats), do: "#{num} #{type}s"
+
+  defp to_list(%Series{} = series), do: series |> Series.distinct() |> Series.to_list()
 end

@@ -20,4 +20,6 @@ defmodule LastfmArchive.Analytics.Settings do
   def facet_type(%{"album" => _}), do: :album
   def facet_type(%{"artist" => _}), do: :artist
   def facet_type(%{"name" => _}), do: :track
+
+  def default_opts(), do: [rows: 5, sort_by: "total_plays", filter: nil, counts: -1]
 end
