@@ -11,7 +11,7 @@ defmodule LastfmArchive.Analytics.OnThisDay do
 
   import Explorer.Series, only: [not_equal: 2]
 
-  def columns, do: ["id", "artist", "datetime", "year", "album", "name"]
+  def columns, do: ["id", "artist", "datetime", "year", "album", "track"]
 
   @impl true
   def data_frame(format: format) do

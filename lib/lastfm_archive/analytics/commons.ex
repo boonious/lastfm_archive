@@ -77,8 +77,6 @@ defmodule LastfmArchive.Analytics.Commons do
     facet_type = facet |> facet_type()
     mutation_fun = facet_mutation_fun()[facet_type]
 
-    # stop gap until "name" col in archive is renamed to "track"
-    facet_type = if facet_type == :track, do: :name, else: facet_type
     facet_value = facet["#{facet_type}"]
     filter_fun = &equal(&1["#{facet_type}"], facet_value)
 
@@ -88,7 +86,7 @@ defmodule LastfmArchive.Analytics.Commons do
   defp filter_mutate_row(df, column, filter_fun, mutate_fun) do
     df
     |> DataFrame.filter_with(filter_fun)
-    |> DataFrame.select(["name", "album", "artist", "year"])
+    |> DataFrame.select(["track", "album", "artist", "year"])
     |> DataFrame.group_by(column)
     |> DataFrame.collect()
     |> DataFrame.mutate_with(mutate_fun)

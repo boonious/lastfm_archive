@@ -73,6 +73,7 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
       _ -> []
     end)
     |> DataFrame.concat_rows()
+    |> DataFrame.rename(name: "track")
   end
 
   defp write_data_frame(df, filepath, format: format) do

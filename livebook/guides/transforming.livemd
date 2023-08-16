@@ -117,7 +117,7 @@ df_all |> Explorer.DataFrame.collect() |> Explorer.DataFrame.frequencies([:artis
 To compute all unique tracks by artists:
 
 ```elixir
-df_all |> Explorer.DataFrame.collect() |> Explorer.DataFrame.frequencies([:name, :artist])
+df_all |> Explorer.DataFrame.collect() |> Explorer.DataFrame.frequencies([:track, :artist])
 ```
 
-<!-- livebook:{"offset":4994,"stamp":{"token":"QTEyOEdDTQ.zPldplK86uTBbmaxjyDxubCexKHFsQ06pBAJ2GAw4v3W1Ojv98WvVa2FRyI.XFdkwWKFygs6Kn5d.VtWvHwGDB0EG2B8DztuGzX-uYt-4N4LAXt8yWxJSxTKwloL4Uw-qVsJam-FTac9inVcINNMLKDyJhVY.HDwiQklOpD-eibuErioAFA","version":1}} -->
+<!-- livebook:{"offset":5015,"stamp":{"token":"QTEyOEdDTQ.Xg3uhJpDHYNagAxTwYAWzllRZsCyU5Sy0Axb8-RY8jrFpBaOFJ-tmoFZU38.F_OMU68HszkcLuWW._uvrOtUxizcGhI6R4Gv-v3ypUgrBM7OXWXGbsAmPh2v_cZrcCUFMflQsy3UXZvkL3YfEXJ-dyYDrhiQ.ReuVgeEMpS6DaWZYWmeVGg","version":1}} -->

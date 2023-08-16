@@ -34,9 +34,7 @@ defmodule LastfmArchive.Behaviour.LivebookAnalytics do
           "#### #{facet_type |> String.capitalize()}s",
           for {row, index} <- facets |> DataFrame.to_rows() |> Enum.with_index() do
             count = row["total_plays"] || row["counts"]
-            type = if facet_type == "track", do: "name", else: facet_type
-
-            "#{index + 1}. **#{row[type]}** <sup>#{count}x</sup> <br/>" <> render(stats[index], facet_type)
+            "#{index + 1}. **#{row[facet_type]}** <sup>#{count}x</sup> <br/>" <> render(stats[index], facet_type)
           end
         ]
         |> List.flatten()
@@ -54,7 +52,7 @@ defmodule LastfmArchive.Behaviour.LivebookAnalytics do
     There are **#{df_stats.id.count}** scrobbles on **#{Date.utc_today() |> Calendar.strftime("%B %d")}**,
     over **#{df_stats.year.count}** years
     (earliest **#{df_stats.year.min}**, latest  **#{df_stats.year.max}**):
-    - **#{df_stats.album.count}** albums, **#{df_stats.artist.count}** artists, **#{df_stats.name.count}** tracks
+    - **#{df_stats.album.count}** albums, **#{df_stats.artist.count}** artists, **#{df_stats.track.count}** tracks
     <br/><br/>
     """)
   end
