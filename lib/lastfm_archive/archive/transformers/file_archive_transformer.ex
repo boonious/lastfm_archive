@@ -3,15 +3,12 @@ defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
   Transform existing data of file archive into different storage formats.
   """
 
-  @behaviour LastfmArchive.Behaviour.Transformer
+  use LastfmArchive.Archive.Transformers.Transformer
 
   alias Explorer.DataFrame
   alias LastfmArchive.Archive.DerivedArchive
   alias LastfmArchive.Archive.Metadata
-  alias LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
   alias LastfmArchive.Behaviour.Archive
-
-  use LastfmArchive.Behaviour.DataFrameIo, formats: FileArchiveTransformerSettings.available_formats()
 
   import LastfmArchive.Utils, only: [create_dir: 2, create_filepath: 3, month_range: 2, year_range: 1, write: 2]
   require Logger
