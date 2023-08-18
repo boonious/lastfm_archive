@@ -42,10 +42,20 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
         |> List.wrap()
         |> Enum.each(&data_frame_sink(df, metadata.creator, &1, opts))
 
+        :ok
+      end
+
+      # default implementation simply returns data frame without transformation
+      @impl true
+      def transform(df), do: df
+
+      def apply(metadata, opts) do
+        :ok = source(metadata, opts) |> transform() |> sink(metadata, opts)
+
         {:ok, %{metadata | modified: DateTime.utc_now()}}
       end
 
-      defoverridable source: 2, sink: 3
+      defoverridable source: 2, sink: 3, transform: 1
     end
   end
 

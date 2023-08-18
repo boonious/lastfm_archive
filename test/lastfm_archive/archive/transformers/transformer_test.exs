@@ -22,30 +22,30 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
 
   setup :verify_on_exit!
 
-  setup do
-    user = "a_lastfm_user"
-
-    # archive  with 16 months scrobbles
+  setup_all do
+    # archive with 16 months scrobbles: 2022 full year, 2023 up to Apr (4 months)
     metadata =
       new_archive_metadata(
-        user: user,
+        user: "a_lastfm_user",
         start: DateTime.from_iso8601("2022-01-01T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
         end: DateTime.from_iso8601("2023-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
         type: FileArchive,
         date: ~D[2023-04-03]
       )
 
-    num_scrobbles_per_month = data_frame() |> DataFrame.collect() |> DataFrame.n_rows()
-    %{metadata: metadata, transformer: @test_transformer, num_scrobbles_per_month: num_scrobbles_per_month}
+    scrobbles_per_month = data_frame() |> DataFrame.collect() |> DataFrame.n_rows()
+    %{metadata: metadata, transformer: @test_transformer, scrobbles_per_month: scrobbles_per_month}
   end
 
   describe "source/2" do
-    test "scrobbles into dataframes", %{
+    test "scrobbles into data frame", %{
       metadata: metadata,
       transformer: transformer,
-      num_scrobbles_per_month: scrobbles_per_month
+      scrobbles_per_month: scrobbles_per_month
     } do
       options = []
+
+      # lazy data frame is built upon 16 months (reads) of data
       FileArchiveMock |> expect(:read, 16, fn ^metadata, _options -> {:ok, data_frame()} end)
 
       assert capture_log(fn ->
@@ -57,11 +57,11 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
     test "with year option", %{
       metadata: metadata,
       transformer: transformer,
-      num_scrobbles_per_month: scrobbles_per_month
+      scrobbles_per_month: scrobbles_per_month
     } do
       options = [year: 2023]
 
-      # read 4 months of scrobbles in 2023
+      # only read the 4 months data in 2023
       FileArchiveMock |> expect(:read, 4, fn ^metadata, _options -> {:ok, data_frame()} end)
 
       capture_log(fn ->
@@ -70,10 +70,11 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
       end)
     end
 
-    test "when a read returns error", %{
+    # need to consider consistency vs. availability trade off later
+    test "return partial dataset when a read returns error", %{
       metadata: metadata,
       transformer: transformer,
-      num_scrobbles_per_month: scrobbles_per_month
+      scrobbles_per_month: scrobbles_per_month
     } do
       options = [year: 2023]
 
@@ -87,6 +88,7 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
 
       capture_log(fn ->
         assert %DataFrame{} = df = transformer.source(metadata, options)
+        # 3 instead of 4 months data
         assert df |> DataFrame.collect() |> DataFrame.shape() == {3 * scrobbles_per_month, @column_count}
       end)
     end
@@ -138,7 +140,7 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
 
       assert capture_log(fn ->
                df = transformer.source(metadata, options)
-               assert {:ok, _} = transformer.sink(df, metadata, options)
+               assert :ok = transformer.sink(df, metadata, options)
              end) =~ "Sinking data"
     end
 
@@ -146,7 +148,7 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
       if format != :csv do
         test "into #{format} files", %{
           metadata: %{creator: user} = metadata,
-          num_scrobbles_per_month: scrobbles_per_month,
+          scrobbles_per_month: scrobbles_per_month,
           transformer: transformer
         } do
           format = unquote(format)
@@ -177,7 +179,7 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
 
           assert capture_log(fn ->
                    df = transformer.source(metadata, options)
-                   assert {:ok, _} = transformer.sink(df, metadata, options)
+                   assert :ok = transformer.sink(df, metadata, options)
                  end) =~ "Sinking data"
         end
       end
@@ -202,7 +204,7 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
 
         assert capture_log(fn ->
                  df = transformer.source(metadata, options)
-                 assert {:ok, _} = transformer.sink(df, metadata, options)
+                 assert :ok = transformer.sink(df, metadata, options)
                end) =~ "skipping"
       end
 
@@ -227,7 +229,7 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
 
         capture_log(fn ->
           df = transformer.source(metadata, options)
-          assert {:ok, _} = transformer.sink(df, metadata, options)
+          assert :ok = transformer.sink(df, metadata, options)
         end)
       end
     end

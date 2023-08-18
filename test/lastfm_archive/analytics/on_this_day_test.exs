@@ -14,7 +14,7 @@ defmodule LastfmArchive.Analytics.OnThisDayTest do
 
   setup :verify_on_exit!
 
-  setup do
+  setup_all do
     user = LastfmArchive.default_user()
     today = Date.utc_today()
 
