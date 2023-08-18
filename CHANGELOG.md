@@ -1,4 +1,10 @@
 # Changelog
+## 0.11.1 (2023-08-21)
+
+* most-frequent, play-once samples analytics for on-this-day Livebook page
+* fine-grained `Transformer` behaviour with default implementation and base transformer
+* refactor: rename `name` column (of songs) in columnar storage to `track` 
+
 ## 0.11.0 (2023-08-11)
 
 * new `Analytics` (generated callbacks) and `LivebookAnalytics` behaviours, with default implementations to separate the concerns of data frame analytics and Livebook rendering

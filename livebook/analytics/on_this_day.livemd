@@ -36,7 +36,7 @@ Analytics of all music played on this day, today in this past. This Livebook is 
 
 `lastfm_archive` has been configured as a dependency in `Setup` above, modify the following config:
 
-* **`user`**: add your Lastfm username
+* **`user`**: add your Lastfm username or share it via a `LFM_USER` secret (see [Secrets management](https://hackmd.io/@hugobarauna/By6ulTnMi#Secret-management))
 
 <!-- livebook:{"branch_parent_index":0} -->
 

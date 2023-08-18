@@ -36,7 +36,7 @@ to be read into a data frame for analytics purposes.
 
 `lastfm_archive` has been configured as a dependency in `Setup` above. You need to check and modify the following configs:
 
-1. **`user`**: specify a Lastfm username in this config
+1. **`user`**: specify a Lastfm username in this config or share it via a `LFM_USER` secret (see [Secrets management](https://hackmd.io/@hugobarauna/By6ulTnMi#Secret-management))
 2. **`data_dir`** (optional): by default scrobbles data is stored in `~/lastfm_data/` directory within your home directory. Modifiy this location if other directory is preferred
 
 ## Transform to columnar formats
