@@ -8,9 +8,9 @@ defmodule LastfmArchive.Analytics.Settings do
   def facet_mutation_fun do
     %{
       album:
-        &[num_artists_played: distinct(&1["artist"]) |> count(), num_tracks_played: distinct(&1["name"]) |> count()],
+        &[num_artists_played: distinct(&1["artist"]) |> count(), num_tracks_played: distinct(&1["track"]) |> count()],
       artist:
-        &[num_albums_played: distinct(&1["album"]) |> count(), num_tracks_played: distinct(&1["name"]) |> count()],
+        &[num_albums_played: distinct(&1["album"]) |> count(), num_tracks_played: distinct(&1["track"]) |> count()],
       track:
         &[num_albums_played: distinct(&1["album"]) |> count(), num_artists_played: distinct(&1["artist"]) |> count()]
     }
@@ -19,7 +19,7 @@ defmodule LastfmArchive.Analytics.Settings do
   # generate these functions later
   def facet_type(%{"album" => _}), do: :album
   def facet_type(%{"artist" => _}), do: :artist
-  def facet_type(%{"name" => _}), do: :track
+  def facet_type(%{"track" => _}), do: :track
 
   def default_opts(), do: [rows: 5, sort_by: "total_plays", filter: nil, counts: -1]
 end

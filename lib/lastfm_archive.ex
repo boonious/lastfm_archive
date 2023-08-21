@@ -1,11 +1,11 @@
 defmodule LastfmArchive do
   @moduledoc """
-  `lastfm_archive` is a tool for creating local file archive and analytics of Last.fm music listening data.
+  `lastfm_archive` is a tool for creating local file archive and Livebook analytics from Last.fm music listening data.
 
   Current usage:
-  - `sync/0`, `sync/1`: sync Lastfm scrobble data to local filesystem
-  - `transform/0`, `transform/2`: transform downloaded raw data to archive in other formats, e.g. CSV, Apache Parquet, Arrow
-  - `read/2`: daily amd monthly data frame of the file archive, or yearly data frame from various archive formats
+  - `sync/0`, `sync/1`: create and sync Lastfm scrobble data to local file archives
+  - `transform/0`, `transform/2`: transform downloaded raw data in file archives into columnar and other formats, e.g. CSV, Apache Parquet, Arrow
+  - `read/2`: load daily, monthly, yearly and entire dataset from file archives into data frames
   - `load_archive/2`: load all CSV data from the archive into Solr
 
   """

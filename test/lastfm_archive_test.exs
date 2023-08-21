@@ -1,5 +1,5 @@
 defmodule LastfmArchiveTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   import Fixtures.Archive
   import Hammox
@@ -9,10 +9,9 @@ defmodule LastfmArchiveTest do
   alias LastfmArchive.Archive.FileArchiveMock
   alias LastfmArchive.Archive.Transformers.FileArchiveTransformer
 
-  setup :set_mox_global
   setup :verify_on_exit!
 
-  setup do
+  setup_all do
     user = "a_lastfm_user"
 
     file_archive_metadata =

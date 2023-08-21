@@ -63,7 +63,7 @@ defmodule LastfmArchive.Behaviour.Analytics do
       for facet <- Keyword.fetch!(opts, :facets) do
         @impl true
         def unquote(:"top_#{facet}s")(df, options \\ []) do
-          facet = if unquote(facet) == :track, do: :name, else: unquote(facet)
+          facet = unquote(facet)
           group = [facet, :year]
           opts = Keyword.validate!(options, default_opts())
 
@@ -76,7 +76,7 @@ defmodule LastfmArchive.Behaviour.Analytics do
 
         @impl true
         def unquote(:"sample_#{facet}s")(df, options \\ []) do
-          facet = if unquote(facet) == :track, do: :name, else: unquote(facet)
+          facet = unquote(facet)
           opts = Keyword.validate!(options, default_opts())
 
           df

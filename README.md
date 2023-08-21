@@ -1,6 +1,6 @@
 # Lastfm Archive [![Build Status](https://github.com/boonious/lastfm_archive/actions/workflows/elixir.yml/badge.svg)](https://github.com/boonious/lastfm_archive/actions/workflows/elixir.yml) [![Hex pm](http://img.shields.io/hexpm/v/lastfm_archive.svg?style=flat)](https://hex.pm/packages/lastfm_archive) [![Coverage Status](https://coveralls.io/repos/github/boonious/lastfm_archive/badge.svg)](https://coveralls.io/github/boonious/lastfm_archive?branch=master)
 
-A tool for creating local file archive and analytics of Last.fm music listening data or 
+A tool for creating local file archive and Livebook analytics from Last.fm music listening data or 
 [scrobbles](https://www.last.fm/about/trackmymusic).
 
 ♫♫ Check out the new [on this day](#livebook-analytics) analytics Livebook.

@@ -17,7 +17,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
 
   setup :verify_on_exit!
 
-  setup do
+  setup_all do
     user = "a_lastfm_user"
     %{user: user, metadata: new_archive_metadata(user: user, type: FileArchive)}
   end

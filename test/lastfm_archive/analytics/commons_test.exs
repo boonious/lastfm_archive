@@ -8,7 +8,7 @@ defmodule LastfmArchive.Analytics.CommonsTest do
   alias Explorer.Series
   alias LastfmArchive.Analytics.Commons
 
-  setup do
+  setup_all do
     %{data_frame: LastfmArchive.default_user() |> recent_tracks_on_this_day() |> data_frame()}
   end
 

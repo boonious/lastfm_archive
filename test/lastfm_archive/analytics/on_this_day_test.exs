@@ -14,7 +14,7 @@ defmodule LastfmArchive.Analytics.OnThisDayTest do
 
   setup :verify_on_exit!
 
-  setup do
+  setup_all do
     user = LastfmArchive.default_user()
     today = Date.utc_today()
 
@@ -29,7 +29,7 @@ defmodule LastfmArchive.Analytics.OnThisDayTest do
 
     %{
       user: user,
-      data_frame: user |> recent_tracks_on_this_day() |> data_frame(),
+      data_frame: user |> recent_tracks_on_this_day() |> data_frame() |> DataFrame.rename(name: "track"),
       file_archive_metadata: file_archive_metadata
     }
   end
@@ -77,14 +77,14 @@ defmodule LastfmArchive.Analytics.OnThisDayTest do
              artist: %{count: 1},
              datetime: %{count: 1},
              id: %{count: 1},
-             name: %{count: 1},
+             track: %{count: 1},
              year: %{count: 1, max: 2023, min: 2023}
            } = df |> OnThisDay.data_frame_stats()
   end
 
   describe "this_day/1" do
     test "default day string" do
-      day = Date.utc_today() |> Calendar.strftime("-%m-%d")
+      day = Date.utc_today() |> Calendar.strftime("%m%d")
       assert ^day = OnThisDay.this_day()
     end
 
@@ -105,10 +105,9 @@ defmodule LastfmArchive.Analytics.OnThisDayTest do
 
   for facet <- Settings.available_facets() do
     test "top_#{facet}s/2", %{data_frame: df} do
-      facet = unquote(facet)
+      facet = "#{unquote(facet)}"
       assert {%DataFrame{} = df_facets, facet_stats} = apply(OnThisDay, :"top_#{facet}s", [df])
 
-      facet = if facet == :track, do: "name", else: "#{facet}"
       assert facet in (df_facets |> DataFrame.names())
       assert "year" not in (df_facets |> DataFrame.names())
       assert df_facets["2023"] |> Series.to_list() == [1]

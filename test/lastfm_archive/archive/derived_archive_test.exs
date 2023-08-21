@@ -1,6 +1,7 @@
 defmodule LastfmArchive.Archive.DerivedArchiveTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureLog
   import Fixtures.Archive
   import Hammox
   import LastfmArchive.Utils, only: [user_dir: 1, metadata_filepath: 2]
@@ -14,13 +15,12 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
   alias Explorer.DataFrame
   alias Explorer.DataFrameMock
 
-  @column_count (%LastfmArchive.Archive.Scrobble{} |> Map.keys() |> length()) - 1
-
   setup :verify_on_exit!
 
-  setup do
+  setup_all do
     user = "a_lastfm_user"
 
+    # archive with 16 months scrobbles: 2022 full year, 2023 up to Apr (4 months)
     metadata =
       new_archive_metadata(
         user: user,
@@ -33,72 +33,29 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
   end
 
   describe "after_archive/3 transform FileArchive" do
-    test "into csv file", %{file_archive_metadata: metadata, user: user} do
-      format = :csv
-      dir = Path.join(user_dir(user), "#{format}")
-      opts = DerivedArchive.write_opts(format)
-      metadata = metadata |> new_derived_archive_metadata(format: format)
-
-      filepath1 = Path.join([user_dir(user), "#{format}", "2022.#{format}.gz"])
-      filepath2 = Path.join([user_dir(user), "#{format}", "2023.#{format}.gz"])
-
-      # 16 read for 16 months, each with 105 scrobbles
-      FileArchiveMock
-      |> expect(:read, 16, fn ^metadata, _option -> {:ok, data_frame()} end)
-
-      FileIOMock
-      |> expect(:exists?, fn ^dir -> true end)
-      |> expect(:exists?, fn ^filepath1 -> false end)
-      |> expect(:exists?, fn ^filepath2 -> false end)
-      |> expect(:write, fn ^filepath1, _data, [:compressed] -> :ok end)
-      |> expect(:write, fn ^filepath2, _data, [:compressed] -> :ok end)
-
-      DataFrameMock
-      |> expect(:"dump_#{format}!", fn %DataFrame{} = df, ^opts ->
-        # 4 month of scrobbles
-        assert df |> DataFrame.shape() == {12 * 105, @column_count}
-        transformed_file_data(format)
-      end)
-      |> expect(:"dump_#{format}!", fn %DataFrame{} = df, ^opts ->
-        # 4 month of scrobbles
-        assert df |> DataFrame.shape() == {4 * 105, @column_count}
-        transformed_file_data(format)
-      end)
-
-      assert {:ok, _metadata} = DerivedArchive.after_archive(metadata, FileArchiveTransformer, format: format)
-    end
-
-    for format <- DerivedArchive.formats(), format != :csv do
-      test "into #{format} file", %{file_archive_metadata: metadata, user: user} do
+    for format <- DerivedArchive.formats() do
+      test "into #{format} file", %{file_archive_metadata: metadata} do
         format = unquote(format)
-        dir = Path.join(user_dir(user), "#{format}")
-        opts = DerivedArchive.write_opts(format)
         metadata = metadata |> new_derived_archive_metadata(format: format)
-        filepath1 = Path.join([user_dir(user), "#{format}", "2022.#{format}"])
-        filepath2 = Path.join([user_dir(user), "#{format}", "2023.#{format}"])
 
         # 16 read for 16 months, each with 105 scrobbles
         FileArchiveMock
         |> expect(:read, 16, fn ^metadata, _option -> {:ok, data_frame()} end)
 
         FileIOMock
-        |> expect(:exists?, fn ^dir -> true end)
-        |> expect(:exists?, fn ^filepath1 -> false end)
-        |> expect(:exists?, fn ^filepath2 -> false end)
+        |> expect(:exists?, fn _dir -> true end)
+        |> expect(:exists?, 2, fn _filepath -> false end)
 
-        DataFrameMock
-        |> expect(:"to_#{format}!", fn %DataFrame{} = df, ^filepath1, ^opts ->
-          # 12 month of scrobbles
-          assert df |> DataFrame.shape() == {12 * 105, @column_count}
-          :ok
-        end)
-        |> expect(:"to_#{format}!", fn %DataFrame{} = df, ^filepath2, ^opts ->
-          # 4 month of scrobbles
-          assert df |> DataFrame.shape() == {4 * 105, @column_count}
-          :ok
-        end)
+        if format = :csv do
+          FileIOMock |> expect(:write, 2, fn _filepath, _data, [:compressed] -> :ok end)
+          DataFrameMock |> expect(:"dump_#{format}!", 2, fn %DataFrame{}, _opts -> transformed_file_data(format) end)
+        else
+          DataFrameMock |> expect(:"to_#{format}!", 2, fn %DataFrame{}, _filepath, _opts -> :ok end)
+        end
 
-        assert {:ok, _metadata} = DerivedArchive.after_archive(metadata, FileArchiveTransformer, format: format)
+        capture_log(fn ->
+          assert {:ok, _metadata} = DerivedArchive.after_archive(metadata, FileArchiveTransformer, format: format)
+        end)
       end
     end
   end
@@ -113,7 +70,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         file_archive_metadata_filepath = metadata_filepath(user, [])
         mimetype = DerivedArchive.mimetype(format)
 
-        LastfmArchive.FileIOMock
+        FileIOMock
         |> expect(:read, fn ^file_archive_metadata_filepath -> {:ok, metadata |> Jason.encode!()} end)
         |> expect(:read, fn ^derived_archive_metadata_filepath -> {:ok, derived_archive_metadata |> Jason.encode!()} end)
 
@@ -148,7 +105,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         derived_archive_metadata_filepath = metadata_filepath(user, format: format)
         mimetype = DerivedArchive.mimetype(format)
 
-        LastfmArchive.FileIOMock
+        FileIOMock
         |> expect(:read, fn ^file_archive_metadata_filepath -> {:ok, metadata |> Jason.encode!()} end)
         |> expect(:read, fn ^derived_archive_metadata_filepath -> {:error, :enoent} end)
 

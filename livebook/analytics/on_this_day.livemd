@@ -4,7 +4,7 @@
 
 ```elixir
 Mix.install(
-  [{:lastfm_archive, "~> 0.11"}, {:kino_explorer, "~> 0.1.4"}],
+  [{:lastfm_archive, "~> 0.11"}, {:kino_explorer, "~> 0.1.8"}],
   config: [
     lastfm_archive: [
       data_dir: "./lastfm_data/",
@@ -36,7 +36,7 @@ Analytics of all music played on this day, today in this past. This Livebook is 
 
 `lastfm_archive` has been configured as a dependency in `Setup` above, modify the following config:
 
-* **`user`**: add your Lastfm username
+* **`user`**: add your Lastfm username or share it via a `LFM_USER` secret (see [Secrets management](https://hackmd.io/@hugobarauna/By6ulTnMi#Secret-management))
 
 <!-- livebook:{"branch_parent_index":0} -->
 
@@ -52,17 +52,17 @@ dataframe
 
 In due course, further analytics and visualisation will be presented. These include newly discovered and most frequently played music on this day over the years. Meanwhile you can interactively delve into the data using [Kino explorer](https://hexdocs.pm/kino_explorer/Kino.Explorer.html) below.
 
-<!-- livebook:{"attrs":{"assign_to":null,"collect":true,"data_frame":"dataframe","data_frame_alias":"Elixir.Explorer.DataFrame","is_data_frame":true,"missing_require":"Elixir.Explorer.DataFrame","operations":[{"active":true,"columns":["artist","year","name"],"data_options":{"album":"string","artist":"string","datetime":"string","id":"string","name":"string","year":"integer"},"operation_type":"group_by"},{"active":false,"column":"year","data_options":{"album":"string","artist":"string","datetime":"string","id":"string","name":"string","year":"integer"},"datalist":[],"filter":"equal","message":null,"operation_type":"filters","type":"integer","value":"2020"},{"active":true,"columns":["id"],"data_options":{"album":"string","artist":"string","datetime":"string","id":"string","name":"string","year":"integer"},"operation_type":"summarise","query":"count"},{"active":true,"data_options":{"artist":"string","id_count":"integer","name":"string","year":"integer"},"direction":"desc","operation_type":"sorting","sort_by":"id_count"}]},"chunks":null,"kind":"Elixir.KinoExplorer.DataTransformCell","livebook_object":"smart_cell"} -->
+<!-- livebook:{"attrs":{"assign_to":null,"collect":true,"data_frame":"dataframe","data_frame_alias":"Elixir.Explorer.DataFrame","is_data_frame":true,"missing_require":"Elixir.Explorer.DataFrame","operations":[{"active":true,"columns":["artist","year","track"],"data_options":{"album":"string","artist":"string","datetime":"string","id":"string","track":"string","year":"integer"},"operation_type":"group_by"},{"active":false,"column":"year","data_options":{"album":"string","artist":"string","datetime":"string","id":"string","track":"string","year":"integer"},"datalist":[],"filter":"equal","message":null,"operation_type":"filters","type":"integer","value":"2020"},{"active":true,"columns":["id"],"data_options":{"album":"string","artist":"string","datetime":"string","id":"string","track":"string","year":"integer"},"operation_type":"summarise","query":"count"},{"active":true,"data_options":{"artist":"string","id_count":"integer","track":"string","year":"integer"},"direction":"desc","operation_type":"sorting","sort_by":"id_count"}]},"chunks":null,"kind":"Elixir.KinoExplorer.DataTransformCell","livebook_object":"smart_cell"} -->
 
 ```elixir
 require Explorer.DataFrame
 
 dataframe
 |> Explorer.DataFrame.to_lazy()
-|> Explorer.DataFrame.group_by(["artist", "year", "name"])
+|> Explorer.DataFrame.group_by(["artist", "year", "track"])
 |> Explorer.DataFrame.summarise(id_count: count(id))
 |> Explorer.DataFrame.arrange(desc: id_count)
 |> Explorer.DataFrame.collect()
 ```
 
-<!-- livebook:{"offset":2981,"stamp":{"token":"QTEyOEdDTQ.PBNc7nYMc52kPh9dZW5SOKNd1_JJyu5-JtV63YmC5OxOgLcB7WG-5wuebgE.GMPZwzEG6T8uWjGg.okFcDHEa883_PZVaQ9PbIrIyTlp_pzpQ76L44kHLKx2HEPavhWN4WWufgi1XQQ.WPXCsr6IR6E5EQnFs09UbQ","version":1}} -->
+<!-- livebook:{"offset":3133,"stamp":{"token":"QTEyOEdDTQ._o9h1B9CV8YeC9eI0cu1ZBRjpljJ-HNNVDT0sqrj4t1qiUOm0cWT1OTpgsg.RB7l-VeEpPX3N2hH.xCVn2BI9oaZFBaAlq3K3ap0r0nyW_oNc7G4vHEgbZKNli0kqGnmh7_stSBDTFtMgFjArCDgvrUiZrDs.T1qEiaJLLUBcdpjYUZqaOQ","version":1}} -->
