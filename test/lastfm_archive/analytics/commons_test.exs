@@ -21,15 +21,16 @@ defmodule LastfmArchive.Analytics.CommonsTest do
       assert df["counts"] |> Series.to_list() == [1]
     end
 
-    test "filters out untitled albums" do
+    test "filter option to exclude untitled albums" do
       df = recent_tracks_without_album_title() |> data_frame()
+      filter_fun = &Series.not_equal(&1["album"], "")
 
       group = ["album", "year"]
-      assert %Explorer.DataFrame{} = df = Commons.frequencies(df, group) |> DataFrame.collect()
+      assert %Explorer.DataFrame{} = df = Commons.frequencies(df, group, filter: filter_fun) |> DataFrame.collect()
       assert df["counts"] |> Series.to_list() == []
 
       group = "album"
-      assert %Explorer.DataFrame{} = df = Commons.frequencies(df, group) |> DataFrame.collect()
+      assert %Explorer.DataFrame{} = df = Commons.frequencies(df, group, filter: filter_fun) |> DataFrame.collect()
       assert df["counts"] |> Series.to_list() == []
     end
   end

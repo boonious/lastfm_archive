@@ -14,17 +14,29 @@ defmodule LastfmArchive.Analytics.Commons do
 
   @doc """
   Compute frequency for a columns subset, filter untitled albums.
-  """
-  @spec frequencies(data_frame(), group()) :: data_frame()
-  def frequencies(df, "album"), do: df |> DataFrame.filter(album != "") |> DataFrame.frequencies(["album"])
 
-  def frequencies(df, group) do
-    case "album" in group do
-      true -> df |> DataFrame.filter(album != "")
-      false -> df
-    end
+  Options:
+  - `filter` - an `Explorer.DataFrame` filter function that excludes data in analytics
+  - `counts` - includes only facets with this counts (integer)
+  """
+  @spec frequencies(data_frame(), group(), keyword()) :: data_frame()
+  def frequencies(df, group, opts \\ [])
+  def frequencies(df, group, []), do: df |> DataFrame.frequencies(group |> List.wrap())
+
+  def frequencies(df, group, opts) when is_list(opts) do
+    opts = Keyword.validate!(opts, default_opts())
+
+    df
+    |> maybe_pre_filter(opts[:filter])
     |> DataFrame.frequencies(group |> List.wrap())
+    |> maybe_post_filter(opts[:counts])
   end
+
+  defp maybe_pre_filter(df, nil), do: df
+  defp maybe_pre_filter(df, filter) when is_function(filter), do: df |> DataFrame.filter_with(filter)
+
+  defp maybe_post_filter(df, -1), do: df
+  defp maybe_post_filter(df, counts) when is_integer(counts), do: df |> DataFrame.filter(counts == ^counts)
 
   @doc """
   Calculate stats for a single group such as "artist", "album".
@@ -86,10 +98,18 @@ defmodule LastfmArchive.Analytics.Commons do
   @doc """
   Rank data frame by total plays count and return top n rows.
   """
-  @spec most_played(data_frame(), integer) :: data_frame()
-  def most_played(df, rows \\ 5) do
+  @spec most_played(data_frame(), list()) :: data_frame()
+  def most_played(df, opts \\ []) do
+    opts = Keyword.validate!(opts, default_opts())
+
     df
-    |> DataFrame.arrange(desc: total_plays)
-    |> DataFrame.head(rows)
+    |> DataFrame.arrange_with(&[desc: &1[opts[:sort_by]]])
+    |> DataFrame.head(opts[:rows])
+  end
+
+  def sample(df, rows: rows) do
+    df
+    |> DataFrame.collect()
+    |> DataFrame.sample(rows, replace: true)
   end
 end
