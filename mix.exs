@@ -2,7 +2,7 @@ defmodule LastfmArchive.MixProject do
   use Mix.Project
 
   @description """
-    A tool for creating local file archives and analytics of Last.fm listening data or scrobbles
+    A tool for creating local file archives and Livebook analytics from Last.fm listening data or scrobbles
   """
 
   def project do

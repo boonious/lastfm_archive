@@ -11,7 +11,7 @@ defmodule LastfmArchive.Analytics.OnThisDay do
 
   import Explorer.Series, only: [not_equal: 2]
 
-  def columns, do: ["id", "artist", "datetime", "year", "album", "track"]
+  def columns, do: ["id", "artist", "datetime", "year", "album", "track", "mmdd"]
 
   @impl true
   def data_frame(format: format) do
@@ -24,10 +24,10 @@ defmodule LastfmArchive.Analytics.OnThisDay do
     LastfmArchive.default_user() |> LastfmArchive.read(format: format, columns: columns())
   end
 
-  defp filter_data_frame({:ok, df}), do: df |> DataFrame.filter(contains(datetime, this_day()))
+  defp filter_data_frame({:ok, df}), do: df |> DataFrame.filter(contains(mmdd, this_day()))
   defp filter_data_frame(error), do: error
 
-  def this_day(format \\ "-%m-%d"), do: Date.utc_today() |> Calendar.strftime(format)
+  def this_day(format \\ "%m%d"), do: Date.utc_today() |> Calendar.strftime(format)
 
   def render_overview(%Explorer.DataFrame{} = df) do
     df

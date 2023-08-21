@@ -13,7 +13,9 @@ defmodule LastfmArchive.Archive.Scrobble do
     field(:url, String.t())
 
     field(:datetime_unix, integer())
-    field(:datetime, String.t())
+    field(:datetime, DateTime.t())
+    field(:date, Date.t())
+    field(:mmdd, String.t())
     field(:year, integer())
 
     field(:artist, String.t())
@@ -47,7 +49,9 @@ defmodule LastfmArchive.Archive.Scrobble do
       mbid: track["mbid"],
       name: track["name"],
       datetime_unix: unix_time,
-      datetime: date_time |> DateTime.to_string(),
+      datetime: date_time |> DateTime.to_naive(),
+      date: date_time |> DateTime.to_date(),
+      mmdd: date_time |> Calendar.strftime("%m%d"),
       year: date_time.year,
       url: track["url"],
       artist: track["artist"]["name"] || track["artist"]["#text"],

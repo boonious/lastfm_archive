@@ -3,6 +3,7 @@
 
 * most-frequent, play-once samples analytics for on-this-day Livebook page
 * fine-grained `Transformer` behaviour with default implementation and base transformer
+* `DateTime`, `Date` typed columns (instead of string) in transformed columnar archive 
 * refactor: rename `name` column (of songs) in columnar storage to `track` 
 
 ## 0.11.0 (2023-08-11)

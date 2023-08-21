@@ -84,7 +84,7 @@ defmodule LastfmArchive.Analytics.OnThisDayTest do
 
   describe "this_day/1" do
     test "default day string" do
-      day = Date.utc_today() |> Calendar.strftime("-%m-%d")
+      day = Date.utc_today() |> Calendar.strftime("%m%d")
       assert ^day = OnThisDay.this_day()
     end
 
