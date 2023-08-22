@@ -3,12 +3,12 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   An archive derived from local data extracted from Lastfm.
   """
   use LastfmArchive.Behaviour.Archive
-  use LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
+  use LastfmArchive.Archive.Transformers.TransformerSettings
 
   alias LastfmArchive.Archive.Metadata
-  alias LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
+  alias LastfmArchive.Archive.Transformers.TransformerSettings
 
-  use LastfmArchive.Behaviour.DataFrameIo, formats: FileArchiveTransformerSettings.available_formats()
+  use LastfmArchive.Behaviour.DataFrameIo, formats: TransformerSettings.formats()
 
   @type read_options :: [year: integer(), columns: list(atom())]
 
@@ -43,9 +43,9 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   @spec read(Archive.metadata(), read_options()) :: {:ok, Explorer.DataFrame.t()} | {:error, term()}
   def read(%Metadata{creator: user, format: mimetype} = metadata, options) do
     with {format, %{read_opts: config_opts}} <- setting(mimetype),
-         {:ok, {years, opts}} <- fetch_opts(metadata, config_opts, options) do
+         {:ok, {years, read_opts}} <- fetch_opts(metadata, config_opts, options) do
       years
-      |> create_lazy_dataframe(user, format, opts)
+      |> create_lazy_dataframe(user, format, read_opts)
       |> then(fn df -> {:ok, df} end)
     end
   end
@@ -63,13 +63,12 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   defp fetch_years(%Metadata{} = metadata, nil), do: {:ok, year_range(metadata.temporal) |> Enum.to_list()}
   defp fetch_years(%Metadata{} = _metadata, year), do: {:ok, [year]}
 
-  defp filepath(format, user, year) when format == :csv, do: "#{format}/#{year}.#{format}.gz" |> filepath(user)
-  defp filepath(format, user, year), do: "#{format}/#{year}.#{format}" |> filepath(user)
-  defp filepath(path_part, user), do: Path.join(user_dir(user), path_part)
+  defp filepath(dir, :csv, user, year), do: Path.join(user_dir(user), "#{dir}/#{year}.csv.gz")
+  defp filepath(dir, format, user, year), do: Path.join(user_dir(user), "#{dir}/#{year}.#{format}")
 
   defp create_lazy_dataframe(years, user, format, opts) do
     for year <- years do
-      filepath(format, user, year)
+      filepath(derived_archive_dir(format: format), format, user, year)
       |> load_data_frame(format, opts)
       |> Explorer.DataFrame.to_lazy()
     end

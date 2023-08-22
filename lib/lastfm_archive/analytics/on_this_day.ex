@@ -3,8 +3,8 @@ defmodule LastfmArchive.Analytics.OnThisDay do
   Create on this day analytics and display them in Livebook.
   """
 
-  use LastfmArchive.Behaviour.Analytics, facets: LastfmArchive.Analytics.Settings.available_facets()
-  use LastfmArchive.Behaviour.LivebookAnalytics, facets: LastfmArchive.Analytics.Settings.available_facets()
+  use LastfmArchive.Behaviour.Analytics, facets: LastfmArchive.Analytics.Settings.facets()
+  use LastfmArchive.Behaviour.LivebookAnalytics, facets: LastfmArchive.Analytics.Settings.facets()
 
   require Explorer.DataFrame
   alias Explorer.DataFrame

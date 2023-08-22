@@ -3,26 +3,24 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
   Base transformer with default implementations.
   """
 
-  use LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
+  use LastfmArchive.Archive.Transformers.TransformerSettings
+  use LastfmArchive.Behaviour.DataFrameIo, formats: LastfmArchive.Archive.Transformers.TransformerSettings.formats()
 
-  use LastfmArchive.Behaviour.DataFrameIo,
-    formats: LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings.available_formats()
-
-  require Explorer.DataFrame
   alias Explorer.DataFrame
   alias LastfmArchive.Behaviour.Archive
 
-  import LastfmArchive.Utils, only: [create_filepath: 3, month_range: 2, write: 2]
+  import LastfmArchive.Utils, only: [create_dir: 2, check_filepath: 3, month_range: 2, write: 2]
+
+  require Explorer.DataFrame
   require Logger
 
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
-  @overwrite false
 
   defmacro __using__(_opts) do
     quote do
       @behaviour LastfmArchive.Behaviour.Transformer
       import LastfmArchive.Archive.Transformers.Transformer
-      import LastfmArchive.Utils, only: [create_dir: 2, year_range: 1]
+      import LastfmArchive.Utils, only: [year_range: 1]
 
       @impl true
       def source(metadata, opts) do
@@ -35,7 +33,7 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
 
       @impl true
       def sink(df, metadata, opts) do
-        :ok = create_dir(metadata.creator, format: Keyword.fetch!(opts, :format))
+        create_archive_dir(metadata.creator, opts)
 
         opts
         |> Keyword.get(:year, year_range(metadata.temporal) |> Enum.to_list())
@@ -59,6 +57,12 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
     end
   end
 
+  def create_archive_dir(user, opts) do
+    opts
+    |> validate_opts()
+    |> then(fn opts -> create_dir(user, dir: derived_archive_dir(opts)) end)
+  end
+
   def data_frame_source(metadata, year) do
     Logger.info("\nSourcing scrobbles from #{year} into a lazy data frame.")
 
@@ -74,24 +78,26 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
   end
 
   def data_frame_sink(df, user, year, opts) do
-    Logger.info("\nSinking data from #{year} into a file.")
+    Logger.info("\nWriting data from #{year}")
+    opts = opts |> validate_opts()
     format = Keyword.fetch!(opts, :format)
+    filepath = "#{derived_archive_dir(opts)}/#{year}.#{format}"
 
     df = df |> DataFrame.filter(year == ^year)
 
-    case create_filepath(user, format, "#{format}/#{year}.#{format}") do
+    case check_filepath(user, format, filepath) do
       {:ok, filepath} ->
         write(df, write_fun(filepath, format))
 
       {:error, :file_exists, filepath} ->
-        maybe_skip_write({df, filepath, format}, overwrite: Keyword.get(opts, :overwrite, @overwrite))
+        maybe_skip_write({df, filepath, format}, overwrite: Keyword.fetch!(opts, :overwrite))
     end
   end
 
   defp maybe_skip_write({df, filepath, format}, overwrite: true), do: write(df, write_fun(filepath, format))
 
   defp maybe_skip_write({_, filepath, _}, overwrite: false) do
-    Logger.info("\n#{filepath} exists, skipping writes (overwrite: false)")
+    Logger.info("\nSkipping writes (overwrite: false), #{filepath} exists")
   end
 
   defp write_fun(filepath, :csv) do

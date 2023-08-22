@@ -3,7 +3,7 @@ defmodule LastfmArchive.Analytics.Settings do
 
   import Explorer.Series, only: [count: 1, distinct: 1]
 
-  def available_facets, do: facet_mutation_fun() |> Map.keys()
+  def facets, do: facet_mutation_fun() |> Map.keys()
 
   def facet_mutation_fun do
     %{

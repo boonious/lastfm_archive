@@ -136,13 +136,15 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
     for format <- DerivedArchive.formats() do
       test "#{format} returns data frame given a year option", %{user: user, file_archive_metadata: metadata} do
         format = unquote(format)
+        opts = [format: format]
         metadata = metadata |> new_derived_archive_metadata(format: format)
-        opts = DerivedArchive.read_opts(format)
+        read_opts = DerivedArchive.read_opts(format)
+        archive_dir = "#{DerivedArchive.derived_archive_dir(opts)}"
 
-        filepath = Path.join([user_dir(user), "#{format}", "2023.#{format}"])
+        filepath = Path.join([user_dir(user), archive_dir, "2023.#{format}"])
         filepath = if format == :csv, do: filepath <> ".gz", else: filepath
 
-        DataFrameMock |> expect(:"from_#{format}!", fn ^filepath, ^opts -> data_frame() end)
+        DataFrameMock |> expect(:"from_#{format}!", fn ^filepath, ^read_opts -> data_frame() end)
 
         assert {:ok, %DataFrame{}} = DerivedArchive.read(metadata, year: 2023)
       end
@@ -152,8 +154,9 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         columns = [:id, :album, :artist]
         metadata = metadata |> new_derived_archive_metadata(format: format)
         opts = DerivedArchive.read_opts(format) |> Keyword.put(:columns, columns)
+        archive_dir = "#{DerivedArchive.derived_archive_dir(format: format)}"
 
-        filepath = Path.join([user_dir(user), "#{format}", "2023.#{format}"])
+        filepath = Path.join([user_dir(user), archive_dir, "2023.#{format}"])
         filepath = if format == :csv, do: filepath <> ".gz", else: filepath
 
         DataFrameMock |> expect(:"from_#{format}!", fn ^filepath, ^opts -> data_frame() end)

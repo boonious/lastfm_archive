@@ -103,7 +103,7 @@ defmodule LastfmArchive.Analytics.OnThisDayTest do
     assert %Kino.Layout{} = OnThisDay.render_most_played(df)
   end
 
-  for facet <- Settings.available_facets() do
+  for facet <- Settings.facets() do
     test "top_#{facet}s/2", %{data_frame: df} do
       facet = "#{unquote(facet)}"
       assert {%DataFrame{} = df_facets, facet_stats} = apply(OnThisDay, :"top_#{facet}s", [df])

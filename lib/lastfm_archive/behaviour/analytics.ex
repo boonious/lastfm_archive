@@ -30,7 +30,7 @@ defmodule LastfmArchive.Behaviour.Analytics do
   @callback data_frame(format: atom()) :: {:ok, data_frame()} | {:error, term}
   @callback data_frame_stats(data_frame()) :: data_frame_stats()
 
-  for facet <- available_facets() do
+  for facet <- facets() do
     @callback unquote(:"top_#{facet}s")(data_frame(), options()) :: facets()
     @callback unquote(:"sample_#{facet}s")(data_frame(), options()) :: facets()
   end

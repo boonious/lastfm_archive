@@ -104,16 +104,16 @@ defmodule LastfmArchive.Utils do
     end
   end
 
-  def create_dir(user, format: format) do
-    dir = Path.join(user_dir(user, []), format |> Atom.to_string())
+  def create_dir(user, dir: dir) do
+    dir = Path.join(user_dir(user, []), dir)
     unless @file_io.exists?(dir), do: @file_io.mkdir_p(dir)
     :ok
   end
 
-  def create_filepath(user, :csv, path), do: create_filepath(user, path <> ".gz")
-  def create_filepath(user, _format, path), do: create_filepath(user, path)
+  def check_filepath(user, :csv, path), do: check_filepath(user, path <> ".gz")
+  def check_filepath(user, _format, path), do: check_filepath(user, path)
 
-  def create_filepath(user, path) do
+  def check_filepath(user, path) do
     filepath = Path.join([user_dir(user), path])
 
     case @file_io.exists?(filepath) do
