@@ -17,17 +17,11 @@ defmodule LastfmArchive.Archive.DerivedArchive do
 
   @impl true
   def describe(user, options) do
-    {:ok, metadata} = file_archive_metadata(user)
+    {:ok, metadata} = super(user, [])
 
     case @file_io.read(metadata_filepath(user, options)) do
       {:ok, data} -> revise_derived_archive_metadata(data |> Jason.decode!(keys: :atoms) |> Metadata.new(), metadata)
       {:error, :enoent} -> metadata |> create_derived_archive_metadata(options)
-    end
-  end
-
-  defp file_archive_metadata(user) do
-    with {:ok, metadata} <- @file_io.read(metadata_filepath(user)) do
-      {:ok, Jason.decode!(metadata, keys: :atoms) |> Metadata.new()}
     end
   end
 

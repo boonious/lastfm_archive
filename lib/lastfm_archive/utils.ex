@@ -57,13 +57,13 @@ defmodule LastfmArchive.Utils do
 
   def metadata_filepath(user, options \\ []) do
     format = Keyword.get(options, :format, "")
-    {type, format} = if format == "", do: {FileArchive, ""}, else: {DerivedArchive, "#{format}_"}
+    {type, format} = if format == "", do: {FileArchive, ""}, else: {DerivedArchive, "_#{format}"}
 
     type
     |> Module.split()
     |> List.last()
     |> Macro.underscore()
-    |> then(fn archive_type -> Path.join([data_dir(options), user, ".#{format}#{archive_type}_metadata"]) end)
+    |> then(fn archive_type -> Path.join([data_dir(options), user, ".metadata/#{archive_type}#{format}"]) end)
   end
 
   def num_pages(playcount, per_page), do: (playcount / per_page) |> :math.ceil() |> round
@@ -164,23 +164,14 @@ defmodule LastfmArchive.Utils do
   end
 
   def write(%Metadata{creator: creator}, scrobbles, options) when is_map(scrobbles) do
-    with metadata_filepath <- metadata_filepath(creator, options),
-         path <- get_filepath(options) do
-      full_path =
-        metadata_filepath
-        |> Path.dirname()
-        |> Path.join("#{path}.gz")
+    full_path =
+      Keyword.fetch!(options, :filepath)
+      |> then(fn path -> user_dir(creator, options) |> Path.join("#{path}.gz") end)
 
-      full_path_dir = Path.dirname(full_path)
-      unless @file_io.exists?(full_path_dir), do: @file_io.mkdir_p(full_path_dir)
-      @file_io.write(full_path, scrobbles |> Jason.encode!(), [:compressed])
-    end
+    full_path_dir = Path.dirname(full_path)
+    unless @file_io.exists?(full_path_dir), do: @file_io.mkdir_p(full_path_dir)
+    @file_io.write(full_path, scrobbles |> Jason.encode!(), [:compressed])
   end
 
   def write(_metadata, {:error, api_message}, _options), do: {:error, api_message}
-
-  defp get_filepath(options) do
-    path = Keyword.get(options, :filepath)
-    if path != nil and path != "", do: path, else: raise("please provide a valid :filepath option")
-  end
 end

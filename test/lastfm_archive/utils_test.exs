@@ -65,7 +65,7 @@ defmodule LastfmArchive.UtilsTest do
   describe "write/2" do
     setup do
       user = "write_test_user"
-      metadata_filepath = Path.join([Application.get_env(:lastfm_archive, :data_dir), user, ".file_archive_metadata"])
+      metadata_filepath = Path.join([Application.get_env(:lastfm_archive, :data_dir), user, ".metadata/file_archive"])
       metadata = file_archive_metadata(user)
       %{metadata: metadata, metadata_filepath: metadata_filepath}
     end
@@ -134,7 +134,7 @@ defmodule LastfmArchive.UtilsTest do
       |> expect(:exists?, fn ^metadata_filepath -> true end)
       |> expect(:write, 0, fn ^full_path, ^data_json, [:compressed] -> true end)
 
-      assert_raise RuntimeError, "please provide a valid :filepath option", fn ->
+      assert_raise KeyError, fn ->
         Utils.write(file_archive_metadata(user), context.data, [])
       end
     end
