@@ -30,7 +30,7 @@ defmodule LastfmArchive.Behaviour.Archive do
   @callback describe(user(), options()) :: {:ok, metadata()} | {:error, term()}
 
   @doc """
-  Optionally applies post-archive side effects such as archive transformation or loading.
+  Optionally applies post-archive side effects such as transformation into columnar storage.
   """
   @callback after_archive(metadata(), transformer(), options()) :: {:ok, metadata()} | {:error, term()}
 

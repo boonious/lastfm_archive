@@ -11,7 +11,7 @@ defmodule LastfmArchive.Behaviour.ArchiveTest do
 
   import Fixtures.Archive
   import Hammox
-  import LastfmArchive.Utils, only: [user_dir: 1]
+  import LastfmArchive.Utils, only: [metadata_filepath: 2]
 
   alias LastfmArchive.Archive.Metadata
 
@@ -79,7 +79,7 @@ defmodule LastfmArchive.Behaviour.ArchiveTest do
 
   describe "describe/2" do
     setup context do
-      %{metadata_path: "#{context.metadata.creator |> user_dir()}/.metadata/file_archive"}
+      %{metadata_path: metadata_filepath(context.metadata.creator, [])}
     end
 
     test "an existing file archive", %{archive: archive, metadata: metadata, metadata_path: path, type: type} do

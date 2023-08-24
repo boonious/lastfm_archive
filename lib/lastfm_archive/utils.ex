@@ -56,14 +56,15 @@ defmodule LastfmArchive.Utils do
   def user_dir(user, options \\ []), do: Path.join([data_dir(options), user])
 
   def metadata_filepath(user, options \\ []) do
+    facet = Keyword.get(options, :facet, "scrobbles")
     format = Keyword.get(options, :format, "")
-    {type, format} = if format == "", do: {FileArchive, ""}, else: {DerivedArchive, "_#{format}"}
+    {type, suffix} = if format == "", do: {FileArchive, ""}, else: {DerivedArchive, "_#{facet}_#{format}"}
 
     type
     |> Module.split()
     |> List.last()
     |> Macro.underscore()
-    |> then(fn archive_type -> Path.join([data_dir(options), user, ".metadata/#{archive_type}#{format}"]) end)
+    |> then(fn archive_type -> Path.join([data_dir(options), user, ".metadata/#{archive_type}#{suffix}"]) end)
   end
 
   def num_pages(playcount, per_page), do: (playcount / per_page) |> :math.ceil() |> round

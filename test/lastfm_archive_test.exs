@@ -101,13 +101,13 @@ defmodule LastfmArchiveTest do
       end
     end
 
-    test "scrobbles of default user with default (CSV) format", %{file_archive_metadata: metadata} do
-      metadata = new_derived_archive_metadata(metadata, format: :csv)
+    test "scrobbles of default user with default (Arrow IPC stream) format", %{file_archive_metadata: metadata} do
+      metadata = new_derived_archive_metadata(metadata, format: :ipc_stream)
       user = Application.get_env(:lastfm_archive, :user)
 
       DerivedArchiveMock
       |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-      |> expect(:after_archive, fn ^metadata, FileArchiveTransformer, [format: :csv] -> {:ok, metadata} end)
+      |> expect(:after_archive, fn ^metadata, FileArchiveTransformer, [format: :ipc_stream] -> {:ok, metadata} end)
       |> expect(:update_metadata, fn metadata, _options -> {:ok, metadata} end)
 
       LastfmArchive.transform()

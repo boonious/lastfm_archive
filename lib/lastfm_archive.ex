@@ -168,12 +168,12 @@ defmodule LastfmArchive do
   or the directory specified in config/config.exs (`:lastfm_archive, :data_dir`).
 
   Options:
-  - `:format` - format into which file archive is transformed: `:csv`, `:parquet`, `:ipc`, `:ipc_stream`
+  - `:format` - format into which file archive is transformed: `:csv`, `:parquet`, `:ipc`, `:ipc_stream` (default)
   - `:overwrite` existing data, default: false
-  - `:year` - transform data for this particular year
+  - `:year` - optionally transform data from this particular year
   """
   @spec transform(binary, options) :: any
-  def transform(user \\ default_user(), options \\ [format: :csv])
+  def transform(user \\ default_user(), options \\ [format: :ipc_stream])
 
   def transform(user, options) when is_binary(user) do
     user
