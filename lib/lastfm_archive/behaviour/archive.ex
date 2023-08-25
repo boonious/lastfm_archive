@@ -11,7 +11,6 @@ defmodule LastfmArchive.Behaviour.Archive do
   @type metadata :: LastfmArchive.Archive.Metadata.t()
 
   @type scrobbles :: map()
-  @type transformer :: module()
   @type user :: binary()
 
   @type options :: keyword()
@@ -32,7 +31,7 @@ defmodule LastfmArchive.Behaviour.Archive do
   @doc """
   Optionally applies post-archive side effects such as transformation into columnar storage.
   """
-  @callback after_archive(metadata(), transformer(), options()) :: {:ok, metadata()} | {:error, term()}
+  @callback after_archive(metadata(), options()) :: {:ok, metadata()} | {:error, term()}
 
   @doc """
   Read access to the archive, returns an Explorer DataFrame for further data manipulation.
@@ -44,7 +43,7 @@ defmodule LastfmArchive.Behaviour.Archive do
   """
   @callback update_metadata(metadata(), options) :: {:ok, metadata()} | {:error, term()}
 
-  @optional_callbacks archive: 3, after_archive: 3
+  @optional_callbacks archive: 3, after_archive: 2
 
   defmacro __using__(_opts) do
     quote do

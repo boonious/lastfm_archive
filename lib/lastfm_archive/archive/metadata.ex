@@ -57,10 +57,11 @@ defmodule LastfmArchive.Archive.Metadata do
   # create new metadata for derived archive
   def new(%__MODULE__{} = metadata, opts) when is_list(opts) do
     format = Keyword.fetch!(opts, :format)
+    facet = Keyword.fetch!(opts, :facet)
 
     %{
       metadata
-      | description: "Lastfm archive of #{metadata.creator} in #{format} format",
+      | description: "Lastfm #{facet} archive of #{metadata.creator} in #{format} format",
         format: DerivedArchive.mimetype(format),
         source: "local file archive",
         type: DerivedArchive

@@ -6,6 +6,7 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   use LastfmArchive.Archive.Transformers.TransformerSettings
 
   alias LastfmArchive.Archive.Metadata
+  alias LastfmArchive.Archive.Transformers.Transformer
   alias LastfmArchive.Archive.Transformers.TransformerSettings
 
   use LastfmArchive.Behaviour.DataFrameIo, formats: TransformerSettings.formats()
@@ -13,7 +14,11 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   @type read_options :: [year: integer(), columns: list(atom())]
 
   @impl true
-  def after_archive(metadata, transformer, options), do: transformer.apply(metadata, options)
+  for facet <- facets() do
+    def after_archive(metadata, options) do
+      facet_transformers_settings()[unquote(facet)] |> Transformer.apply(metadata, options)
+    end
+  end
 
   @impl true
   def describe(user, options) do

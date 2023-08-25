@@ -47,14 +47,13 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
       @impl true
       def transform(df), do: df
 
-      def apply(metadata, opts) do
-        :ok = source(metadata, opts) |> transform() |> sink(metadata, opts)
-
-        {:ok, %{metadata | modified: DateTime.utc_now()}}
-      end
-
       defoverridable source: 2, sink: 3, transform: 1
     end
+  end
+
+  def apply(transformer, metadata, opts) do
+    :ok = transformer.source(metadata, opts) |> transformer.transform() |> transformer.sink(metadata, opts)
+    {:ok, %{metadata | modified: DateTime.utc_now()}}
   end
 
   def create_archive_dir(user, opts) do

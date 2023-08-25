@@ -10,9 +10,7 @@ defmodule LastfmArchive do
 
   """
 
-  alias LastfmArchive.Archive.Transformers.FileArchiveTransformer
   alias LastfmArchive.Archive.Metadata
-
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.LastfmClient.Impl, as: LastfmClient
   alias LastfmArchive.LastfmClient.LastfmApi
@@ -176,9 +174,12 @@ defmodule LastfmArchive do
   def transform(user \\ default_user(), options \\ [format: :ipc_stream])
 
   def transform(user, options) when is_binary(user) do
+    facet = Keyword.get(options, :facet, :scrobbles)
+    options = options |> Keyword.merge(facet: facet)
+
     user
     |> impl(options).describe(options)
-    |> then(fn {:ok, metadata} -> impl(options).after_archive(metadata, FileArchiveTransformer, options) end)
+    |> then(fn {:ok, metadata} -> impl(options).after_archive(metadata, options) end)
     |> then(fn {:ok, metadata} -> impl(options).update_metadata(metadata, options) end)
   end
 
