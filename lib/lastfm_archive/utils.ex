@@ -2,8 +2,6 @@ defmodule LastfmArchive.Utils do
   @moduledoc false
 
   alias Explorer.DataFrame
-  alias LastfmArchive.Archive.DerivedArchive
-  alias LastfmArchive.Archive.FileArchive
   alias LastfmArchive.Archive.Metadata
   require Logger
 
@@ -56,15 +54,11 @@ defmodule LastfmArchive.Utils do
   def user_dir(user, options \\ []), do: Path.join([data_dir(options), user])
 
   def metadata_filepath(user, options \\ []) do
-    facet = Keyword.get(options, :facet, "scrobbles")
-    format = Keyword.get(options, :format, "")
-    {type, suffix} = if format == "", do: {FileArchive, ""}, else: {DerivedArchive, "_#{facet}_#{format}"}
-
-    type
-    |> Module.split()
-    |> List.last()
-    |> Macro.underscore()
-    |> then(fn archive_type -> Path.join([data_dir(options), user, ".metadata/#{archive_type}#{suffix}"]) end)
+    Path.join([
+      data_dir(options),
+      user,
+      ".metadata/#{Keyword.get(options, :facet, "scrobbles")}/#{Keyword.get(options, :format, "json")}_archive"
+    ])
   end
 
   def num_pages(playcount, per_page), do: (playcount / per_page) |> :math.ceil() |> round

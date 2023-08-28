@@ -14,14 +14,14 @@ defmodule LastfmArchive.Analytics.OnThisDay do
   def columns, do: ["id", "artist", "datetime", "year", "album", "track", "mmdd"]
 
   @impl true
-  def data_frame(format: format) do
-    [format: format]
+  def data_frame(opts \\ []) do
+    Keyword.validate!(opts, format: :ipc_stream, facet: :scrobbles, columns: columns())
     |> read_data_frame()
     |> filter_data_frame()
   end
 
-  defp read_data_frame(format: format) do
-    LastfmArchive.default_user() |> LastfmArchive.read(format: format, columns: columns())
+  defp read_data_frame(opts) do
+    LastfmArchive.default_user() |> LastfmArchive.read(opts)
   end
 
   defp filter_data_frame({:ok, df}), do: df |> DataFrame.filter(contains(mmdd, this_day()))

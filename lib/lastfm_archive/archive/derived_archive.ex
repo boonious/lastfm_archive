@@ -11,13 +11,11 @@ defmodule LastfmArchive.Archive.DerivedArchive do
 
   use LastfmArchive.Behaviour.DataFrameIo, formats: TransformerSettings.formats()
 
-  @type read_options :: [year: integer(), columns: list(atom())]
+  @type read_options :: [year: integer(), columns: list(atom()), format: atom(), facet: atom()]
 
   @impl true
-  for facet <- facets() do
-    def after_archive(metadata, options) do
-      facet_transformers_settings()[unquote(facet)] |> Transformer.apply(metadata, options)
-    end
+  def after_archive(metadata, options) do
+    transformer(Keyword.fetch!(options, :facet)) |> Transformer.apply(metadata, options)
   end
 
   @impl true
@@ -40,24 +38,18 @@ defmodule LastfmArchive.Archive.DerivedArchive do
 
   @impl true
   @spec read(Archive.metadata(), read_options()) :: {:ok, Explorer.DataFrame.t()} | {:error, term()}
-  def read(%Metadata{creator: user, format: mimetype} = metadata, options) do
+  def read(%Metadata{creator: user, format: mimetype, type: facet} = metadata, options) do
     with {format, %{read_opts: config_opts}} <- setting(mimetype),
-         {:ok, {years, read_opts}} <- fetch_opts(metadata, config_opts, options) do
+         {:ok, years} <- fetch_years(metadata, Keyword.get(options, :year)),
+         {:ok, read_opts} <- fetch_read_opts(config_opts, Keyword.get(options, :columns)) do
       years
-      |> create_lazy_dataframe(user, format, read_opts)
+      |> create_lazy_dataframe(user, facet, format, read_opts)
       |> then(fn df -> {:ok, df} end)
     end
   end
 
-  defp fetch_opts(%Metadata{} = metadata, config_opts, options) do
-    with {:ok, years} <- fetch_years(metadata, Keyword.get(options, :year)),
-         columns <- Keyword.get(options, :columns) do
-      fetch_opts(config_opts, years, columns)
-    end
-  end
-
-  defp fetch_opts(config_opts, years, nil), do: {:ok, {years, config_opts}}
-  defp fetch_opts(config_opts, years, columns), do: {:ok, {years, Keyword.put(config_opts, :columns, columns)}}
+  defp fetch_read_opts(config_opts, nil), do: {:ok, config_opts}
+  defp fetch_read_opts(config_opts, columns), do: {:ok, Keyword.put(config_opts, :columns, columns)}
 
   defp fetch_years(%Metadata{} = metadata, nil), do: {:ok, year_range(metadata.temporal) |> Enum.to_list()}
   defp fetch_years(%Metadata{} = _metadata, year), do: {:ok, [year]}
@@ -65,9 +57,9 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   defp filepath(dir, :csv, user, year), do: Path.join(user_dir(user), "#{dir}/#{year}.csv.gz")
   defp filepath(dir, format, user, year), do: Path.join(user_dir(user), "#{dir}/#{year}.#{format}")
 
-  defp create_lazy_dataframe(years, user, format, opts) do
+  defp create_lazy_dataframe(years, user, facet, format, opts) do
     for year <- years do
-      filepath(derived_archive_dir(format: format), format, user, year)
+      filepath(derived_archive_dir(format: format, facet: facet), format, user, year)
       |> load_data_frame(format, opts)
       |> Explorer.DataFrame.to_lazy()
     end

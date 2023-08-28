@@ -14,7 +14,7 @@ Mix.install(
 )
 
 alias LastfmArchive.Analytics.OnThisDay
-dataframe = OnThisDay.data_frame(format: :ipc_stream)
+dataframe = OnThisDay.data_frame()
 
 :ok
 ```

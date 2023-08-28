@@ -35,7 +35,7 @@ defmodule LastfmArchive.Analytics.OnThisDayTest do
 
   describe "data_frame/1" do
     setup do
-      %{options: [format: :ipc_stream, columns: OnThisDay.columns()]}
+      %{options: [columns: OnThisDay.columns(), facet: :scrobbles, format: :ipc_stream]}
     end
 
     test "contains data on this day", %{user: user, file_archive_metadata: metadata, options: opts} do

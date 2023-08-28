@@ -48,15 +48,15 @@ defmodule LastfmArchive.UtilsTest do
 
   test "metadata_filepath/2" do
     opts = []
-    filepath = ".metadata/file_archive"
+    filepath = ".metadata/scrobbles/json_archive"
     assert Utils.metadata_filepath("user", opts) == "#{Utils.user_dir("user", opts)}/#{filepath}"
 
     opts = [format: :ipc_stream]
-    filepath = ".metadata/derived_archive_scrobbles_ipc_stream"
+    filepath = ".metadata/scrobbles/ipc_stream_archive"
     assert Utils.metadata_filepath("user", opts) == "#{Utils.user_dir("user", opts)}/#{filepath}"
 
     opts = [format: :ipc_stream, facet: :artists]
-    filepath = ".metadata/derived_archive_artists_ipc_stream"
+    filepath = ".metadata/artists/ipc_stream_archive"
     assert Utils.metadata_filepath("user", opts) == "#{Utils.user_dir("user", opts)}/#{filepath}"
   end
 

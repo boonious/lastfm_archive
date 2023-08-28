@@ -56,7 +56,7 @@ defmodule LastfmArchiveTest do
     end
 
     for format <- DerivedArchive.formats(), facet <- DerivedArchive.facets() do
-      test "#{format} derived archive", %{user: user, file_archive_metadata: metadata} do
+      test "#{format} derived #{facet} archive", %{user: user, file_archive_metadata: metadata} do
         facet = unquote(facet)
         format = unquote(format)
         metadata = new_derived_archive_metadata(metadata, format: format, facet: facet)
@@ -69,7 +69,7 @@ defmodule LastfmArchiveTest do
         assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read(user, options)
       end
 
-      test "#{format} with columns option", %{user: user, file_archive_metadata: metadata} do
+      test "#{facet} #{format} archive with columns option", %{user: user, file_archive_metadata: metadata} do
         facet = unquote(facet)
         format = unquote(format)
         metadata = new_derived_archive_metadata(metadata, format: format, facet: facet)
@@ -100,7 +100,7 @@ defmodule LastfmArchiveTest do
         end)
         |> expect(:update_metadata, fn metadata, _options -> {:ok, metadata} end)
 
-        LastfmArchive.transform(user, format: format)
+        LastfmArchive.transform(user, format: format, facet: facet)
       end
     end
 

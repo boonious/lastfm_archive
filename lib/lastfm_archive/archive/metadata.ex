@@ -5,7 +5,7 @@ defmodule LastfmArchive.Archive.Metadata do
   use TypedStruct
   alias LastfmArchive.Archive.DerivedArchive
 
-  @type facet_type :: :scrobbles | :artists
+  @type facet_type :: :scrobbles | :albums | :artists | :tracks
 
   @typedoc "Metadata descriping a Lastfm archive based on
   [Dublin Core Metadata Initiative](https://www.dublincore.org/specifications/dublin-core/dcmi-terms/)."
