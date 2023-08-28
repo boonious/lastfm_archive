@@ -17,8 +17,7 @@ defmodule LastfmArchiveTest do
       new_archive_metadata(
         user: user,
         start: DateTime.from_iso8601("2023-01-01T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
-        end: DateTime.from_iso8601("2023-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
-        type: LastfmArchive.Archive.FileArchive
+        end: DateTime.from_iso8601("2023-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix()
       )
 
     %{user: user, file_archive_metadata: file_archive_metadata}

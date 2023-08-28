@@ -28,7 +28,6 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
         user: "a_lastfm_user",
         start: DateTime.from_iso8601("2022-01-01T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
         end: DateTime.from_iso8601("2023-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
-        type: FileArchive,
         date: ~D[2023-04-03]
       )
 

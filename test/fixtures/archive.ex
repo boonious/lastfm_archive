@@ -23,7 +23,7 @@ defmodule Fixtures.Archive do
         start: @registered_time,
         end: @latest_scrobble_time,
         date: @date,
-        type: FileArchive,
+        type: :scrobbles,
         total: @total
       )
 

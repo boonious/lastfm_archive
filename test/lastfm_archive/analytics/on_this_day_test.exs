@@ -23,8 +23,7 @@ defmodule LastfmArchive.Analytics.OnThisDayTest do
         user: user,
         start:
           DateTime.from_iso8601("#{today |> Date.add(-1) |> to_string()}T00:00:07Z") |> elem(1) |> DateTime.to_unix(),
-        end: DateTime.from_iso8601("#{today |> Date.add(1) |> to_string()}T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
-        type: LastfmArchive.Archive.FileArchive
+        end: DateTime.from_iso8601("#{today |> Date.add(1) |> to_string()}T18:50:07Z") |> elem(1) |> DateTime.to_unix()
       )
 
     %{

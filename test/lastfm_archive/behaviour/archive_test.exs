@@ -22,7 +22,7 @@ defmodule LastfmArchive.Behaviour.ArchiveTest do
       archive: LastfmArchive.TestArchive,
       metadata: file_archive_metadata("a_user"),
       metadata_path: "test_data_dir/a_user/.metadata/file_archive",
-      type: LastfmArchive.Behaviour.Archive.impl()
+      type: :scrobbles
     }
   end
 
