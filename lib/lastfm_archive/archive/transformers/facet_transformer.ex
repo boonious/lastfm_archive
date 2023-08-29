@@ -10,5 +10,5 @@ defmodule LastfmArchive.Archive.Transformers.FacetTransformer do
 
   # placeholder transform
   @impl true
-  def transform(df), do: df
+  def transform(df, _opts), do: df
 end

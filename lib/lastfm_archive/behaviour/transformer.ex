@@ -8,6 +8,6 @@ defmodule LastfmArchive.Behaviour.Transformer do
   @type options :: keyword()
 
   @callback source(metadata(), options()) :: data_frame()
-  @callback transform(data_frame()) :: data_frame()
+  @callback transform(data_frame(), options()) :: data_frame()
   @callback sink(data_frame(), metadata(), options()) :: :ok
 end

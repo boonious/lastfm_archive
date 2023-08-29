@@ -9,7 +9,7 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
   alias Explorer.DataFrame
   alias LastfmArchive.Behaviour.Archive
 
-  import LastfmArchive.Utils, only: [create_dir: 2, check_filepath: 3, month_range: 2, write: 2]
+  import LastfmArchive.Utils, only: [create_dir: 2, check_filepath: 3, month_range: 2, year_range: 1, write: 2]
 
   require Explorer.DataFrame
   require Logger
@@ -33,8 +33,6 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
 
       @impl true
       def sink(df, metadata, opts) do
-        create_archive_dir(metadata.creator, opts)
-
         opts
         |> Keyword.get(:year, year_range(metadata.temporal) |> Enum.to_list())
         |> List.wrap()
@@ -45,18 +43,35 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
 
       # default implementation simply returns data frame without transformation
       @impl true
-      def transform(df), do: df
+      def transform(df, _opts), do: df
 
-      defoverridable source: 2, sink: 3, transform: 1
+      defoverridable source: 2, sink: 3, transform: 2
     end
   end
 
   def apply(transformer, metadata, opts) do
-    :ok = transformer.source(metadata, opts) |> transformer.transform() |> transformer.sink(metadata, opts)
+    create_archive_dir(metadata.creator, opts)
+    run_pipeline(transformer, metadata, opts, Keyword.get(opts, :year, year_range(metadata.temporal) |> Enum.to_list()))
     {:ok, %{metadata | modified: DateTime.utc_now()}}
   end
 
-  def create_archive_dir(user, opts) do
+  defp run_pipeline(transformer, metadata, opts, year) when is_integer(year) do
+    run_pipeline(transformer, metadata, opts)
+  end
+
+  defp run_pipeline(transformer, metadata, opts, years) when is_list(years) do
+    for year <- years do
+      opts
+      |> Keyword.merge(year: year)
+      |> then(fn opts -> run_pipeline(transformer, metadata, opts) end)
+    end
+  end
+
+  defp run_pipeline(transformer, metadata, opts) do
+    transformer.source(metadata, opts) |> transformer.transform(opts) |> transformer.sink(metadata, opts)
+  end
+
+  defp create_archive_dir(user, opts) do
     opts
     |> validate_opts()
     |> then(fn opts -> create_dir(user, dir: derived_archive_dir(opts)) end)
