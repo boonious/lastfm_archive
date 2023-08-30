@@ -4,6 +4,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
   import ExUnit.CaptureLog
   import Fixtures.Archive
   import Hammox
+  import LastfmArchive.Archive.Transformers.TransformerSettings, only: [transformer: 1]
   import LastfmArchive.Utils, only: [user_dir: 1, metadata_filepath: 2]
 
   alias LastfmArchive.Archive.DerivedArchive
@@ -31,7 +32,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
     %{file_archive_metadata: metadata, user: user}
   end
 
-  describe "after_archive/2 transform" do
+  describe "post_archive/3 transform" do
     for format <- DerivedArchive.formats(), facet <- DerivedArchive.facets() do
       test "#{facet} into #{format} file", %{file_archive_metadata: metadata} do
         facet = unquote(facet)
@@ -54,7 +55,8 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         end
 
         capture_log(fn ->
-          assert {:ok, _metadata} = DerivedArchive.after_archive(metadata, format: format, facet: facet)
+          assert {:ok, _metadata} =
+                   DerivedArchive.post_archive(metadata, transformer(facet), format: format, facet: facet)
         end)
       end
     end

@@ -16,6 +16,8 @@ defmodule LastfmArchive do
   alias LastfmArchive.LastfmClient.LastfmApi
   alias LastfmArchive.Utils
 
+  import LastfmArchive.Archive.Transformers.TransformerSettings, only: [transformer: 1]
+
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
 
   @type metadata :: Metadata.t()
@@ -179,7 +181,7 @@ defmodule LastfmArchive do
 
     user
     |> impl(options).describe(options)
-    |> then(fn {:ok, metadata} -> impl(options).after_archive(metadata, options) end)
+    |> then(fn {:ok, metadata} -> impl(options).post_archive(metadata, transformer(facet), options) end)
     |> then(fn {:ok, metadata} -> impl(options).update_metadata(metadata, options) end)
   end
 

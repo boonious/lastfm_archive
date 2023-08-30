@@ -7,6 +7,7 @@ defmodule LastfmArchiveTest do
   alias LastfmArchive.Archive.DerivedArchive
   alias LastfmArchive.Archive.DerivedArchiveMock
   alias LastfmArchive.Archive.FileArchiveMock
+  alias LastfmArchive.Archive.Transformers.TransformerSettings
 
   setup :verify_on_exit!
 
@@ -92,10 +93,11 @@ defmodule LastfmArchiveTest do
         facet = unquote(facet)
         format = unquote(format)
         metadata = new_derived_archive_metadata(file_archive_metadata, format: format, facet: facet)
+        transformer = TransformerSettings.facet_transformers_settings()[facet][:transformer]
 
         DerivedArchiveMock
         |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-        |> expect(:after_archive, fn ^metadata, [format: ^format, facet: ^facet] ->
+        |> expect(:post_archive, fn ^metadata, ^transformer, [format: ^format, facet: ^facet] ->
           {:ok, metadata}
         end)
         |> expect(:update_metadata, fn metadata, _options -> {:ok, metadata} end)
@@ -107,10 +109,11 @@ defmodule LastfmArchiveTest do
     test "scrobbles of default user with default (Arrow IPC stream) format", %{file_archive_metadata: metadata} do
       metadata = new_derived_archive_metadata(metadata, format: :ipc_stream, facet: :scrobbles)
       user = Application.get_env(:lastfm_archive, :user)
+      transformer = TransformerSettings.facet_transformers_settings()[:scrobbles][:transformer]
 
       DerivedArchiveMock
       |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-      |> expect(:after_archive, fn ^metadata, [format: :ipc_stream, facet: :scrobbles] ->
+      |> expect(:post_archive, fn ^metadata, ^transformer, [format: :ipc_stream, facet: :scrobbles] ->
         {:ok, metadata}
       end)
       |> expect(:update_metadata, fn metadata, _options -> {:ok, metadata} end)

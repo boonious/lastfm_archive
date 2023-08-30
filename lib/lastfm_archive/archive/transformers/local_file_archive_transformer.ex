@@ -1,4 +1,4 @@
-defmodule LastfmArchive.Archive.Transformers.FileArchiveTransformer do
+defmodule LastfmArchive.Archive.Transformers.LocalFileArchiveTransformer do
   @moduledoc """
   Transform existing data of file archive into different storage formats.
 

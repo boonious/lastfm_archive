@@ -1,5 +1,6 @@
 defmodule LastfmArchive.Archive.Transformers.TransformerSettings do
   @moduledoc false
+  alias LastfmArchive.Archive.Transformers
 
   defmacro __using__(_opts) do
     quote do
@@ -15,7 +16,6 @@ defmodule LastfmArchive.Archive.Transformers.TransformerSettings do
       defdelegate formats, to: unquote(__MODULE__)
       def mimetype(format), do: format_settings()[format][:mimetype]
       def read_opts(format), do: format_settings()[format][:read_opts]
-      def transformer(facet), do: facet_transformers_settings()[facet]
       def write_opts(format), do: format_settings()[format][:write_opts]
       def setting(mimetype), do: format_settings() |> Enum.find(fn {_format, %{mimetype: type}} -> type == mimetype end)
     end
@@ -41,12 +41,7 @@ defmodule LastfmArchive.Archive.Transformers.TransformerSettings do
     }
   end
 
-  def facet_transformers_settings do
-    %{
-      scrobbles: LastfmArchive.Archive.Transformers.FileArchiveTransformer,
-      albums: LastfmArchive.Archive.Transformers.FacetTransformer,
-      artists: LastfmArchive.Archive.Transformers.FacetTransformer,
-      tracks: LastfmArchive.Archive.Transformers.FacetTransformer
-    }
-  end
+  def facet_transformers_settings, do: %{scrobbles: %{transformer: Transformers.LocalFileArchiveTransformer}}
+
+  def transformer(facet \\ :scrobbles, settings \\ facet_transformers_settings()), do: settings[facet][:transformer]
 end

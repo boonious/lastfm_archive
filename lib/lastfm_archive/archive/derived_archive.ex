@@ -14,8 +14,8 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   @type read_options :: [year: integer(), columns: list(atom()), format: atom(), facet: atom()]
 
   @impl true
-  def after_archive(metadata, options) do
-    transformer(Keyword.fetch!(options, :facet)) |> Transformer.apply(metadata, options)
+  def post_archive(metadata, transformer, options) do
+    transformer |> Transformer.apply(metadata, options)
   end
 
   @impl true
