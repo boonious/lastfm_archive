@@ -1,6 +1,6 @@
 defmodule LastfmArchive do
   @moduledoc """
-  `lastfm_archive` is a tool for creating local file archive and Livebook analytics from Last.fm music listening data.
+  `lastfm_archive` is a tool for extracting and archiving Last.fm music listening data - scrobbles.
 
   Current usage:
   - `sync/0`, `sync/1`: create and sync Lastfm scrobble data to local file archives
