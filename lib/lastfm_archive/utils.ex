@@ -2,8 +2,6 @@ defmodule LastfmArchive.Utils do
   @moduledoc false
 
   alias Explorer.DataFrame
-  alias LastfmArchive.Archive.DerivedArchive
-  alias LastfmArchive.Archive.FileArchive
   alias LastfmArchive.Archive.Metadata
   require Logger
 
@@ -56,14 +54,11 @@ defmodule LastfmArchive.Utils do
   def user_dir(user, options \\ []), do: Path.join([data_dir(options), user])
 
   def metadata_filepath(user, options \\ []) do
-    format = Keyword.get(options, :format, "")
-    {type, format} = if format == "", do: {FileArchive, ""}, else: {DerivedArchive, "#{format}_"}
-
-    type
-    |> Module.split()
-    |> List.last()
-    |> Macro.underscore()
-    |> then(fn archive_type -> Path.join([data_dir(options), user, ".#{format}#{archive_type}_metadata"]) end)
+    Path.join([
+      data_dir(options),
+      user,
+      ".metadata/#{Keyword.get(options, :facet, "scrobbles")}/#{Keyword.get(options, :format, "json")}_archive"
+    ])
   end
 
   def num_pages(playcount, per_page), do: (playcount / per_page) |> :math.ceil() |> round
@@ -104,16 +99,16 @@ defmodule LastfmArchive.Utils do
     end
   end
 
-  def create_dir(user, format: format) do
-    dir = Path.join(user_dir(user, []), format |> Atom.to_string())
+  def create_dir(user, dir: dir) do
+    dir = Path.join(user_dir(user, []), dir)
     unless @file_io.exists?(dir), do: @file_io.mkdir_p(dir)
     :ok
   end
 
-  def create_filepath(user, :csv, path), do: create_filepath(user, path <> ".gz")
-  def create_filepath(user, _format, path), do: create_filepath(user, path)
+  def check_filepath(user, :csv, path), do: check_filepath(user, path <> ".gz")
+  def check_filepath(user, _format, path), do: check_filepath(user, path)
 
-  def create_filepath(user, path) do
+  def check_filepath(user, path) do
     filepath = Path.join([user_dir(user), path])
 
     case @file_io.exists?(filepath) do
@@ -164,23 +159,14 @@ defmodule LastfmArchive.Utils do
   end
 
   def write(%Metadata{creator: creator}, scrobbles, options) when is_map(scrobbles) do
-    with metadata_filepath <- metadata_filepath(creator, options),
-         path <- get_filepath(options) do
-      full_path =
-        metadata_filepath
-        |> Path.dirname()
-        |> Path.join("#{path}.gz")
+    full_path =
+      Keyword.fetch!(options, :filepath)
+      |> then(fn path -> user_dir(creator, options) |> Path.join("#{path}.gz") end)
 
-      full_path_dir = Path.dirname(full_path)
-      unless @file_io.exists?(full_path_dir), do: @file_io.mkdir_p(full_path_dir)
-      @file_io.write(full_path, scrobbles |> Jason.encode!(), [:compressed])
-    end
+    full_path_dir = Path.dirname(full_path)
+    unless @file_io.exists?(full_path_dir), do: @file_io.mkdir_p(full_path_dir)
+    @file_io.write(full_path, scrobbles |> Jason.encode!(), [:compressed])
   end
 
   def write(_metadata, {:error, api_message}, _options), do: {:error, api_message}
-
-  defp get_filepath(options) do
-    path = Keyword.get(options, :filepath)
-    if path != nil and path != "", do: path, else: raise("please provide a valid :filepath option")
-  end
 end

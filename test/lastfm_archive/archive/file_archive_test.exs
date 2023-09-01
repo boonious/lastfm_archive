@@ -19,7 +19,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
 
   setup_all do
     user = "a_lastfm_user"
-    %{user: user, metadata: new_archive_metadata(user: user, type: FileArchive)}
+    %{user: user, metadata: new_archive_metadata(user: user)}
   end
 
   describe "archive/3" do

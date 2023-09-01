@@ -1,6 +1,5 @@
 defmodule Fixtures.Archive do
   @moduledoc false
-  alias LastfmArchive.Archive.FileArchive
   alias LastfmArchive.Archive.Metadata
 
   @default_user Application.compile_env(:lastfm_archive, :user)
@@ -23,7 +22,7 @@ defmodule Fixtures.Archive do
         start: @registered_time,
         end: @latest_scrobble_time,
         date: @date,
-        type: FileArchive,
+        type: :scrobbles,
         total: @total
       )
 

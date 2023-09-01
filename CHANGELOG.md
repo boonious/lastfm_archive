@@ -1,4 +1,11 @@
 # Changelog
+## 1.0.0 (2023-09-01)
+
+* faceted archive: deriving multiple facets (archives) from the same file archive in support of analytics use cases
+* transforms data on a year-by-year basis by default, instead of loading the entire dataset
+* refactor: `.metadata` and `derived` directories hosting various metadata files and derived archives
+* analytics features migrated to [coda](https://github.com/boonious/coda)
+
 ## 0.11.1 (2023-08-21)
 
 * most-frequent, play-once samples analytics for on-this-day Livebook page

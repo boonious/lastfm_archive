@@ -3,14 +3,14 @@ defmodule LastfmArchive.Behaviour.DataFrameIo do
   Behaviour, macro and functions for Explorer.DataFrame related I/Os.
   """
 
-  import LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
+  import LastfmArchive.Archive.Transformers.TransformerSettings
 
   @type data :: String.t() | binary()
   @type data_frame :: Explorer.DataFrame.t()
   @type filepath :: String.t()
   @type options :: Keyword.t()
 
-  for format <- available_formats() do
+  for format <- formats() do
     @callback unquote(:"dump_#{format}!")(data_frame(), options()) :: data()
     @callback unquote(:"to_#{format}!")(data_frame(), filepath(), options()) :: :ok
     @callback unquote(:"from_#{format}!")(filepath(), options()) :: data_frame()

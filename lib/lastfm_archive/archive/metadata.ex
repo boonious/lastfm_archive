@@ -2,11 +2,10 @@ defmodule LastfmArchive.Archive.Metadata do
   @moduledoc """
   Struct representing Lastfm archive metadata.
   """
+  use TypedStruct
   alias LastfmArchive.Archive.DerivedArchive
 
-  use TypedStruct
-
-  @archive Application.compile_env(:lastfm_archive, :file_archive, LastFmArchive.FileArchive)
+  @type facet_type :: :scrobbles | :albums | :artists | :tracks
 
   @typedoc "Metadata descriping a Lastfm archive based on
   [Dublin Core Metadata Initiative](https://www.dublincore.org/specifications/dublin-core/dcmi-terms/)."
@@ -23,7 +22,7 @@ defmodule LastfmArchive.Archive.Metadata do
     field(:source, String.t())
     field(:temporal, {integer, integer})
     field(:title, String.t())
-    field(:type, module(), default: @archive)
+    field(:type, facet_type(), default: :scrobbles)
   end
 
   @doc """
@@ -55,13 +54,16 @@ defmodule LastfmArchive.Archive.Metadata do
   end
 
   # create new metadata for derived archive
-  def new(%__MODULE__{} = metadata, format: format) do
+  def new(%__MODULE__{} = metadata, opts) when is_list(opts) do
+    format = Keyword.fetch!(opts, :format)
+    facet = Keyword.fetch!(opts, :facet)
+
     %{
       metadata
-      | description: "Lastfm archive of #{metadata.creator} in #{format} format",
+      | description: "Lastfm #{facet} archive of #{metadata.creator} in #{format} format",
         format: DerivedArchive.mimetype(format),
         source: "local file archive",
-        type: DerivedArchive
+        type: facet
     }
   end
 

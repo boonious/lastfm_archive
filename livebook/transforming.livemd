@@ -4,7 +4,7 @@
 
 ```elixir
 Mix.install(
-  [{:lastfm_archive, "~> 0.11"}, {:kino_explorer, "~> 0.1.8"}],
+  [{:lastfm_archive, "~> 1.0"}, {:kino_explorer, "~> 0.1.8"}],
   config: [
     lastfm_archive: [
       data_dir: "./lastfm_data/",

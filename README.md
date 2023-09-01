@@ -1,9 +1,11 @@
 # Lastfm Archive [![Build Status](https://github.com/boonious/lastfm_archive/actions/workflows/elixir.yml/badge.svg)](https://github.com/boonious/lastfm_archive/actions/workflows/elixir.yml) [![Hex pm](http://img.shields.io/hexpm/v/lastfm_archive.svg?style=flat)](https://hex.pm/packages/lastfm_archive) [![Coverage Status](https://coveralls.io/repos/github/boonious/lastfm_archive/badge.svg)](https://coveralls.io/github/boonious/lastfm_archive?branch=master)
 
-A tool for creating local file archive and Livebook analytics from Last.fm music listening data or 
-[scrobbles](https://www.last.fm/about/trackmymusic).
+A tool for extracting and archiving Last.fm music listening data - [scrobbles](https://www.last.fm/about/trackmymusic).
 
-♫♫ Check out the new [on this day](#livebook-analytics) analytics Livebook.
+**Note**: previous analytics features have been migrated to [coda](https://github.com/boonious/coda).
+This includes the [on this day Livebook](https://github.com/boonious/coda#livebook-analytics).
+Please check out [coda](https://github.com/boonious/coda) for more Last.fm listening data analytics
+in the future.
 
 ## Usage
 
@@ -22,7 +24,6 @@ by invoking `iex -S mix` command line action while in software home directory.
 
 You can also deploy and use the tool in [Livebook](https://livebook.dev), check out:
 - [Guides for archiving and data transforms](#livebook-guides) 
-- [Livebook analytics](#livebook-analytics)
 
 Scrobbles are downloaded via the Last.fm API and stored in the file archive on demand
 and on a daily basis. The software has a built-in cache to remember 
@@ -100,16 +101,6 @@ LastfmArchive.read("a_lastfm_user", format: :parquet, columns: [:id, :artist, :a
 
 See [`read/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#read/2).
 
-## Livebook analytics
-
-[On this day ♫](https://hexdocs.pm/lastfm_archive/on_this_day.html) presents
-analytics of all music played on this day (today) over the years. The page also features an interactive 
-[Kino explorer](https://hexdocs.pm/kino_explorer/Kino.Explorer.html) to help delving into the data.
-
-[![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fboonious%2Flastfm_archive%2Fmaster%2Flivebook%2Fanalytics%2Fon_this_day.livemd)
-
-![on this day most played analytics](assets/img/livebook_on_this_day_most_played_analytics.png)
-
 ## Livebook guides
 
 `LastfmArchive` also provides the following [Livebook](https://livebook.dev) interactive and step-by-step guides: 
@@ -154,7 +145,7 @@ to your list of dependencies in `mix.exs`:
 ```elixir
   def deps do
     [
-      {:lastfm_archive, "~> 0.11"}
+      {:lastfm_archive, "~> 1.0"}
     ]
   end
 ```

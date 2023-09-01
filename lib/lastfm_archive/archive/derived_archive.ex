@@ -3,31 +3,30 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   An archive derived from local data extracted from Lastfm.
   """
   use LastfmArchive.Behaviour.Archive
-  use LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
+  use LastfmArchive.Archive.Transformers.TransformerSettings
 
   alias LastfmArchive.Archive.Metadata
-  alias LastfmArchive.Archive.Transformers.FileArchiveTransformerSettings
+  alias LastfmArchive.Archive.Transformers.Transformer
+  alias LastfmArchive.Archive.Transformers.TransformerSettings
 
-  use LastfmArchive.Behaviour.DataFrameIo, formats: FileArchiveTransformerSettings.available_formats()
+  use LastfmArchive.Behaviour.DataFrameIo, formats: TransformerSettings.formats()
 
-  @type read_options :: [year: integer(), columns: list(atom())]
+  @type read_options :: [year: integer(), columns: list(atom()), format: atom(), facet: atom()]
 
   @impl true
-  def after_archive(metadata, transformer, options), do: transformer.apply(metadata, options)
+  def post_archive(metadata, transformer, options) do
+    transformer |> Transformer.apply(metadata, options)
+  end
 
   @impl true
   def describe(user, options) do
-    {:ok, metadata} = file_archive_metadata(user)
+    {:ok, metadata} = super(user, [])
 
-    case @file_io.read(metadata_filepath(user, options)) do
+    metadata_filepath(user, options)
+    |> @file_io.read()
+    |> case do
       {:ok, data} -> revise_derived_archive_metadata(data |> Jason.decode!(keys: :atoms) |> Metadata.new(), metadata)
       {:error, :enoent} -> metadata |> create_derived_archive_metadata(options)
-    end
-  end
-
-  defp file_archive_metadata(user) do
-    with {:ok, metadata} <- @file_io.read(metadata_filepath(user)) do
-      {:ok, Jason.decode!(metadata, keys: :atoms) |> Metadata.new()}
     end
   end
 
@@ -41,35 +40,28 @@ defmodule LastfmArchive.Archive.DerivedArchive do
 
   @impl true
   @spec read(Archive.metadata(), read_options()) :: {:ok, Explorer.DataFrame.t()} | {:error, term()}
-  def read(%Metadata{creator: user, format: mimetype} = metadata, options) do
+  def read(%Metadata{creator: user, format: mimetype, type: facet} = metadata, options) do
     with {format, %{read_opts: config_opts}} <- setting(mimetype),
-         {:ok, {years, opts}} <- fetch_opts(metadata, config_opts, options) do
+         {:ok, years} <- fetch_years(metadata, Keyword.get(options, :year)),
+         {:ok, read_opts} <- fetch_read_opts(config_opts, Keyword.get(options, :columns)) do
       years
-      |> create_lazy_dataframe(user, format, opts)
+      |> create_lazy_dataframe(user, facet, format, read_opts)
       |> then(fn df -> {:ok, df} end)
     end
   end
 
-  defp fetch_opts(%Metadata{} = metadata, config_opts, options) do
-    with {:ok, years} <- fetch_years(metadata, Keyword.get(options, :year)),
-         columns <- Keyword.get(options, :columns) do
-      fetch_opts(config_opts, years, columns)
-    end
-  end
-
-  defp fetch_opts(config_opts, years, nil), do: {:ok, {years, config_opts}}
-  defp fetch_opts(config_opts, years, columns), do: {:ok, {years, Keyword.put(config_opts, :columns, columns)}}
+  defp fetch_read_opts(config_opts, nil), do: {:ok, config_opts}
+  defp fetch_read_opts(config_opts, columns), do: {:ok, Keyword.put(config_opts, :columns, columns)}
 
   defp fetch_years(%Metadata{} = metadata, nil), do: {:ok, year_range(metadata.temporal) |> Enum.to_list()}
   defp fetch_years(%Metadata{} = _metadata, year), do: {:ok, [year]}
 
-  defp filepath(format, user, year) when format == :csv, do: "#{format}/#{year}.#{format}.gz" |> filepath(user)
-  defp filepath(format, user, year), do: "#{format}/#{year}.#{format}" |> filepath(user)
-  defp filepath(path_part, user), do: Path.join(user_dir(user), path_part)
+  defp filepath(dir, :csv, user, year), do: Path.join(user_dir(user), "#{dir}/#{year}.csv.gz")
+  defp filepath(dir, format, user, year), do: Path.join(user_dir(user), "#{dir}/#{year}.#{format}")
 
-  defp create_lazy_dataframe(years, user, format, opts) do
+  defp create_lazy_dataframe(years, user, facet, format, opts) do
     for year <- years do
-      filepath(format, user, year)
+      filepath(derived_archive_dir(format: format, facet: facet), format, user, year)
       |> load_data_frame(format, opts)
       |> Explorer.DataFrame.to_lazy()
     end

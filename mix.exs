@@ -2,13 +2,13 @@ defmodule LastfmArchive.MixProject do
   use Mix.Project
 
   @description """
-    A tool for creating local file archives and Livebook analytics from Last.fm listening data or scrobbles
+    A tool for extracting and archiving Last.fm music listening data - scrobbles.
   """
 
   def project do
     [
       app: :lastfm_archive,
-      version: "0.11.1",
+      version: "1.0.0",
       elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -27,13 +27,11 @@ defmodule LastfmArchive.MixProject do
         extras: [
           "README.md",
           "CHANGELOG.md",
-          "livebook/guides/archiving.livemd": [title: "Creating a file archive"],
-          "livebook/guides/transforming.livemd": [title: "Columnar data transforms"],
-          "livebook/analytics/on_this_day.livemd": [title: "On this day ♫"]
+          "livebook/archiving.livemd": [title: "Creating a file archive"],
+          "livebook/transforming.livemd": [title: "Columnar data transforms"]
         ],
         groups_for_extras: [
-          "Livebook Guides": Path.wildcard("livebook/guides/*.livemd"),
-          "Livebook Analytics": Path.wildcard("livebook/analytics/*.livemd")
+          Guides: Path.wildcard("livebook/*.livemd")
         ],
         assets: "assets",
         source_ref: "master"

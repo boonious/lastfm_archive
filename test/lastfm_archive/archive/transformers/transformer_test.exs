@@ -16,7 +16,6 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
   require Explorer.DataFrame
 
   @column_count (%LastfmArchive.Archive.Scrobble{} |> Map.keys() |> length()) - 1
-
   @test_transformer Module.concat(Transformer, Test)
   defmodule @test_transformer, do: use(Transformer)
 
@@ -29,7 +28,6 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
         user: "a_lastfm_user",
         start: DateTime.from_iso8601("2022-01-01T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
         end: DateTime.from_iso8601("2023-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
-        type: FileArchive,
         date: ~D[2023-04-03]
       )
 
@@ -107,20 +105,15 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
       format = :csv
       options = [format: format]
       write_opts = Transformer.write_opts(format)
+      archive_dir = "#{Transformer.derived_archive_dir(options)}"
 
-      dir = Path.join(user_dir(user), "#{format}")
-
-      FileIOMock
-      |> expect(:exists?, fn ^dir -> false end)
-      |> expect(:mkdir_p, fn ^dir -> :ok end)
-
-      filepath = Path.join([user_dir(user), "#{format}", "2022.#{format}.gz"])
+      filepath = Path.join([user_dir(user), archive_dir, "2022.#{format}.gz"])
 
       FileIOMock
       |> expect(:exists?, fn ^filepath -> false end)
       |> expect(:write, fn ^filepath, _data, [:compressed] -> :ok end)
 
-      filepath = Path.join([user_dir(user), "#{format}", "2023.#{format}.gz"])
+      filepath = Path.join([user_dir(user), archive_dir, "2023.#{format}.gz"])
 
       FileIOMock
       |> expect(:exists?, fn ^filepath -> false end)
@@ -141,7 +134,7 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
       assert capture_log(fn ->
                df = transformer.source(metadata, options)
                assert :ok = transformer.sink(df, metadata, options)
-             end) =~ "Sinking data"
+             end) =~ "Writing data"
     end
 
     for format <- Transformer.formats() do
@@ -154,14 +147,12 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
           format = unquote(format)
           options = [format: format]
           write_opts = Transformer.write_opts(format)
-          dir = Path.join(user_dir(user), "#{format}")
+          archive_dir = "#{Transformer.derived_archive_dir(options)}"
 
-          filepath1 = Path.join([user_dir(user), "#{format}", "2022.#{format}"])
-          filepath2 = Path.join([user_dir(user), "#{format}", "2023.#{format}"])
+          filepath1 = Path.join([user_dir(user), archive_dir, "2022.#{format}"])
+          filepath2 = Path.join([user_dir(user), archive_dir, "2023.#{format}"])
 
           FileIOMock
-          |> expect(:exists?, fn ^dir -> false end)
-          |> expect(:mkdir_p, fn ^dir -> :ok end)
           |> expect(:exists?, fn ^filepath1 -> false end)
           |> expect(:exists?, fn ^filepath2 -> false end)
 
@@ -180,21 +171,16 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
           assert capture_log(fn ->
                    df = transformer.source(metadata, options)
                    assert :ok = transformer.sink(df, metadata, options)
-                 end) =~ "Sinking data"
+                 end) =~ "Writing data"
         end
       end
 
-      test "does not overwrite existing #{format} files", %{
-        metadata: %{creator: user} = metadata,
-        transformer: transformer
-      } do
+      test "does not overwrite existing #{format} files", %{metadata: metadata, transformer: transformer} do
         format = unquote(format)
         options = [format: format]
         write_opts = Transformer.write_opts(format)
-        dir = Path.join(user_dir(user), "#{format}")
 
         FileIOMock
-        |> expect(:exists?, fn ^dir -> true end)
         |> stub(:exists?, fn _filepath -> true end)
         |> expect(:write, 0, fn __filepath, _data, [:compressed] -> :ok end)
 
@@ -205,7 +191,7 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
         assert capture_log(fn ->
                  df = transformer.source(metadata, options)
                  assert :ok = transformer.sink(df, metadata, options)
-               end) =~ "skipping"
+               end) =~ "Skipping"
       end
 
       test "overwrites existing #{format} files when opted", %{metadata: metadata, transformer: transformer} do
@@ -214,7 +200,6 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
         write_opts = Transformer.write_opts(format)
 
         FileIOMock
-        |> expect(:exists?, fn _dir -> true end)
         |> expect(:exists?, 2, fn _filepath -> true end)
 
         if format == :csv do
@@ -232,6 +217,47 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
           assert :ok = transformer.sink(df, metadata, options)
         end)
       end
+    end
+  end
+
+  describe "apply/3" do
+    test "transform all years", %{metadata: metadata, transformer: transformer} do
+      options = [format: :ipc_stream]
+      archive_dir = "#{Transformer.derived_archive_dir(options)}"
+      dir = Path.join(user_dir(metadata.creator), archive_dir)
+
+      FileIOMock
+      |> expect(:exists?, fn ^dir -> false end)
+      |> expect(:mkdir_p, fn ^dir -> :ok end)
+      |> expect(:exists?, 2, fn _filepath -> false end)
+
+      # source 2-year, 16 months scrobbles data
+      FileArchiveMock |> expect(:read, 16, fn ^metadata, _options -> {:ok, data_frame()} end)
+      # sink scrobbles into 2 (years) files
+      DataFrameMock |> expect(:to_ipc_stream!, 2, fn _df, _filepath, _write_opts -> :ok end)
+
+      capture_log(fn ->
+        assert {:ok, %LastfmArchive.Archive.Metadata{}} = Transformer.apply(transformer, metadata, options)
+      end)
+    end
+
+    test "transform a given year", %{metadata: metadata, transformer: transformer} do
+      options = [format: :ipc_stream, year: 2022]
+      archive_dir = "#{Transformer.derived_archive_dir(options)}"
+      dir = Path.join(user_dir(metadata.creator), archive_dir)
+
+      FileIOMock
+      |> expect(:exists?, fn ^dir -> true end)
+      |> expect(:exists?, fn _filepath -> false end)
+
+      # source 1-year, 12 months scrobbles data
+      FileArchiveMock |> expect(:read, 12, fn ^metadata, _options -> {:ok, data_frame()} end)
+      # sink scrobbles into single years file
+      DataFrameMock |> expect(:to_ipc_stream!, fn _df, _filepath, _write_opts -> :ok end)
+
+      capture_log(fn ->
+        assert {:ok, %LastfmArchive.Archive.Metadata{}} = Transformer.apply(transformer, metadata, options)
+      end)
     end
   end
 end

@@ -46,6 +46,20 @@ defmodule LastfmArchive.UtilsTest do
     end
   end
 
+  test "metadata_filepath/2" do
+    opts = []
+    filepath = ".metadata/scrobbles/json_archive"
+    assert Utils.metadata_filepath("user", opts) == "#{Utils.user_dir("user", opts)}/#{filepath}"
+
+    opts = [format: :ipc_stream]
+    filepath = ".metadata/scrobbles/ipc_stream_archive"
+    assert Utils.metadata_filepath("user", opts) == "#{Utils.user_dir("user", opts)}/#{filepath}"
+
+    opts = [format: :ipc_stream, facet: :artists]
+    filepath = ".metadata/artists/ipc_stream_archive"
+    assert Utils.metadata_filepath("user", opts) == "#{Utils.user_dir("user", opts)}/#{filepath}"
+  end
+
   test "read/2 file from the archive for a given user and file location" do
     test_user = "load_test_user"
     csv_file = Path.join(Utils.user_dir("load_test_user"), "csv/2018.csv.gz")
@@ -65,18 +79,17 @@ defmodule LastfmArchive.UtilsTest do
   describe "write/2" do
     setup do
       user = "write_test_user"
-      metadata_filepath = Path.join([Application.get_env(:lastfm_archive, :data_dir), user, ".file_archive_metadata"])
       metadata = file_archive_metadata(user)
-      %{metadata: metadata, metadata_filepath: metadata_filepath}
+      %{metadata: metadata, metadata_filepath: Utils.metadata_filepath(user, [])}
     end
 
-    test "metadata to a file", %{metadata: metadata, metadata_filepath: metadata_filepath} do
-      metadata_dir = metadata_filepath |> Path.dirname()
+    test "metadata to a file", %{metadata: metadata, metadata_filepath: path} do
+      dir = path |> Path.dirname()
       metadata_encoded = metadata |> Jason.encode!()
 
       LastfmArchive.FileIOMock
-      |> expect(:mkdir_p, fn ^metadata_dir -> :ok end)
-      |> expect(:write, fn ^metadata_filepath, ^metadata_encoded -> :ok end)
+      |> expect(:mkdir_p, fn ^dir -> :ok end)
+      |> expect(:write, fn ^path, ^metadata_encoded -> :ok end)
 
       assert {:ok, %Metadata{created: created}} = Utils.write(metadata, [])
       assert %DateTime{} = created
@@ -94,31 +107,26 @@ defmodule LastfmArchive.UtilsTest do
   describe "write/3" do
     setup do
       user = "write_test_user"
-      scrobbles = recent_tracks(user, 5) |> Jason.decode!()
-      scrobbles_json = scrobbles |> Jason.encode!()
-      metadata_filepath = Path.join([Application.get_env(:lastfm_archive, :data_dir), user, ".archive"])
       path = "2021/12/31/200_001"
-      full_gzip_path = Path.join(Path.dirname(metadata_filepath), "#{path}.gz")
 
       %{
-        data: scrobbles,
-        data_json: scrobbles_json,
-        full_dir: Path.dirname(full_gzip_path),
-        full_path: full_gzip_path,
-        metadata_filepath: metadata_filepath,
+        scrobbles: recent_tracks(user, 5) |> Jason.decode!(),
+        filepath: Path.join(Utils.user_dir(user, []), "#{path}.gz"),
         path: path,
         user: user
       }
     end
 
-    test "scrobbles to a file",
-         context = %{data_json: data_json, full_path: full_path, full_dir: full_dir} do
-      LastfmArchive.FileIOMock
-      |> expect(:exists?, fn ^full_dir -> false end)
-      |> expect(:mkdir_p, fn ^full_dir -> :ok end)
-      |> expect(:write, fn ^full_path, ^data_json, [:compressed] -> :ok end)
+    test "scrobbles to a file", %{user: user, scrobbles: scrobbles, filepath: full_path, path: path} do
+      dir = full_path |> Path.dirname()
+      scrobbles_encoded = scrobbles |> Jason.encode!()
 
-      assert :ok == Utils.write(file_archive_metadata(context.user), context.data, filepath: context.path)
+      LastfmArchive.FileIOMock
+      |> expect(:exists?, fn ^dir -> false end)
+      |> expect(:mkdir_p, fn ^dir -> :ok end)
+      |> expect(:write, fn ^full_path, ^scrobbles_encoded, [:compressed] -> :ok end)
+
+      assert :ok == Utils.write(file_archive_metadata(user), scrobbles, filepath: path)
     end
 
     test "handles scrobbles retrieving error", context do
@@ -128,14 +136,15 @@ defmodule LastfmArchive.UtilsTest do
                Utils.write(file_archive_metadata("test_user"), {:error, api_error_message}, filepath: context.path)
     end
 
-    test "when filepath option not given",
-         context = %{user: user, data_json: data_json, metadata_filepath: metadata_filepath, full_path: full_path} do
-      LastfmArchive.FileIOMock
-      |> expect(:exists?, fn ^metadata_filepath -> true end)
-      |> expect(:write, 0, fn ^full_path, ^data_json, [:compressed] -> true end)
+    test "when filepath option not given", %{user: user, scrobbles: scrobbles, filepath: path} do
+      scrobbles_encoded = scrobbles |> Jason.encode!()
 
-      assert_raise RuntimeError, "please provide a valid :filepath option", fn ->
-        Utils.write(file_archive_metadata(user), context.data, [])
+      LastfmArchive.FileIOMock
+      |> expect(:exists?, fn _metadata_filepath -> true end)
+      |> expect(:write, 0, fn ^path, ^scrobbles_encoded, [:compressed] -> true end)
+
+      assert_raise KeyError, fn ->
+        Utils.write(file_archive_metadata(user), scrobbles, [])
       end
     end
   end

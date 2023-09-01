@@ -1,6 +1,6 @@
 defmodule LastfmArchive do
   @moduledoc """
-  `lastfm_archive` is a tool for creating local file archive and Livebook analytics from Last.fm music listening data.
+  `lastfm_archive` is a tool for extracting and archiving Last.fm music listening data - scrobbles.
 
   Current usage:
   - `sync/0`, `sync/1`: create and sync Lastfm scrobble data to local file archives
@@ -10,13 +10,13 @@ defmodule LastfmArchive do
 
   """
 
-  alias LastfmArchive.Archive.Transformers.FileArchiveTransformer
   alias LastfmArchive.Archive.Metadata
-
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.LastfmClient.Impl, as: LastfmClient
   alias LastfmArchive.LastfmClient.LastfmApi
   alias LastfmArchive.Utils
+
+  import LastfmArchive.Archive.Transformers.TransformerSettings, only: [transformer: 1]
 
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
 
@@ -168,17 +168,20 @@ defmodule LastfmArchive do
   or the directory specified in config/config.exs (`:lastfm_archive, :data_dir`).
 
   Options:
-  - `:format` - format into which file archive is transformed: `:csv`, `:parquet`, `:ipc`, `:ipc_stream`
+  - `:format` - format into which file archive is transformed: `:csv`, `:parquet`, `:ipc`, `:ipc_stream` (default)
   - `:overwrite` existing data, default: false
-  - `:year` - transform data for this particular year
+  - `:year` - optionally transform data from this particular year
   """
   @spec transform(binary, options) :: any
-  def transform(user \\ default_user(), options \\ [format: :csv])
+  def transform(user \\ default_user(), options \\ [format: :ipc_stream])
 
   def transform(user, options) when is_binary(user) do
+    facet = Keyword.get(options, :facet, :scrobbles)
+    options = options |> Keyword.merge(facet: facet)
+
     user
     |> impl(options).describe(options)
-    |> then(fn {:ok, metadata} -> impl(options).after_archive(metadata, FileArchiveTransformer, options) end)
+    |> then(fn {:ok, metadata} -> impl(options).post_archive(metadata, transformer(facet), options) end)
     |> then(fn {:ok, metadata} -> impl(options).update_metadata(metadata, options) end)
   end
 
