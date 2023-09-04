@@ -11,6 +11,8 @@ defmodule LastfmArchive.Archive.DerivedArchive do
 
   use LastfmArchive.Behaviour.DataFrameIo, formats: TransformerSettings.formats()
 
+  import LastfmArchive.Utils.DateTime, only: [year_range: 1]
+
   @type read_options :: [year: integer(), columns: list(atom()), format: atom(), facet: atom()]
 
   @impl true

@@ -2,7 +2,6 @@ defmodule LastfmArchive.Archive.FileArchive do
   @moduledoc """
   An archive containing raw data extracted from Lastfm API.
   """
-
   use LastfmArchive.Behaviour.Archive
 
   alias LastfmArchive.Archive.Metadata
@@ -11,9 +10,12 @@ defmodule LastfmArchive.Archive.FileArchive do
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.Behaviour.LastfmClient
 
+  alias LastfmArchive.Cache
   alias LastfmArchive.LastfmClient.LastfmApi
 
   import LastfmArchive.Utils
+  import LastfmArchive.Utils.DateTime, except: [month_range: 2]
+
   require Logger
 
   @cache Application.compile_env(:lastfm_archive, :cache, LastfmArchive.Cache)
@@ -25,21 +27,77 @@ defmodule LastfmArchive.Archive.FileArchive do
 
   def archive(%{extent: 0} = metadata, _options, _api), do: {:ok, metadata}
 
-  def archive(%{identifier: user} = metadata, options, api) do
-    @cache.load(user, @cache, options)
+  def archive(%{creator: user} = metadata, options, api) do
+    setup(user, options)
 
-    with {:ok, metadata} <- update_metadata(metadata, options, api) do
-      Logger.info("Archiving #{metadata.extent} scrobbles for #{metadata.creator}")
-      options = Keyword.validate!(options, default_opts())
-
-      for year <- year_range(metadata.temporal) do
-        {from, to} = build_time_range(year, metadata)
-        :ok = write_to_archive(metadata, {from, to, @cache.get({user, year}, @cache)}, api, options)
-        @cache.serialise(user, @cache, options)
-      end
-
+    with {:ok, metadata} <- update_metadata(metadata, options, api),
+         options <- Keyword.validate!(options, default_opts()),
+         {years, date} <- years_and_date(metadata, options) do
+      archive(metadata, options, api, years, date)
       %{metadata | modified: DateTime.utc_now()} |> Archive.impl().update_metadata(options)
     end
+  end
+
+  defp setup(user, options) do
+    maybe_create_dir(user, dir: Cache.cache_dir())
+
+    # migrate previous cache files to .cache dir
+    # to be removed in a future version
+    maybe_migrate_old_cache_files(user, options)
+
+    # needs unloading when archiving session is done
+    @cache.load(user, @cache, options)
+  end
+
+  defp archive(%{creator: user} = metadata, options, api, years, date) when is_nil(date) do
+    Logger.info("Archiving #{metadata.extent} scrobbles for #{metadata.creator}")
+
+    for year <- years do
+      {from, to} = time_for_year(year, metadata.temporal)
+      :ok = write_to_archive(metadata, {from, to, @cache.get({user, year}, @cache)}, api, options)
+      @cache.serialise(user, @cache, options)
+    end
+  end
+
+  defp archive(%{creator: user} = metadata, options, api, _years, %Date{year: year} = date) do
+    Logger.info("Archiving scrobbles on #{date} for #{metadata.creator}")
+
+    {from, to} = iso8601_to_unix("#{date}T00:00:00Z", "#{date}T23:59:59Z")
+
+    case date_in_range?(metadata, {from, to}) do
+      true ->
+        :ok = write_to_archive(metadata, {from, to, @cache.get({user, year}, @cache)}, api, options)
+        @cache.serialise(user, @cache, options)
+
+      false ->
+        raise("date option out of range")
+    end
+  end
+
+  defp years_and_date(metadata, options) do
+    years = year_range(metadata.temporal)
+
+    years =
+      case Keyword.fetch!(options, :year) do
+        nil -> years
+        year -> if year in years, do: [year], else: raise("year option not within range")
+      end
+
+    {years, Keyword.fetch!(options, :date)}
+  end
+
+  defp maybe_migrate_old_cache_files(user, options) do
+    Path.join(user_dir(user, options), ".cache_????")
+    |> Path.wildcard(match_dot: true)
+    |> Enum.each(&rename_file(user, options, &1))
+  end
+
+  defp rename_file(user, options, old_cache_file) do
+    ".cache_" <> year = old_cache_file |> Path.basename()
+    new_file = Path.join([user_dir(user, options), Cache.cache_dir(), year])
+    Logger.info("migrate old cache file #{old_cache_file} to #{new_file}")
+
+    File.rename(old_cache_file, new_file)
   end
 
   @impl true
@@ -73,12 +131,14 @@ defmodule LastfmArchive.Archive.FileArchive do
       interval: Application.get_env(:lastfm_archive, :interval, 1000),
       per_page: Application.get_env(:lastfm_archive, :per_page, 200),
       reset: Application.get_env(:lastfm_archive, :reset, false),
-      data_dir: Application.get_env(:lastfm_archive, :data_dir, "./lastfm_data/")
+      data_dir: Application.get_env(:lastfm_archive, :data_dir, "./lastfm_data/"),
+      date: nil,
+      year: nil
     ]
   end
 
   defp write_to_archive(metadata, {from, to, cache}, api, options) do
-    for day_range <- build_time_range({from, to}) do
+    for day_range <- daily_time_ranges({from, to}) do
       with {playcount, previous_results} <- Map.get(cache, day_range, {}),
            true <- previous_results |> Enum.all?(&(&1 == :ok)) do
         Logger.info("Skipping #{date(day_range)}, previously synced: #{playcount} scrobble(s)")
@@ -102,7 +162,7 @@ defmodule LastfmArchive.Archive.FileArchive do
 
       # don't cache results of the always partial sync of today's scrobbles
       unless today?(time_range) do
-        @cache.put({metadata.identifier, year}, time_range, {playcount, results}, @cache)
+        @cache.put({metadata.identifier, year}, time_range, {playcount, results}, options, @cache)
       end
     else
       {:error, reason} ->

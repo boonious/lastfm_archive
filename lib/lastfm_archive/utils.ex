@@ -10,46 +10,6 @@ defmodule LastfmArchive.Utils do
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
   @reset Application.compile_env(:lastfm_archive, :reset, false)
 
-  @doc """
-  Generate {from, to} daily time ranges for querying Last.fm API based on
-  the first and last scrobble unix timestamps.
-  """
-  def build_time_range({from, to}) do
-    from = DateTime.from_unix!(from) |> DateTime.to_date()
-    to = DateTime.from_unix!(to) |> DateTime.to_date()
-    Enum.map(Date.range(from, to), &iso8601_to_unix("#{&1}T00:00:00Z", "#{&1}T23:59:59Z"))
-  end
-
-  def build_time_range(year, %Metadata{} = metadata) when is_integer(year) do
-    {from, to} = iso8601_to_unix("#{year}-01-01T00:00:00Z", "#{year}-12-31T23:59:59Z")
-    {registered_time, last_scrobble_time} = metadata.temporal
-
-    from = if from <= registered_time, do: registered_time, else: from
-    to = if to >= last_scrobble_time, do: last_scrobble_time, else: to
-
-    {from, to}
-  end
-
-  defp iso8601_to_unix(from, to) do
-    {:ok, from, _} = DateTime.from_iso8601(from)
-    {:ok, to, _} = DateTime.from_iso8601(to)
-
-    {DateTime.to_unix(from), DateTime.to_unix(to)}
-  end
-
-  @spec month_range(integer, LastfmArchive.Archive.Metadata.t()) :: list(Date.t())
-  def month_range(year, metadata) do
-    {from, to} = build_time_range(year, metadata)
-    %Date{month: first_month} = DateTime.from_unix!(from) |> DateTime.to_date()
-    %Date{month: last_month} = DateTime.from_unix!(to) |> DateTime.to_date()
-
-    for month <- 1..12, month <= last_month, month >= first_month do
-      %Date{year: year, day: 1, month: month}
-    end
-  end
-
-  def year_range({from, to}), do: DateTime.from_unix!(from).year..DateTime.from_unix!(to).year
-
   def data_dir(options \\ []), do: Keyword.get(options, :data_dir, @data_dir)
   def user_dir(user, options \\ []), do: Path.join([data_dir(options), user])
 
@@ -75,9 +35,6 @@ defmodule LastfmArchive.Utils do
     |> Path.join("#{per_page}_#{page_num}")
   end
 
-  def date(from) when is_integer(from), do: DateTime.from_unix!(from) |> Calendar.strftime("%Y-%m-%d")
-  def date({from, _day}) when is_integer(from), do: DateTime.from_unix!(from) |> Calendar.strftime("%Y-%m-%d")
-
   @doc """
   Read and unzip a file from the archive of a Lastfm user.
 
@@ -99,7 +56,7 @@ defmodule LastfmArchive.Utils do
     end
   end
 
-  def create_dir(user, dir: dir) do
+  def maybe_create_dir(user, dir: dir) do
     dir = Path.join(user_dir(user, []), dir)
     unless @file_io.exists?(dir), do: @file_io.mkdir_p(dir)
     :ok

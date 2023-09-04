@@ -5,13 +5,15 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
   import Fixtures.{Archive, Lastfm}
   import Hammox
 
+  import LastfmArchive.Utils, only: [user_dir: 1]
+  import LastfmArchive.Utils.DateTime, only: [daily_time_ranges: 1]
+
   alias Explorer.DataFrame
 
   alias LastfmArchive.Archive.FileArchive
   alias LastfmArchive.Archive.Metadata
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.Behaviour.LastfmClient
-  alias LastfmArchive.Utils
 
   @column_count (%LastfmArchive.Archive.Scrobble{} |> Map.keys() |> length()) - 1
 
@@ -59,36 +61,77 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       capture_log(fn -> assert {:ok, %Metadata{}} = FileArchive.archive(metadata, []) end)
     end
 
-    test "writes scrobbles to files", %{
+    test "scrobbles to files", %{
       metadata: metadata,
       scrobbles_json: scrobbles_json,
       user: user
     } do
+      cache_dir = Path.join(user_dir(user), LastfmArchive.Cache.cache_dir())
+
+      # ensure cache hiddern dir is available
+      LastfmArchive.FileIOMock
+      |> expect(:exists?, fn ^cache_dir -> false end)
+      |> expect(:mkdir_p, fn ^cache_dir -> :ok end)
+
       # write 3 files for 3-day test archive duration
       LastfmArchive.FileIOMock
       |> expect(:exists?, 3, fn _page_dir -> false end)
       |> expect(:mkdir_p, 3, fn _page_dir -> :ok end)
-      |> expect(:write, 3, fn full_path, ^scrobbles_json, [:compressed] ->
-        assert full_path =~ "./lastfm_data/test/#{user}/2021/04"
-        assert full_path =~ "/200_001.gz"
+      |> expect(:write, 3, fn path, ^scrobbles_json, [:compressed] ->
+        assert path =~ "./lastfm_data/test/#{user}/2021/04"
+        assert path =~ "/200_001.gz"
         :ok
       end)
 
       capture_log(fn -> FileArchive.archive(metadata, []) end)
     end
 
-    test "caches archiving ok status", %{metadata: metadata, user: user} do
+    test "scrobbles of a given year option", %{
+      metadata: metadata,
+      scrobbles_json: scrobbles_json
+    } do
+      LastfmArchive.FileIOMock
+      |> expect(:write, 3, fn path, ^scrobbles_json, [:compressed] ->
+        assert path =~ "/2021/"
+        :ok
+      end)
+
+      capture_log(fn -> FileArchive.archive(metadata, year: 2021) end)
+    end
+
+    test "scrobbles of a given date option", %{
+      metadata: metadata,
+      scrobbles_json: scrobbles_json
+    } do
+      LastfmArchive.FileIOMock
+      |> expect(:write, fn path, ^scrobbles_json, [:compressed] ->
+        assert path =~ "/2021/04/01"
+        :ok
+      end)
+
+      capture_log(fn -> FileArchive.archive(metadata, date: ~D[2021-04-01]) end)
+    end
+
+    test "raises when year option out of range", %{metadata: metadata} do
+      assert_raise(RuntimeError, fn -> FileArchive.archive(metadata, year: 2023) end)
+    end
+
+    test "raises when date option out of range", %{metadata: metadata} do
+      assert_raise(RuntimeError, fn -> FileArchive.archive(metadata, date: ~D[2023-05-01]) end)
+    end
+
+    test "caches ok status", %{metadata: metadata, user: user} do
       LastfmArchive.CacheMock
-      |> expect(:put, 3, fn {^user, 2021}, _time, {_playcount, [:ok]}, _cache -> :ok end)
+      |> expect(:put, 3, fn {^user, 2021}, _time, {_playcount, [:ok]}, _opts, _cache -> :ok end)
 
       capture_log(fn -> FileArchive.archive(metadata, []) end)
     end
 
-    test "caches status on scrobbles API call errors", %{metadata: metadata, user: user} do
+    test "caches status on Lastfm API call errors", %{metadata: metadata, user: user} do
       LastfmClient.impl() |> expect(:scrobbles, 3, fn _user, _client_args, _client -> {:error, "error"} end)
 
       LastfmArchive.CacheMock
-      |> expect(:put, 3, fn {^user, 2021}, _time, {_playcount, [error: _data]}, _cache -> :ok end)
+      |> expect(:put, 3, fn {^user, 2021}, _time, {_playcount, [error: _data]}, _opts, _cache -> :ok end)
 
       assert capture_log(fn -> FileArchive.archive(metadata, []) end) =~ "Lastfm API error"
     end
@@ -113,7 +156,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       |> expect(:scrobbles, fn ^user, _client_args, _client -> {:ok, %{}} end)
 
       LastfmArchive.CacheMock
-      |> expect(:put, 0, fn {_user, _year}, {_from, _to}, {_total_scrobbles, _status}, _cache -> :ok end)
+      |> expect(:put, 0, fn {_user, _year}, {_from, _to}, {_total_scrobbles, _status}, _opts, _cache -> :ok end)
 
       assert capture_log(fn -> FileArchive.archive(metadata, []) end) =~ Date.utc_today() |> to_string
     end
@@ -144,7 +187,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       |> stub(:scrobbles, fn ^user, _client_args, _client -> {:ok, scrobbles} end)
 
       LastfmArchive.CacheMock
-      |> expect(:put, 0, fn {^user, 2021}, _time, {_playcount, _status}, _cache -> :ok end)
+      |> expect(:put, 0, fn {^user, 2021}, _time, {_playcount, _status}, _opts, _cache -> :ok end)
 
       assert capture_log(fn -> FileArchive.archive(metadata, []) end) =~ "Lastfm API error"
     end
@@ -181,7 +224,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
 
       cache_ok_status =
         metadata.temporal
-        |> Utils.build_time_range()
+        |> daily_time_ranges()
         |> Enum.into(%{}, fn time_range -> {time_range, {daily_playcount, [:ok]}} end)
 
       LastfmArchive.CacheMock |> expect(:get, fn {^user, 2021}, _cache -> cache_ok_status end)
@@ -198,7 +241,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       date = Date.utc_today()
       day = date |> to_string() |> String.replace("-", "/")
       archive_file = "200_001.gz"
-      user_dir = Utils.user_dir(metadata.creator) <> "/#{day}"
+      user_dir = user_dir(metadata.creator) <> "/#{day}"
       file_path = user_dir <> "/#{archive_file}"
 
       LastfmArchive.FileIOMock
@@ -223,7 +266,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
     test "returns data frame for a month's scrobbles", %{metadata: metadata} do
       date = ~D[2023-06-01]
       user = "a_lastfm_user"
-      user_dir = Utils.user_dir(user)
+      user_dir = user_dir(user)
       wildcard_path = "#{user_dir}/2023/06/**/*.gz"
 
       files = [

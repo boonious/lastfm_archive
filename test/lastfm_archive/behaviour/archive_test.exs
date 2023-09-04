@@ -50,7 +50,7 @@ defmodule LastfmArchive.Behaviour.ArchiveTest do
              } = archive.update_metadata(metadata, data_dir: "test_data_dir")
     end
 
-    test "reset an existing archive via 'reset' option", %{archive: archive} do
+    test "reset an existing archive metadata via 'reset' option", %{archive: archive} do
       earlier_created_datetime = DateTime.add(DateTime.utc_now(), -3600, :second)
       metadata = file_archive_metadata("a_user", earlier_created_datetime)
 

@@ -6,6 +6,7 @@ defmodule LastfmArchive.LivebookTest do
   alias LastfmArchive.Behaviour.LastfmClient
   alias LastfmArchive.Cache
   alias LastfmArchive.Livebook, as: LFM_LB
+  alias LastfmArchive.Utils
 
   @cache :livebooktest_cache
 
@@ -16,8 +17,9 @@ defmodule LastfmArchive.LivebookTest do
     {:ok, _pid} = start_supervised(%{id: @cache, start: {Cache, :start_link, [[name: @cache]]}})
     cache = %{{"a_user", 2006} => %{{1_138_752_000, 1_138_838_399} => {33, [:ok]}}}
 
+    cache_file = "#{Utils.user_dir("a_user")}/#{Cache.cache_dir()}/2006"
     stub_with(LastfmClient.impl(), LastfmArchive.LastfmClientStub)
-    LastfmArchive.PathIOMock |> stub(:wildcard, fn _, _ -> [".cache_2006"] end)
+    LastfmArchive.PathIOMock |> stub(:wildcard, fn _, _ -> [cache_file] end)
     LastfmArchive.FileIOMock |> stub(:read!, fn _ -> cache[{"a_user", 2006}] |> :erlang.term_to_binary() end)
 
     :ok

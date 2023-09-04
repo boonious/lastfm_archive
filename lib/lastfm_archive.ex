@@ -85,7 +85,11 @@ defmodule LastfmArchive do
   max number of tracks per request permissible by Lastfm
 
   - `:data_dir` - default `lastfm_data`. The file archive is created within a main data directory,
-  e.g. `./lastfm_data/a_lastfm_user/`.
+  e.g. `./lastfm_data/a_lastfm_user/`
+
+  - `:year` - archive scrobbles of this year only
+
+  - `:date` - archive scrobbles of this date only
 
   These options can be configured in `config/config.exs`:
 
