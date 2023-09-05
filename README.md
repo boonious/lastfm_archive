@@ -35,6 +35,9 @@ chunked into 200-track (max) `gzip` compressed pages and stored within directori
 corresponding to the days when tracks were scrobbled. The file archive in a main 
 directory specified in configuration - see below.
 
+See [`sync/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#sync/2) for
+various archiving options such `overwrite`, `year`, `date`.
+
 ### Transform into columnar storage formats
 You can transform the file archive into other common storage formats such as CSV and 
 columnar data structure such as [Apache Parquet](https://parquet.apache.org). 
@@ -145,7 +148,7 @@ to your list of dependencies in `mix.exs`:
 ```elixir
   def deps do
     [
-      {:lastfm_archive, "~> 1.0"}
+      {:lastfm_archive, "~> 1.1"}
     ]
   end
 ```

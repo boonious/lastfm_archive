@@ -90,26 +90,47 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       metadata: metadata,
       scrobbles_json: scrobbles_json
     } do
+      opts = [year: 2021]
+
       LastfmArchive.FileIOMock
       |> expect(:write, 3, fn path, ^scrobbles_json, [:compressed] ->
         assert path =~ "/2021/"
         :ok
       end)
 
-      capture_log(fn -> FileArchive.archive(metadata, year: 2021) end)
+      capture_log(fn -> FileArchive.archive(metadata, opts) end)
     end
 
     test "scrobbles of a given date option", %{
       metadata: metadata,
       scrobbles_json: scrobbles_json
     } do
+      opts = [date: ~D[2021-04-01]]
+
       LastfmArchive.FileIOMock
       |> expect(:write, fn path, ^scrobbles_json, [:compressed] ->
         assert path =~ "/2021/04/01"
         :ok
       end)
 
-      capture_log(fn -> FileArchive.archive(metadata, date: ~D[2021-04-01]) end)
+      capture_log(fn -> FileArchive.archive(metadata, opts) end)
+    end
+
+    test "overwrite scrobbles when opted", %{metadata: metadata, user: user} do
+      daily_playcount = 13
+      opts = [overwrite: true]
+
+      cache_ok_status =
+        metadata.temporal
+        |> daily_time_ranges()
+        |> Enum.into(%{}, fn time_range -> {time_range, {daily_playcount, [:ok]}} end)
+
+      LastfmArchive.CacheMock |> expect(:get, fn {^user, 2021}, _cache -> cache_ok_status end)
+
+      LastfmClient.impl() |> expect(:scrobbles, 3, fn _user, _client_args, _client -> {:ok, %{}} end)
+      LastfmArchive.FileIOMock |> expect(:write, 3, fn _path, _data, [:compressed] -> :ok end)
+
+      refute capture_log(fn -> assert {:ok, %Metadata{}} = FileArchive.archive(metadata, opts) end) =~ "Skipping"
     end
 
     test "raises when year option out of range", %{metadata: metadata} do
@@ -117,7 +138,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
     end
 
     test "raises when date option out of range", %{metadata: metadata} do
-      assert_raise(RuntimeError, fn -> FileArchive.archive(metadata, date: ~D[2023-05-01]) end)
+      capture_log(fn -> assert_raise(RuntimeError, fn -> FileArchive.archive(metadata, date: ~D[2023-05-01]) end) end)
     end
 
     test "caches ok status", %{metadata: metadata, user: user} do

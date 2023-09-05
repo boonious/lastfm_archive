@@ -1,4 +1,11 @@
 # Changelog
+## 1.1.0 (2023-09-06)
+
+* `year`, `date`, `overwrite` options for `LastfmArchive.sync/2`
+* refactor: `.cache` hidden directory hosting cache files
+* refactor: split `LastfmArchive.Cache` into behaviour, client, server modules
+* refactor: extract date time logic from `LastfmArchive.Utils` into a separate module
+
 ## 1.0.0 (2023-09-01)
 
 * faceted archive: deriving multiple facets (archives) from the same file archive in support of analytics use cases

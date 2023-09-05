@@ -9,7 +9,7 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
   alias Explorer.DataFrame
   alias LastfmArchive.Behaviour.Archive
 
-  import LastfmArchive.Utils, only: [maybe_create_dir: 2, check_filepath: 3, write: 2]
+  import LastfmArchive.Utils, only: [maybe_create_dir: 2, check_filepath: 2, write: 2, user_dir: 2]
   import LastfmArchive.Utils.DateTime, only: [month_range: 2, year_range: 1]
 
   require Explorer.DataFrame
@@ -75,7 +75,7 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
   defp maybe_create_archive_dir(user, opts) do
     opts
     |> validate_opts()
-    |> then(fn opts -> maybe_create_dir(user, dir: derived_archive_dir(opts)) end)
+    |> then(fn opts -> maybe_create_dir(user_dir(user, opts), sub_dir: derived_archive_dir(opts)) end)
   end
 
   def data_frame_source(metadata, year) do
@@ -96,11 +96,10 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
     Logger.info("\nWriting data from #{year}")
     opts = opts |> validate_opts()
     format = Keyword.fetch!(opts, :format)
-    filepath = "#{derived_archive_dir(opts)}/#{year}.#{format}"
-
+    filepath = Path.join([user_dir(user, opts), "#{derived_archive_dir(opts)}/#{year}.#{format}"])
     df = df |> DataFrame.filter(year == ^year)
 
-    case check_filepath(user, format, filepath) do
+    case check_filepath(format, filepath) do
       {:ok, filepath} ->
         write(df, write_fun(filepath, format))
 

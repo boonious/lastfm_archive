@@ -64,20 +64,34 @@ LastfmArchive.sync()
 
 <!-- livebook:{"branch_parent_index":2} -->
 
-## Archiving - specific year or date
+## Year option
 
-Archiving can be scoped towards tracks played of a given year. For example:
+`:year`: archiving scrobbles from a given year option. For example:
 
 ```elixir
 # change year to one containing scrobbles
 LastfmArchive.default_user() |> LastfmArchive.sync(year: 2023)
 ```
 
-Or on a specific date:
+<!-- livebook:{"branch_parent_index":2} -->
+
+## Date option
+
+`:date` archiving scrobbles from a given date
 
 ```elixir
 # change date to one containing scrobbles
-LastfmArchive.default_user() |> LastfmArchive.sync(date: ~D[2023-09-04])
+LastfmArchive.default_user() |> LastfmArchive.sync(date: ~D[2023-09-03])
+```
+
+<!-- livebook:{"branch_parent_index":2} -->
+
+## Overwrite option
+
+`:overwrite` any existing scrobbles, ignoring archiving status cache
+
+```elixir
+LastfmArchive.default_user() |> LastfmArchive.sync(date: ~D[2023-09-03], overwrite: true)
 ```
 
 <!-- livebook:{"branch_parent_index":2} -->
@@ -91,4 +105,4 @@ Run the following for a heatmap and counts, checking the archiving progress. Rer
 |> Kino.Layout.grid(columns: 2)
 ```
 
-<!-- livebook:{"offset":3079,"stamp":{"token":"QTEyOEdDTQ.1NzKk-FKz25LYAqhw06o84tWcuztAP-7A84iIeGXPE8JQphLli_ogPAPOIU.vUekR3Rjd6s1kxzx.h8f7-Hkpr9tLlTv9wGA8L_FUeqk8qgb_SBpyIDRl-t6wba6UwZb5r4mhzMSaeGHuWWo44V7Nc5_Yaoo.6h9je_8AeXOQre8TR8FpYA","version":1}} -->
+<!-- livebook:{"offset":3374,"stamp":{"token":"QTEyOEdDTQ.l19yCxas8G1C7rJjoJdhjZTywq4sDPMUv0HAAdClMQQKnZ9Dq64Pdt5nu8c.LRwDCjtbckn5i_61.4_6i45Fc02lZ1vVECPx8FNuG_Ugl6uj4EPeALcX8MSaRotLccyOc1fxgMZvkizhPsjM8vOBHsfwBCuM.ynfEbr5T6eKphZprcIMQ5w","version":1}} -->

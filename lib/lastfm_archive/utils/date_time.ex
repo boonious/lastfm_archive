@@ -38,5 +38,7 @@ defmodule LastfmArchive.Utils.DateTime do
     {from, to}
   end
 
+  def today?(time), do: DateTime.from_unix!(time) |> DateTime.to_date() |> Kernel.==(Date.utc_today())
+
   def year_range({from, to}), do: DateTime.from_unix!(from).year..DateTime.from_unix!(to).year
 end

@@ -3,7 +3,7 @@ defmodule LastfmArchive do
   `lastfm_archive` is a tool for extracting and archiving Last.fm music listening data - scrobbles.
 
   Current usage:
-  - `sync/0`, `sync/1`: create and sync Lastfm scrobble data to local file archives
+  - `sync/0`, `sync/2`: create and sync Lastfm scrobble data to local file archives
   - `transform/0`, `transform/2`: transform downloaded raw data in file archives into columnar and other formats, e.g. CSV, Apache Parquet, Arrow
   - `read/2`: load daily, monthly, yearly and entire dataset from file archives into data frames
   - `load_archive/2`: load all CSV data from the archive into Solr
@@ -70,34 +70,33 @@ defmodule LastfmArchive do
 
   Options:
 
+  - `:data_dir` - default `lastfm_data`, file archives are stored within this directory
+
+  - `:date` - archive scrobbles from this date only
+
   - `:interval` - default `1000`(ms), the duration between successive Lastfm API requests.
-  This provides a control for request rate.
-  The default interval ensures a safe rate that is
+  This default interval ensures a safe request rate that is
   within Lastfm's term of service: no more than 5 requests per second
 
-  - `:overwrite` - default `false` (not available currently), if sets to true
-  the system will (re)fetch and overwrite any previously downloaded
+  - `:overwrite` - default `false`, if sets to true
+  the tool will (re)fetch and overwrite any previously downloaded
   data. Use this option to refresh the file archive. Otherwise (false),
-  the system will not be making calls to Lastfm to check and re-fetch data
-  if existing data chunks / pages are found. This speeds up archive updating
+  the system will not be making calls to Lastfm to re-fetch data
+  if existing data chunks / pages are found.
 
-  - `:per_page` - default `200`, number of scrobbles per page in archive. The default is the
+  - `:per_page` - default `200`, number of scrobbles per file. The default is the
   max number of tracks per request permissible by Lastfm
 
-  - `:data_dir` - default `lastfm_data`. The file archive is created within a main data directory,
-  e.g. `./lastfm_data/a_lastfm_user/`
+  - `:year` - archive scrobbles from this year only
 
-  - `:year` - archive scrobbles of this year only
-
-  - `:date` - archive scrobbles of this date only
-
-  These options can be configured in `config/config.exs`:
+  `:interval`, `:per_page` and `:data_dir` options can be configured in `config/config.exs`:
 
   ```
     config :lastfm_archive,
       ...
       data_dir: "./lastfm_data/"
   ```
+
   """
   @spec sync(binary, keyword) :: {:ok, metadata()} | {:error, :file.posix()}
   def sync(user \\ default_user(), options \\ []) do
@@ -197,8 +196,8 @@ defmodule LastfmArchive do
   end
 
   # return all archive file paths in a list
-  defp ls_archive_files(user) do
-    Path.join(Utils.user_dir(user), "**/*.gz")
+  defp ls_archive_files(user, options \\ []) do
+    Path.join(Utils.user_dir(user, options), "**/*.gz")
     |> @path_io.wildcard([])
     |> Enum.map(&(String.split(&1 |> to_string, user <> "/") |> tl |> hd))
   end

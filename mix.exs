@@ -8,7 +8,7 @@ defmodule LastfmArchive.MixProject do
   def project do
     [
       app: :lastfm_archive,
-      version: "1.0.0",
+      version: "1.1.0",
       elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -23,7 +23,7 @@ defmodule LastfmArchive.MixProject do
       source_url: "https://github.com/boonious/lastfm_archive",
       homepage_url: "https://github.com/boonious/lastfm_archive",
       docs: [
-        main: "LastfmArchive",
+        main: "readme",
         extras: [
           "README.md",
           "CHANGELOG.md",

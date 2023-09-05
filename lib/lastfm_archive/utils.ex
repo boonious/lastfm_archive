@@ -5,19 +5,23 @@ defmodule LastfmArchive.Utils do
   alias LastfmArchive.Archive.Metadata
   require Logger
 
+  @metadata_dir ".metadata"
   @data_dir Application.compile_env(:lastfm_archive, :data_dir, "./lastfm_data/")
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
   @reset Application.compile_env(:lastfm_archive, :reset, false)
 
-  def data_dir(options \\ []), do: Keyword.get(options, :data_dir, @data_dir)
-  def user_dir(user, options \\ []), do: Path.join([data_dir(options), user])
+  def data_dir(), do: @data_dir
+  def data_dir(opts), do: Keyword.get(opts, :data_dir, data_dir())
 
-  def metadata_filepath(user, options \\ []) do
+  def user_dir(user), do: Path.join([data_dir(), user])
+  def user_dir(user, opts), do: Path.join([data_dir(opts), user])
+
+  def metadata_filepath(user, opts \\ []) do
     Path.join([
-      data_dir(options),
+      Keyword.get(opts, :data_dir) || data_dir(),
       user,
-      ".metadata/#{Keyword.get(options, :facet, "scrobbles")}/#{Keyword.get(options, :format, "json")}_archive"
+      "#{@metadata_dir}/#{Keyword.get(opts, :facet, "scrobbles")}/#{Keyword.get(opts, :format, "json")}_archive"
     ])
   end
 
@@ -37,37 +41,28 @@ defmodule LastfmArchive.Utils do
 
   @doc """
   Read and unzip a file from the archive of a Lastfm user.
-
-  ### Example
-
-  ```
-    LastfmArchive.Utils.read("a_lastfm_user", "csv/2007.csv.gz")
-  ```
   """
-  def read(user, filename) do
-    file_path = Path.join(user_dir(user, []), filename)
-
-    case @file_io.read(file_path) do
+  def read(filepath) do
+    case @file_io.read(filepath) do
       {:ok, gzip_data} ->
         {:ok, gzip_data |> :zlib.gunzip()}
 
       error ->
+        Logger.warning("Error reading #{filepath}: #{inspect(error)} ")
         error
     end
   end
 
-  def maybe_create_dir(user, dir: dir) do
-    dir = Path.join(user_dir(user, []), dir)
+  def maybe_create_dir(user_dir, sub_dir: sub_dir) do
+    dir = Path.join(user_dir, sub_dir)
     unless @file_io.exists?(dir), do: @file_io.mkdir_p(dir)
     :ok
   end
 
-  def check_filepath(user, :csv, path), do: check_filepath(user, path <> ".gz")
-  def check_filepath(user, _format, path), do: check_filepath(user, path)
+  def check_filepath(:csv, path), do: check_filepath(path <> ".gz")
+  def check_filepath(_format, path), do: check_filepath(path)
 
-  def check_filepath(user, path) do
-    filepath = Path.join([user_dir(user), path])
-
+  def check_filepath(filepath) do
     case @file_io.exists?(filepath) do
       false -> {:ok, filepath}
       true -> {:error, :file_exists, filepath}
@@ -115,10 +110,10 @@ defmodule LastfmArchive.Utils do
     end
   end
 
-  def write(%Metadata{creator: creator}, scrobbles, options) when is_map(scrobbles) do
+  def write(%Metadata{creator: user}, scrobbles, options) when is_map(scrobbles) do
     full_path =
       Keyword.fetch!(options, :filepath)
-      |> then(fn path -> user_dir(creator, options) |> Path.join("#{path}.gz") end)
+      |> then(fn path -> user_dir(user, options) |> Path.join("#{path}.gz") end)
 
     full_path_dir = Path.dirname(full_path)
     unless @file_io.exists?(full_path_dir), do: @file_io.mkdir_p(full_path_dir)

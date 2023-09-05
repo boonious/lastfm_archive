@@ -1,6 +1,7 @@
 defmodule LastfmArchive.UtilsTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureLog
   import Hammox
   import Fixtures.Archive
   import Fixtures.Lastfm
@@ -22,8 +23,7 @@ defmodule LastfmArchive.UtilsTest do
     assert Utils.metadata_filepath("user", opts) == "#{Utils.user_dir("user", opts)}/#{filepath}"
   end
 
-  test "read/2 file from the archive for a given user and file location" do
-    test_user = "load_test_user"
+  test "read/1 file from the archive for a given user and file location" do
     csv_file = Path.join(Utils.user_dir("load_test_user"), "csv/2018.csv.gz")
     non_existing_file = Path.join(Utils.user_dir("load_test_user"), "non_existing_file.csv.gz")
 
@@ -31,8 +31,8 @@ defmodule LastfmArchive.UtilsTest do
     |> expect(:read, fn ^non_existing_file -> {:error, :enoent} end)
     |> expect(:read, fn ^csv_file -> {:ok, csv_gzip_data()} end)
 
-    assert {:error, :enoent} = Utils.read(test_user, "non_existing_file.csv.gz")
-    assert {:ok, resp} = Utils.read(test_user, "csv/2018.csv.gz")
+    capture_log(fn -> assert {:error, :enoent} = Utils.read(non_existing_file) end)
+    assert {:ok, resp} = Utils.read(csv_file)
 
     [_header | scrobbles] = resp |> String.split("\n")
     assert length(scrobbles) > 0

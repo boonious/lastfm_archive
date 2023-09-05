@@ -3,6 +3,7 @@ defmodule LastfmArchive.CacheTest do
 
   import Hammox
   alias LastfmArchive.Cache
+  alias LastfmArchive.Cache.Server, as: CacheServer
   alias LastfmArchive.Utils
 
   @cache :test_cache
@@ -13,7 +14,10 @@ defmodule LastfmArchive.CacheTest do
 
   setup do
     {:ok, _pid} =
-      start_supervised(%{id: @cache, start: {Cache, :start_link, [[name: @cache, ticks: @ticks_before_serialise]]}})
+      start_supervised(%{
+        id: @cache,
+        start: {CacheServer, :start_link, [[name: @cache, ticks: @ticks_before_serialise]]}
+      })
 
     %{user: "a_user", cache: %{{"a_user", 2006} => %{{1_138_752_000, 1_138_838_399} => {33, [:ok]}}}}
   end

@@ -1,7 +1,7 @@
 defmodule LastfmArchive.CacheStub do
   @moduledoc false
 
-  @behaviour LastfmArchive.Cache
+  @behaviour LastfmArchive.Behaviour.Cache
 
   def load(_user, _cache, _options), do: %{}
   def put({_user, _year}, {_from, _to}, _value, _options, _cache), do: :ok
