@@ -4,7 +4,7 @@ defmodule LastfmArchive.Application do
   use Application
 
   def start(_type, _args) do
-    children = [LastfmArchive.Cache]
+    children = [LastfmArchive.Cache.Server]
 
     opts = [strategy: :one_for_one, name: LastfmArchive.Supervisor]
     Supervisor.start_link(children, opts)

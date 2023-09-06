@@ -5,59 +5,23 @@ defmodule LastfmArchive.Utils do
   alias LastfmArchive.Archive.Metadata
   require Logger
 
+  @metadata_dir ".metadata"
   @data_dir Application.compile_env(:lastfm_archive, :data_dir, "./lastfm_data/")
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
   @reset Application.compile_env(:lastfm_archive, :reset, false)
 
-  @doc """
-  Generate {from, to} daily time ranges for querying Last.fm API based on
-  the first and last scrobble unix timestamps.
-  """
-  def build_time_range({from, to}) do
-    from = DateTime.from_unix!(from) |> DateTime.to_date()
-    to = DateTime.from_unix!(to) |> DateTime.to_date()
-    Enum.map(Date.range(from, to), &iso8601_to_unix("#{&1}T00:00:00Z", "#{&1}T23:59:59Z"))
-  end
+  def data_dir(), do: @data_dir
+  def data_dir(opts), do: Keyword.get(opts, :data_dir, data_dir())
 
-  def build_time_range(year, %Metadata{} = metadata) when is_integer(year) do
-    {from, to} = iso8601_to_unix("#{year}-01-01T00:00:00Z", "#{year}-12-31T23:59:59Z")
-    {registered_time, last_scrobble_time} = metadata.temporal
+  def user_dir(user), do: Path.join([data_dir(), user])
+  def user_dir(user, opts), do: Path.join([data_dir(opts), user])
 
-    from = if from <= registered_time, do: registered_time, else: from
-    to = if to >= last_scrobble_time, do: last_scrobble_time, else: to
-
-    {from, to}
-  end
-
-  defp iso8601_to_unix(from, to) do
-    {:ok, from, _} = DateTime.from_iso8601(from)
-    {:ok, to, _} = DateTime.from_iso8601(to)
-
-    {DateTime.to_unix(from), DateTime.to_unix(to)}
-  end
-
-  @spec month_range(integer, LastfmArchive.Archive.Metadata.t()) :: list(Date.t())
-  def month_range(year, metadata) do
-    {from, to} = build_time_range(year, metadata)
-    %Date{month: first_month} = DateTime.from_unix!(from) |> DateTime.to_date()
-    %Date{month: last_month} = DateTime.from_unix!(to) |> DateTime.to_date()
-
-    for month <- 1..12, month <= last_month, month >= first_month do
-      %Date{year: year, day: 1, month: month}
-    end
-  end
-
-  def year_range({from, to}), do: DateTime.from_unix!(from).year..DateTime.from_unix!(to).year
-
-  def data_dir(options \\ []), do: Keyword.get(options, :data_dir, @data_dir)
-  def user_dir(user, options \\ []), do: Path.join([data_dir(options), user])
-
-  def metadata_filepath(user, options \\ []) do
+  def metadata_filepath(user, opts \\ []) do
     Path.join([
-      data_dir(options),
+      Keyword.get(opts, :data_dir) || data_dir(),
       user,
-      ".metadata/#{Keyword.get(options, :facet, "scrobbles")}/#{Keyword.get(options, :format, "json")}_archive"
+      "#{@metadata_dir}/#{Keyword.get(opts, :facet, "scrobbles")}/#{Keyword.get(opts, :format, "json")}_archive"
     ])
   end
 
@@ -75,42 +39,30 @@ defmodule LastfmArchive.Utils do
     |> Path.join("#{per_page}_#{page_num}")
   end
 
-  def date(from) when is_integer(from), do: DateTime.from_unix!(from) |> Calendar.strftime("%Y-%m-%d")
-  def date({from, _day}) when is_integer(from), do: DateTime.from_unix!(from) |> Calendar.strftime("%Y-%m-%d")
-
   @doc """
   Read and unzip a file from the archive of a Lastfm user.
-
-  ### Example
-
-  ```
-    LastfmArchive.Utils.read("a_lastfm_user", "csv/2007.csv.gz")
-  ```
   """
-  def read(user, filename) do
-    file_path = Path.join(user_dir(user, []), filename)
-
-    case @file_io.read(file_path) do
+  def read(filepath) do
+    case @file_io.read(filepath) do
       {:ok, gzip_data} ->
         {:ok, gzip_data |> :zlib.gunzip()}
 
       error ->
+        Logger.warning("Error reading #{filepath}: #{inspect(error)} ")
         error
     end
   end
 
-  def create_dir(user, dir: dir) do
-    dir = Path.join(user_dir(user, []), dir)
+  def maybe_create_dir(user_dir, sub_dir: sub_dir) do
+    dir = Path.join(user_dir, sub_dir)
     unless @file_io.exists?(dir), do: @file_io.mkdir_p(dir)
     :ok
   end
 
-  def check_filepath(user, :csv, path), do: check_filepath(user, path <> ".gz")
-  def check_filepath(user, _format, path), do: check_filepath(user, path)
+  def check_filepath(:csv, path), do: check_filepath(path <> ".gz")
+  def check_filepath(_format, path), do: check_filepath(path)
 
-  def check_filepath(user, path) do
-    filepath = Path.join([user_dir(user), path])
-
+  def check_filepath(filepath) do
     case @file_io.exists?(filepath) do
       false -> {:ok, filepath}
       true -> {:error, :file_exists, filepath}
@@ -158,10 +110,10 @@ defmodule LastfmArchive.Utils do
     end
   end
 
-  def write(%Metadata{creator: creator}, scrobbles, options) when is_map(scrobbles) do
+  def write(%Metadata{creator: user}, scrobbles, options) when is_map(scrobbles) do
     full_path =
       Keyword.fetch!(options, :filepath)
-      |> then(fn path -> user_dir(creator, options) |> Path.join("#{path}.gz") end)
+      |> then(fn path -> user_dir(user, options) |> Path.join("#{path}.gz") end)
 
     full_path_dir = Path.dirname(full_path)
     unless @file_io.exists?(full_path_dir), do: @file_io.mkdir_p(full_path_dir)

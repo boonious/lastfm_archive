@@ -11,6 +11,8 @@ defmodule LastfmArchive.Archive.DerivedArchive do
 
   use LastfmArchive.Behaviour.DataFrameIo, formats: TransformerSettings.formats()
 
+  import LastfmArchive.Utils.DateTime, only: [year_range: 1]
+
   @type read_options :: [year: integer(), columns: list(atom()), format: atom(), facet: atom()]
 
   @impl true
@@ -56,12 +58,12 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   defp fetch_years(%Metadata{} = metadata, nil), do: {:ok, year_range(metadata.temporal) |> Enum.to_list()}
   defp fetch_years(%Metadata{} = _metadata, year), do: {:ok, [year]}
 
-  defp filepath(dir, :csv, user, year), do: Path.join(user_dir(user), "#{dir}/#{year}.csv.gz")
-  defp filepath(dir, format, user, year), do: Path.join(user_dir(user), "#{dir}/#{year}.#{format}")
+  defp filepath(dir, :csv, user_dir, year), do: Path.join(user_dir, "#{dir}/#{year}.csv.gz")
+  defp filepath(dir, format, user_dir, year), do: Path.join(user_dir, "#{dir}/#{year}.#{format}")
 
   defp create_lazy_dataframe(years, user, facet, format, opts) do
     for year <- years do
-      filepath(derived_archive_dir(format: format, facet: facet), format, user, year)
+      filepath(derived_archive_dir(format: format, facet: facet), format, user_dir(user, opts), year)
       |> load_data_frame(format, opts)
       |> Explorer.DataFrame.to_lazy()
     end

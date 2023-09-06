@@ -7,7 +7,7 @@ defmodule LastfmArchive.Livebook do
   alias LastfmArchive.LastfmClient.LastfmApi
   alias VegaLite, as: Vl
 
-  @cache LastfmArchive.Cache
+  @cache LastfmArchive.Cache.Server
   @type monthy_count :: %{count: integer(), date: String.t()}
 
   @doc """

@@ -9,7 +9,8 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
   alias Explorer.DataFrame
   alias LastfmArchive.Behaviour.Archive
 
-  import LastfmArchive.Utils, only: [create_dir: 2, check_filepath: 3, month_range: 2, year_range: 1, write: 2]
+  import LastfmArchive.Utils, only: [maybe_create_dir: 2, check_filepath: 2, write: 2, user_dir: 2]
+  import LastfmArchive.Utils.DateTime, only: [month_range: 2, year_range: 1]
 
   require Explorer.DataFrame
   require Logger
@@ -20,7 +21,7 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
     quote do
       @behaviour LastfmArchive.Behaviour.Transformer
       import LastfmArchive.Archive.Transformers.Transformer
-      import LastfmArchive.Utils, only: [year_range: 1]
+      import LastfmArchive.Utils.DateTime, only: [year_range: 1]
 
       @impl true
       def source(metadata, opts) do
@@ -50,7 +51,7 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
   end
 
   def apply(transformer, metadata, opts) do
-    create_archive_dir(metadata.creator, opts)
+    maybe_create_archive_dir(metadata.creator, opts)
     run_pipeline(transformer, metadata, opts, Keyword.get(opts, :year, year_range(metadata.temporal) |> Enum.to_list()))
     {:ok, %{metadata | modified: DateTime.utc_now()}}
   end
@@ -71,16 +72,16 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
     transformer.source(metadata, opts) |> transformer.transform(opts) |> transformer.sink(metadata, opts)
   end
 
-  defp create_archive_dir(user, opts) do
+  defp maybe_create_archive_dir(user, opts) do
     opts
     |> validate_opts()
-    |> then(fn opts -> create_dir(user, dir: derived_archive_dir(opts)) end)
+    |> then(fn opts -> maybe_create_dir(user_dir(user, opts), sub_dir: derived_archive_dir(opts)) end)
   end
 
   def data_frame_source(metadata, year) do
     Logger.info("\nSourcing scrobbles from #{year} into a lazy data frame.")
 
-    for month <- month_range(year, metadata) do
+    for month <- month_range(year, metadata.temporal) do
       Archive.impl().read(metadata, month: month)
     end
     |> Enum.flat_map(fn
@@ -95,11 +96,10 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
     Logger.info("\nWriting data from #{year}")
     opts = opts |> validate_opts()
     format = Keyword.fetch!(opts, :format)
-    filepath = "#{derived_archive_dir(opts)}/#{year}.#{format}"
-
+    filepath = Path.join([user_dir(user, opts), "#{derived_archive_dir(opts)}/#{year}.#{format}"])
     df = df |> DataFrame.filter(year == ^year)
 
-    case check_filepath(user, format, filepath) do
+    case check_filepath(format, filepath) do
       {:ok, filepath} ->
         write(df, write_fun(filepath, format))
 

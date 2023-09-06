@@ -35,6 +35,9 @@ chunked into 200-track (max) `gzip` compressed pages and stored within directori
 corresponding to the days when tracks were scrobbled. The file archive in a main 
 directory specified in configuration - see below.
 
+See [`sync/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#sync/2) for
+various archiving options such `overwrite`, `year`, `date`.
+
 ### Transform into columnar storage formats
 You can transform the file archive into other common storage formats such as CSV and 
 columnar data structure such as [Apache Parquet](https://parquet.apache.org). 
@@ -106,12 +109,12 @@ See [`read/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#read/2).
 `LastfmArchive` also provides the following [Livebook](https://livebook.dev) interactive and step-by-step guides: 
   - [Creating a file archive](https://hexdocs.pm/lastfm_archive/archiving.html) guide for creating a local file archive consisting data fetched from the Last.fm API. It provides a heatmap and count visualisation for checking ongoing archiving status.
 
-    [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fboonious%2Flastfm_archive%2Fmaster%2Flivebook%2Fguides%2Farchiving.livemd)
+    [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fboonious%2Flastfm_archive%2Fmaster%2Flivebook%2Farchiving.livemd)
 
     ![archiving progress visualisation](assets/img/livebook_heatmap.png)
   - [Columnar data transforms](https://hexdocs.pm/lastfm_archive/transforming.html) guide for transforming the local file archive to columnar data formats (Arrow, Parquet). It demonstrates how `read/2` can be used to load single-year single-column data, as well as an entire dataset into data frame for various analytics. 
 
-    [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fboonious%2Flastfm_archive%2Fmaster%2Flivebook%2Fguides%2Ftransforming.livemd)
+    [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fboonious%2Flastfm_archive%2Fmaster%2Flivebook%2Ftransforming.livemd)
 
     ![unique tracks by artists analytics](assets/img/livebook_unique_tracks_analytics.png)   
  
@@ -145,7 +148,7 @@ to your list of dependencies in `mix.exs`:
 ```elixir
   def deps do
     [
-      {:lastfm_archive, "~> 1.0"}
+      {:lastfm_archive, "~> 1.1"}
     ]
   end
 ```

@@ -4,7 +4,7 @@
 
 ```elixir
 Mix.install(
-  [{:lastfm_archive, "~> 1.0"}],
+  [{:lastfm_archive, "~> 1.1"}],
   config: [
     lastfm_archive: [
       data_dir: "./lastfm_data/",
@@ -64,6 +64,38 @@ LastfmArchive.sync()
 
 <!-- livebook:{"branch_parent_index":2} -->
 
+## Year option
+
+`:year`: archiving scrobbles from a given year option. For example:
+
+```elixir
+# change year to one containing scrobbles
+LastfmArchive.default_user() |> LastfmArchive.sync(year: 2023)
+```
+
+<!-- livebook:{"branch_parent_index":2} -->
+
+## Date option
+
+`:date` archiving scrobbles from a given date
+
+```elixir
+# change date to one containing scrobbles
+LastfmArchive.default_user() |> LastfmArchive.sync(date: ~D[2023-09-03])
+```
+
+<!-- livebook:{"branch_parent_index":2} -->
+
+## Overwrite option
+
+`:overwrite` any existing scrobbles, ignoring archiving status cache
+
+```elixir
+LastfmArchive.default_user() |> LastfmArchive.sync(date: ~D[2023-09-03], overwrite: true)
+```
+
+<!-- livebook:{"branch_parent_index":2} -->
+
 ## Status
 
 Run the following for a heatmap and counts, checking the archiving progress. Rerun the code to get the latest status.
@@ -72,3 +104,5 @@ Run the following for a heatmap and counts, checking the archiving progress. Rer
 [LFM_LB.monthly_playcounts_heatmap(), LFM_LB.yearly_playcounts_table()]
 |> Kino.Layout.grid(columns: 2)
 ```
+
+<!-- livebook:{"offset":3374,"stamp":{"token":"QTEyOEdDTQ.l19yCxas8G1C7rJjoJdhjZTywq4sDPMUv0HAAdClMQQKnZ9Dq64Pdt5nu8c.LRwDCjtbckn5i_61.4_6i45Fc02lZ1vVECPx8FNuG_Ugl6uj4EPeALcX8MSaRotLccyOc1fxgMZvkizhPsjM8vOBHsfwBCuM.ynfEbr5T6eKphZprcIMQ5w","version":1}} -->
