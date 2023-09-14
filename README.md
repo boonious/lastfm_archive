@@ -3,7 +3,7 @@
 A tool for extracting and archiving Last.fm music listening data - [scrobbles](https://www.last.fm/about/trackmymusic).
 
 **Note**: previous analytics features have been migrated to [coda](https://github.com/boonious/coda).
-This includes the [on this day Livebook](https://github.com/boonious/coda#livebook-analytics).
+This includes the [on this day Livebook](https://github.com/boonious/coda#livebook).
 Please check out [coda](https://github.com/boonious/coda) for more Last.fm listening data analytics
 in the future.
 

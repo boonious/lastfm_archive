@@ -3,11 +3,22 @@ defmodule LastfmArchive.UtilsTest do
 
   import ExUnit.CaptureLog
   import Hammox
-  import Fixtures.Archive
-  import Fixtures.Lastfm
+
+  import LastfmArchive.Factory, only: [build: 2, csv_gzip_data: 0]
+  import Fixtures.Lastfm, only: [recent_tracks: 2]
 
   alias LastfmArchive.Utils
   alias LastfmArchive.Archive.Metadata
+
+  setup_all do
+    user = "utils_test_user"
+
+    %{
+      user: user,
+      metadata: build(:file_archive_metadata, creator: user),
+      metadata_filepath: Utils.metadata_filepath(user, [])
+    }
+  end
 
   test "metadata_filepath/2" do
     opts = []
@@ -39,12 +50,6 @@ defmodule LastfmArchive.UtilsTest do
   end
 
   describe "write/2" do
-    setup do
-      user = "write_test_user"
-      metadata = file_archive_metadata(user)
-      %{metadata: metadata, metadata_filepath: Utils.metadata_filepath(user, [])}
-    end
-
     test "metadata to a file", %{metadata: metadata, metadata_filepath: path} do
       dir = path |> Path.dirname()
       metadata_encoded = metadata |> Jason.encode!()
@@ -67,19 +72,17 @@ defmodule LastfmArchive.UtilsTest do
   end
 
   describe "write/3" do
-    setup do
-      user = "write_test_user"
+    setup context do
       path = "2021/12/31/200_001"
 
       %{
-        scrobbles: recent_tracks(user, 5) |> Jason.decode!(),
-        filepath: Path.join(Utils.user_dir(user, []), "#{path}.gz"),
-        path: path,
-        user: user
+        scrobbles: recent_tracks(context.user, 5) |> Jason.decode!(),
+        filepath: Path.join(Utils.user_dir(context.user, []), "#{path}.gz"),
+        path: path
       }
     end
 
-    test "scrobbles to a file", %{user: user, scrobbles: scrobbles, filepath: full_path, path: path} do
+    test "scrobbles to a file", %{filepath: full_path, path: path, metadata: metadata, scrobbles: scrobbles} do
       dir = full_path |> Path.dirname()
       scrobbles_encoded = scrobbles |> Jason.encode!()
 
@@ -88,17 +91,17 @@ defmodule LastfmArchive.UtilsTest do
       |> expect(:mkdir_p, fn ^dir -> :ok end)
       |> expect(:write, fn ^full_path, ^scrobbles_encoded, [:compressed] -> :ok end)
 
-      assert :ok == Utils.write(file_archive_metadata(user), scrobbles, filepath: path)
+      assert :ok == Utils.write(metadata, scrobbles, filepath: path)
     end
 
     test "handles scrobbles retrieving error", context do
       api_error_message = "Operation failed - Something went wrong"
 
       assert {:error, ^api_error_message} =
-               Utils.write(file_archive_metadata("test_user"), {:error, api_error_message}, filepath: context.path)
+               Utils.write(context.metadata, {:error, api_error_message}, filepath: context.path)
     end
 
-    test "when filepath option not given", %{user: user, scrobbles: scrobbles, filepath: path} do
+    test "when filepath option not given", %{filepath: path, metadata: metadata, scrobbles: scrobbles} do
       scrobbles_encoded = scrobbles |> Jason.encode!()
 
       LastfmArchive.FileIOMock
@@ -106,7 +109,7 @@ defmodule LastfmArchive.UtilsTest do
       |> expect(:write, 0, fn ^path, ^scrobbles_encoded, [:compressed] -> true end)
 
       assert_raise KeyError, fn ->
-        Utils.write(file_archive_metadata(user), scrobbles, [])
+        Utils.write(metadata, scrobbles, [])
       end
     end
   end

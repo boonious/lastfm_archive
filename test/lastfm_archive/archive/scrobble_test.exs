@@ -1,6 +1,6 @@
 defmodule LastfmArchive.Archive.ScrobbleTest do
   use ExUnit.Case, async: true
-  import Fixtures.Lastfm
+  import Fixtures.Lastfm, only: [recent_tracks: 0]
   alias LastfmArchive.Archive.Scrobble
 
   test "new/1 scrobble" do

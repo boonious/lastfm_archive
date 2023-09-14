@@ -1,7 +1,7 @@
 defmodule LastfmArchive.LastfmClientStub do
   @moduledoc false
   @behaviour LastfmArchive.Behaviour.LastfmClient
-  import Fixtures.Lastfm
+  import Fixtures.Lastfm, only: [recent_tracks: 2]
 
   @registered_time DateTime.from_iso8601("2021-04-01T18:50:07Z") |> elem(1) |> DateTime.to_unix()
   @latest_scrobble_time DateTime.from_iso8601("2021-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix()

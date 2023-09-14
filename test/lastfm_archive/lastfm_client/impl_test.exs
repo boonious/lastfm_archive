@@ -1,6 +1,14 @@
 defmodule LastfmArchive.LastfmClient.ImplTest do
   use ExUnit.Case, async: true
-  import Fixtures.Lastfm
+
+  import Fixtures.Lastfm,
+    only: [
+      recent_tracks: 2,
+      recent_tracks: 3,
+      recent_tracks_zero_count: 0,
+      recent_tracks_zero_count_now_playing: 0,
+      user_info: 3
+    ]
 
   alias LastfmArchive.LastfmClient.Impl, as: LastfmClient
   alias LastfmArchive.LastfmClient.LastfmApi

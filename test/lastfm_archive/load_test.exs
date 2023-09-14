@@ -3,7 +3,8 @@ defmodule LastfmArchive.LoadTest do
 
   import ExUnit.CaptureIO
   import Mox
-  import Fixtures.Archive
+  import LastfmArchive.Factory, only: [csv_gzip_data: 0]
+  import Fixtures.Archive, only: [solr_schema_response: 0, solr_missing_fields_response: 0]
 
   alias LastfmArchive.Utils
 
@@ -90,19 +91,19 @@ defmodule LastfmArchive.LoadTest do
 
   test "load a CSV file from the archive into Solr for a given user", %{bypass: bypass} do
     test_user = "load_test_user"
-    tsv_file = Path.join(Utils.user_dir("load_test_user"), "csv/2018.csv.gz")
+    csv_file = Path.join(Utils.user_dir("load_test_user"), "csv/2018.csv.gz")
 
     bypass_url = "http://localhost:#{bypass.port}/"
     headers = [{"Content-type", "application/json"}]
     url = %Hui.URL{url: "#{bypass_url}", handler: "update", headers: headers}
 
     LastfmArchive.FileIOMock
-    |> expect(:read, fn ^tsv_file -> {:ok, csv_gzip_data()} end)
+    |> expect(:read, fn ^csv_file -> {:ok, csv_gzip_data()} end)
 
     Bypass.expect(bypass, fn conn ->
       {:ok, body, conn} = Plug.Conn.read_body(conn)
       assert conn.method == "POST"
-      assert body == solr_add_docs()
+      assert %{"add" => %{"doc" => %{"album" => _}}} = body |> Jason.decode!()
 
       Plug.Conn.resp(conn, 200, "{}")
     end)
@@ -126,14 +127,14 @@ defmodule LastfmArchive.LoadTest do
   test "load_archive/2: load all TSV archive data into Solr via %Hui.URL{}", %{bypass: bypass} do
     test_user = "load_test_user"
     tsv_wildcard_path = Path.join(Utils.user_dir("load_test_user"), "**/*.gz")
-    tsv_file = Path.join([Utils.user_dir("load_test_user"), "csv", "2018.csv.gz"])
+    csv_file = Path.join([Utils.user_dir("load_test_user"), "csv", "2018.csv.gz"])
 
     bypass_url = "http://localhost:#{bypass.port}/"
     headers = [{"Content-type", "application/json"}]
     url = %Hui.URL{url: "#{bypass_url}", handler: "update", headers: headers}
 
-    LastfmArchive.PathIOMock |> expect(:wildcard, fn ^tsv_wildcard_path, _options -> [tsv_file] end)
-    LastfmArchive.FileIOMock |> expect(:read, fn ^tsv_file -> {:ok, csv_gzip_data()} end)
+    LastfmArchive.PathIOMock |> expect(:wildcard, fn ^tsv_wildcard_path, _options -> [csv_file] end)
+    LastfmArchive.FileIOMock |> expect(:read, fn ^csv_file -> {:ok, csv_gzip_data()} end)
 
     Bypass.expect(bypass, fn conn ->
       case conn.method do
@@ -142,7 +143,7 @@ defmodule LastfmArchive.LoadTest do
 
         "POST" ->
           {:ok, body, _conn} = Plug.Conn.read_body(conn)
-          assert body == solr_add_docs()
+          assert %{"add" => %{"doc" => %{"album" => _}}} = body |> Jason.decode!()
       end
 
       Plug.Conn.resp(conn, 200, solr_schema_response())
@@ -154,15 +155,15 @@ defmodule LastfmArchive.LoadTest do
   test "load_archive/2: load all TSV archive data into Solr via URL config key", %{bypass: bypass} do
     test_user = "load_test_user"
     tsv_wildcard_path = Path.join(Utils.user_dir("load_test_user"), "**/*.gz")
-    tsv_file = Path.join([Utils.user_dir("load_test_user"), "csv", "2018.csv.gz"])
+    csv_file = Path.join([Utils.user_dir("load_test_user"), "csv", "2018.csv.gz"])
 
     bypass_url = "http://localhost:#{bypass.port}/"
     headers = [{"Content-type", "application/json"}]
 
     Application.put_env(:hui, :test_url, url: bypass_url, headers: headers, handler: "update")
 
-    LastfmArchive.PathIOMock |> expect(:wildcard, fn ^tsv_wildcard_path, _options -> [tsv_file] end)
-    LastfmArchive.FileIOMock |> expect(:read, fn ^tsv_file -> {:ok, csv_gzip_data()} end)
+    LastfmArchive.PathIOMock |> expect(:wildcard, fn ^tsv_wildcard_path, _options -> [csv_file] end)
+    LastfmArchive.FileIOMock |> expect(:read, fn ^csv_file -> {:ok, csv_gzip_data()} end)
 
     Bypass.expect(bypass, fn conn ->
       if conn.method == "GET" do

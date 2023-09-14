@@ -1,7 +1,7 @@
 defmodule LastfmArchive.Archive.MetadataTest do
   use ExUnit.Case, async: true
   alias LastfmArchive.Archive.Metadata
-  import Fixtures.Archive
+  import LastfmArchive.Factory, only: [build: 1]
 
   describe "new/1" do
     test "from a new user" do
@@ -17,20 +17,22 @@ defmodule LastfmArchive.Archive.MetadataTest do
     end
 
     test "from decoded metadata" do
+      metadata = build(:file_archive_metadata) |> Jason.encode!()
+
       assert %Metadata{
-               created: ~U[2021-04-09 16:37:07.638844Z],
-               creator: "lastfm_user",
-               date: ~D[2023-06-09],
-               description: "Lastfm archive of lastfm_user, extracted from Lastfm API",
-               extent: 392_448,
+               created: _now,
+               creator: "a_lastfm_user",
+               date: ~D[2021-04-03],
+               description: "Lastfm archive of a_lastfm_user, extracted from Lastfm API",
+               extent: 388,
                format: "application/json",
-               identifier: "lastfm_user",
+               identifier: "a_lastfm_user",
                modified: "2023-06-09T14:36:16.952540Z",
                source: "http://ws.audioscrobbler.com/2.0",
-               temporal: {1_187_279_599, 1_686_321_114},
-               title: "Lastfm archive of lastfm_user",
-               type: LastfmArchive.Archive.FileArchive
-             } = Metadata.new(archive_metadata() |> Jason.decode!(keys: :atoms!))
+               temporal: {1_617_303_007, 1_617_475_807},
+               title: "Lastfm archive of a_lastfm_user",
+               type: :scrobbles
+             } = Metadata.new(metadata |> Jason.decode!(keys: :atoms!))
     end
   end
 

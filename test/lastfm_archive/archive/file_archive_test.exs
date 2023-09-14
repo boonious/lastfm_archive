@@ -2,8 +2,10 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
   use ExUnit.Case, async: true
 
   import ExUnit.CaptureLog
-  import Fixtures.{Archive, Lastfm}
   import Hammox
+
+  import Fixtures.Lastfm, only: [raw_gzipped_scrobbles: 0, recent_tracks: 2]
+  import LastfmArchive.Factory, only: [build: 2]
 
   import LastfmArchive.Utils, only: [user_dir: 1]
   import LastfmArchive.Utils.DateTime, only: [daily_time_ranges: 1]
@@ -21,7 +23,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
 
   setup_all do
     user = "a_lastfm_user"
-    %{user: user, metadata: new_archive_metadata(user: user)}
+    %{user: user, metadata: build(:file_archive_metadata, creator: user)}
   end
 
   describe "archive/3" do
@@ -45,11 +47,11 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       user: user
     } do
       daily_playcount = 13
-      {registered_time, last_scrobble_time} = metadata.temporal
+      {first_scrobble_time, last_scrobble_time} = metadata.temporal
       total_scrobbles = metadata.extent
 
       LastfmClient.impl()
-      |> expect(:info, fn ^user, _client -> {:ok, {total_scrobbles, registered_time}} end)
+      |> expect(:info, fn ^user, _client -> {:ok, {total_scrobbles, first_scrobble_time}} end)
       |> expect(:playcount, fn ^user, _time_range, _client -> {:ok, {total_scrobbles, last_scrobble_time}} end)
       |> stub(:playcount, fn ^user, _time_range, _api -> {:ok, {daily_playcount, last_scrobble_time}} end)
       |> stub(:scrobbles, fn ^user, _client_args, _client -> {:ok, scrobbles} end)
@@ -158,13 +160,13 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
     end
 
     test "does not cache status of today's scrobbles (partial) archiving", %{metadata: metadata, user: user} do
-      registered_time = (DateTime.utc_now() |> DateTime.to_unix()) - 100
+      first_scrobble_time = (DateTime.utc_now() |> DateTime.to_unix()) - 100
       last_scrobble_time = DateTime.utc_now() |> DateTime.to_unix()
       total_scrobbles = 2
 
       metadata = %{
         metadata
-        | temporal: {registered_time, last_scrobble_time},
+        | temporal: {first_scrobble_time, last_scrobble_time},
           extent: total_scrobbles,
           date: Date.utc_today()
       }
@@ -172,7 +174,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       Archive.impl() |> stub(:update_metadata, fn _metadata, _options -> {:ok, metadata} end)
 
       LastfmClient.impl()
-      |> expect(:info, fn ^user, _api -> {:ok, {total_scrobbles, registered_time}} end)
+      |> expect(:info, fn ^user, _api -> {:ok, {total_scrobbles, first_scrobble_time}} end)
       |> expect(:playcount, 2, fn ^user, _time_range, _api -> {:ok, {total_scrobbles, last_scrobble_time}} end)
       |> expect(:scrobbles, fn ^user, _client_args, _client -> {:ok, %{}} end)
 
@@ -198,11 +200,11 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       user: user
     } do
       api_error = "error"
-      {registered_time, last_scrobble_time} = metadata.temporal
+      {first_scrobble_time, last_scrobble_time} = metadata.temporal
       total_scrobbles = metadata.extent
 
       LastfmClient.impl()
-      |> expect(:info, fn ^user, _client -> {:ok, {total_scrobbles, registered_time}} end)
+      |> expect(:info, fn ^user, _client -> {:ok, {total_scrobbles, first_scrobble_time}} end)
       |> expect(:playcount, fn ^user, _time_range, _client -> {:ok, {total_scrobbles, last_scrobble_time}} end)
       |> stub(:playcount, fn ^user, _time_range, _api -> {:error, api_error} end)
       |> stub(:scrobbles, fn ^user, _client_args, _client -> {:ok, scrobbles} end)
@@ -226,11 +228,11 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
 
     test "does not write to files and make scrobbles calls on 0 playcount day", %{metadata: metadata} do
       daily_playcount = 0
-      {registered_time, last_scrobble_time} = metadata.temporal
+      {first_scrobble_time, last_scrobble_time} = metadata.temporal
       total_scrobbles = metadata.extent
 
       LastfmClient.impl()
-      |> expect(:info, fn _user, _client -> {:ok, {total_scrobbles, registered_time}} end)
+      |> expect(:info, fn _user, _client -> {:ok, {total_scrobbles, first_scrobble_time}} end)
       |> expect(:playcount, fn _user, _time_range, _client -> {:ok, {total_scrobbles, last_scrobble_time}} end)
       |> stub(:playcount, fn _user, _time_range, _api -> {:ok, {daily_playcount, last_scrobble_time}} end)
       |> expect(:scrobbles, 0, fn _user, _client_args, _client -> {:ok, ""} end)
@@ -267,7 +269,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
 
       LastfmArchive.FileIOMock
       |> expect(:ls!, fn ^user_dir -> [archive_file] end)
-      |> expect(:read, fn ^file_path -> {:ok, gzipped_scrobbles()} end)
+      |> expect(:read, fn ^file_path -> {:ok, raw_gzipped_scrobbles()} end)
 
       {:ok, %DataFrame{} = df} = FileArchive.read(metadata, day: date)
       assert {105, @column_count} == df |> DataFrame.collect() |> DataFrame.shape()
@@ -278,7 +280,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
 
       LastfmArchive.FileIOMock
       |> expect(:ls!, fn _user_dir -> ["200_001.gz", "200_002.gz"] end)
-      |> expect(:read, 2, fn _file_path -> {:ok, gzipped_scrobbles()} end)
+      |> expect(:read, 2, fn _file_path -> {:ok, raw_gzipped_scrobbles()} end)
 
       {:ok, %DataFrame{} = df} = FileArchive.read(metadata, day: date)
       assert {105 * 2, @column_count} == df |> DataFrame.collect() |> DataFrame.shape()
@@ -297,7 +299,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       ]
 
       LastfmArchive.PathIOMock |> expect(:wildcard, fn ^wildcard_path, _options -> files end)
-      LastfmArchive.FileIOMock |> expect(:read, 3, fn _file_path -> {:ok, gzipped_scrobbles()} end)
+      LastfmArchive.FileIOMock |> expect(:read, 3, fn _file_path -> {:ok, raw_gzipped_scrobbles()} end)
 
       {:ok, %DataFrame{} = df} = FileArchive.read(metadata, month: date)
       assert {105 * 3, @column_count} == df |> DataFrame.collect() |> DataFrame.shape()
