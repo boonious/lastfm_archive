@@ -1,17 +1,14 @@
 defmodule LastfmArchive.LastfmClient.ImplTest do
   use ExUnit.Case, async: true
 
-  import Fixtures.Lastfm,
-    only: [
-      recent_tracks: 2,
-      recent_tracks: 3,
-      recent_tracks_zero_count: 0,
-      recent_tracks_zero_count_now_playing: 0,
-      user_info: 3
-    ]
+  import LastfmArchive.Factory, only: [build: 2]
 
   alias LastfmArchive.LastfmClient.Impl, as: LastfmClient
   alias LastfmArchive.LastfmClient.LastfmApi
+
+  setup_all do
+    %{user: "lastfm_client_test_user"}
+  end
 
   describe "scrobbles/3" do
     setup do
@@ -28,8 +25,14 @@ defmodule LastfmArchive.LastfmClient.ImplTest do
       }
     end
 
-    test "returns scrobbles of a user for given a time range", %{bypass: bypass, api: api, params: params} do
-      {user, count} = {"a_lastfm_user", 12}
+    test "returns scrobbles of a user for given a time range", %{
+      bypass: bypass,
+      api: api,
+      params: params,
+      user: user
+    } do
+      count = 100
+      tracks = build(:recent_tracks, user: user, total: count, num_of_plays: 1) |> Jason.encode!()
 
       Bypass.expect(bypass, fn conn ->
         params = Plug.Conn.fetch_query_params(conn) |> Map.fetch!(:query_params)
@@ -40,33 +43,33 @@ defmodule LastfmArchive.LastfmClient.ImplTest do
         assert %{
                  "api_key" => "12345",
                  "method" => "user.getrecenttracks",
-                 "user" => "a_lastfm_user",
+                 "user" => ^user,
                  "from" => "1167609600",
                  "to" => "1199145599",
                  "page" => "1",
                  "limit" => "1"
                } = params
 
-        Plug.Conn.resp(conn, 200, recent_tracks(user, count))
+        Plug.Conn.resp(conn, 200, tracks)
       end)
 
       assert {:ok, %{"recenttracks" => %{"@attr" => %{"user" => ^user, "total" => ^count}}}} =
-               LastfmClient.scrobbles("a_lastfm_user", params, api)
+               LastfmClient.scrobbles(user, params, api)
     end
 
-    test "returns error tuple on API error response", %{bypass: bypass, api: api, params: params} do
+    test "returns error tuple on API error response", %{bypass: bypass, api: api, params: params, user: user} do
       message = "Invalid Method - No method with that name in this package"
 
       Bypass.expect(bypass, fn conn ->
         Plug.Conn.resp(conn, 200, "{\"error\":3,\"message\":\"#{message}\"}")
       end)
 
-      assert {:error, message} == LastfmClient.scrobbles("a_lastfm_user", params, api)
+      assert {:error, message} == LastfmClient.scrobbles(user, params, api)
     end
 
-    test "return error tuple when Lastfm API is down", %{bypass: bypass, api: api, params: params} do
+    test "return error tuple when Lastfm API is down", %{bypass: bypass, api: api, params: params, user: user} do
       Bypass.down(bypass)
-      assert {:error, {:failed_connect, _message}} = LastfmClient.scrobbles("a_lastfm_user", params, api)
+      assert {:error, {:failed_connect, _message}} = LastfmClient.scrobbles(user, params, api)
     end
   end
 
@@ -80,18 +83,22 @@ defmodule LastfmArchive.LastfmClient.ImplTest do
       }
     end
 
-    test "returns count and registered date for a user", %{bypass: bypass, api: api} do
+    test "returns count and registered date for a user", %{bypass: bypass, api: api, user: user} do
+      registered_time = 1_472_601_600
+      playcount = 1234
+      user_info = build(:user_info, user: user, playcount: playcount, registered_time: registered_time)
+
       Bypass.expect(bypass, fn conn ->
         params = Plug.Conn.fetch_query_params(conn) |> Map.fetch!(:query_params)
         authorization_header = conn.req_headers |> Enum.find(&(elem(&1, 0) == "authorization")) |> elem(1)
 
         assert "Bearer #{api.key}" == authorization_header
-        assert %{"api_key" => "12345", "method" => "user.getinfo", "user" => "a_lastfm_user"} = params
+        assert %{"api_key" => "12345", "method" => "user.getinfo", "user" => ^user} = params
 
-        Plug.Conn.resp(conn, 200, user_info("a_lastfm_user", 1234, 1_472_601_600))
+        Plug.Conn.resp(conn, 200, user_info |> Jason.encode!())
       end)
 
-      assert {:ok, {1234, 1_472_601_600}} == LastfmClient.info("a_lastfm_user", api)
+      assert {:ok, {1234, 1_472_601_600}} == LastfmClient.info(user, api)
     end
 
     test "returns error tuple on API error response", %{bypass: bypass, api: api} do
@@ -125,45 +132,54 @@ defmodule LastfmArchive.LastfmClient.ImplTest do
       }
     end
 
-    test "returns count and last scrobble data of a user given a time range", context do
-      count = 12
-      last_scobble_time = 1_618_328_464
+    test "returns count and last scrobble data of a user given a time range", %{
+      api: api,
+      bypass: bypass,
+      time_range: time_range,
+      user: user
+    } do
+      count = 120
+      tracks = build(:recent_tracks, user: user, total: count, num_of_plays: 1)
+      last_scobble_time = hd(tracks["recenttracks"]["track"])["date"]["uts"] |> String.to_integer()
 
-      Bypass.expect(context.bypass, fn conn ->
+      Bypass.expect(bypass, fn conn ->
         params = Plug.Conn.fetch_query_params(conn) |> Map.fetch!(:query_params)
         authorization_header = conn.req_headers |> Enum.find(&(elem(&1, 0) == "authorization")) |> elem(1)
 
-        assert "Bearer #{context.api.key}" == authorization_header
+        assert "Bearer #{api.key}" == authorization_header
 
         assert %{
                  "api_key" => "12345",
                  "method" => "user.getrecenttracks",
-                 "user" => "a_lastfm_user",
+                 "user" => ^user,
                  "from" => "1167609600",
                  "to" => "1199145599"
                } = params
 
-        Plug.Conn.resp(conn, 200, recent_tracks("a_lastfm_user", count, last_scobble_time))
+        Plug.Conn.resp(conn, 200, tracks |> Jason.encode!())
       end)
 
-      assert {:ok, {^count, ^last_scobble_time}} =
-               LastfmClient.playcount("a_lastfm_user", context.time_range, context.api)
+      assert {:ok, {^count, ^last_scobble_time}} = LastfmClient.playcount(user, time_range, api)
     end
 
-    test "returns 0 count and nil last scrobble time when playcount is 0", context do
+    test "returns 0 count and nil last scrobble time when playcount is 0", %{user: user} = context do
+      tracks = build(:recent_tracks, user: user, total: 0, num_of_plays: 0)
+
       Bypass.expect(context.bypass, fn conn ->
-        Plug.Conn.resp(conn, 200, recent_tracks_zero_count())
+        Plug.Conn.resp(conn, 200, tracks |> Jason.encode!())
       end)
 
-      assert {:ok, {0, nil}} = LastfmClient.playcount("a_lastfm_user", context.time_range, context.api)
+      assert {:ok, {0, nil}} = LastfmClient.playcount(user, context.time_range, context.api)
     end
 
-    test "returns 0 count and nil last scrobble time when Lastfm returns `now_playing` track", context do
+    test "returns 0 count and nil last scrobble time on `now_playing` track", %{user: user} = context do
+      tracks = build(:recent_tracks, user: user, total: 0, num_of_plays: 1, nowplaying: true) |> Jason.encode!()
+
       Bypass.expect(context.bypass, fn conn ->
-        Plug.Conn.resp(conn, 200, recent_tracks_zero_count_now_playing())
+        Plug.Conn.resp(conn, 200, tracks)
       end)
 
-      assert {:ok, {0, nil}} = LastfmClient.playcount("a_lastfm_user", context.time_range, context.api)
+      assert {:ok, {0, nil}} = LastfmClient.playcount(user, context.time_range, context.api)
     end
 
     test "returns error tuple on API error response", context do

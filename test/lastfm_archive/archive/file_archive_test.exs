@@ -4,9 +4,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
   import ExUnit.CaptureLog
   import Hammox
 
-  import Fixtures.Lastfm, only: [raw_gzipped_scrobbles: 0, recent_tracks: 2]
   import LastfmArchive.Factory, only: [build: 2]
-
   import LastfmArchive.Utils, only: [user_dir: 1]
   import LastfmArchive.Utils.DateTime, only: [daily_time_ranges: 1]
 
@@ -18,34 +16,36 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
   alias LastfmArchive.Behaviour.LastfmClient
 
   @column_count (%LastfmArchive.Archive.Scrobble{} |> Map.keys() |> length()) - 1
+  @num_of_plays 3
 
   setup :verify_on_exit!
 
   setup_all do
     user = "a_lastfm_user"
-    %{user: user, metadata: build(:file_archive_metadata, creator: user)}
+    scrobbles = build(:recent_tracks, user: user, num_of_plays: @num_of_plays)
+
+    %{
+      user: user,
+      metadata: build(:file_archive_metadata, creator: user),
+      scrobbles: scrobbles,
+      scrobbles_encoded: scrobbles |> Jason.encode!(),
+      scrobbles_gzipped: scrobbles |> Jason.encode!() |> :zlib.gzip()
+    }
   end
 
   describe "archive/3" do
     setup context do
-      scrobbles = recent_tracks(context.user, 5) |> Jason.decode!()
-
       stub_with(LastfmClient.impl(), LastfmArchive.LastfmClientStub)
       stub_with(LastfmArchive.CacheMock, LastfmArchive.CacheStub)
       stub_with(LastfmArchive.FileIOMock, LastfmArchive.FileIOStub)
+
+      stub(LastfmClient.impl(), :scrobbles, fn _, _, _ -> {:ok, context.scrobbles} end)
       Archive.impl() |> stub(:update_metadata, fn metadata, _options -> {:ok, metadata} end)
 
-      %{
-        scrobbles: scrobbles,
-        scrobbles_json: scrobbles |> Jason.encode!()
-      }
+      :ok
     end
 
-    test "calls Lastfm API via the client", %{
-      metadata: metadata,
-      scrobbles: scrobbles,
-      user: user
-    } do
+    test "calls Lastfm API via the client", %{metadata: metadata, scrobbles: scrobbles, user: user} do
       daily_playcount = 13
       {first_scrobble_time, last_scrobble_time} = metadata.temporal
       total_scrobbles = metadata.extent
@@ -63,11 +63,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       capture_log(fn -> assert {:ok, %Metadata{}} = FileArchive.archive(metadata, []) end)
     end
 
-    test "scrobbles to files", %{
-      metadata: metadata,
-      scrobbles_json: scrobbles_json,
-      user: user
-    } do
+    test "scrobbles to files", %{metadata: metadata, scrobbles_encoded: scrobbles, user: user} do
       cache_dir = Path.join(user_dir(user), LastfmArchive.Cache.cache_dir())
 
       # ensure cache hiddern dir is available
@@ -79,7 +75,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       LastfmArchive.FileIOMock
       |> expect(:exists?, 3, fn _page_dir -> false end)
       |> expect(:mkdir_p, 3, fn _page_dir -> :ok end)
-      |> expect(:write, 3, fn path, ^scrobbles_json, [:compressed] ->
+      |> expect(:write, 3, fn path, ^scrobbles, [:compressed] ->
         assert path =~ "./lastfm_data/test/#{user}/2021/04"
         assert path =~ "/200_001.gz"
         :ok
@@ -88,14 +84,11 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       capture_log(fn -> FileArchive.archive(metadata, []) end)
     end
 
-    test "scrobbles of a given year option", %{
-      metadata: metadata,
-      scrobbles_json: scrobbles_json
-    } do
+    test "scrobbles of a given year option", %{metadata: metadata, scrobbles_encoded: scrobbles} do
       opts = [year: 2021]
 
       LastfmArchive.FileIOMock
-      |> expect(:write, 3, fn path, ^scrobbles_json, [:compressed] ->
+      |> expect(:write, 3, fn path, ^scrobbles, [:compressed] ->
         assert path =~ "/2021/"
         :ok
       end)
@@ -103,14 +96,11 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       capture_log(fn -> FileArchive.archive(metadata, opts) end)
     end
 
-    test "scrobbles of a given date option", %{
-      metadata: metadata,
-      scrobbles_json: scrobbles_json
-    } do
+    test "scrobbles of a given date option", %{metadata: metadata, scrobbles_encoded: scrobbles} do
       opts = [date: ~D[2021-04-01]]
 
       LastfmArchive.FileIOMock
-      |> expect(:write, fn path, ^scrobbles_json, [:compressed] ->
+      |> expect(:write, fn path, ^scrobbles, [:compressed] ->
         assert path =~ "/2021/04/01"
         :ok
       end)
@@ -260,7 +250,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
   end
 
   describe "read/2" do
-    test "returns data frame for a day's scrobbles", %{metadata: metadata} do
+    test "returns data frame for a day's scrobbles", %{metadata: metadata, scrobbles_gzipped: scrobbles} do
       date = Date.utc_today()
       day = date |> to_string() |> String.replace("-", "/")
       archive_file = "200_001.gz"
@@ -269,24 +259,27 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
 
       LastfmArchive.FileIOMock
       |> expect(:ls!, fn ^user_dir -> [archive_file] end)
-      |> expect(:read, fn ^file_path -> {:ok, raw_gzipped_scrobbles()} end)
+      |> expect(:read, fn ^file_path -> {:ok, scrobbles} end)
 
       {:ok, %DataFrame{} = df} = FileArchive.read(metadata, day: date)
-      assert {105, @column_count} == df |> DataFrame.collect() |> DataFrame.shape()
+      assert {@num_of_plays, @column_count} == df |> DataFrame.collect() |> DataFrame.shape()
     end
 
-    test "concats multi-page scrobbles of a day into a single data frame", %{metadata: metadata} do
+    test "concats multi-page scrobbles of a day into a single data frame", %{
+      metadata: metadata,
+      scrobbles_gzipped: scrobbles
+    } do
       date = Date.utc_today()
 
       LastfmArchive.FileIOMock
       |> expect(:ls!, fn _user_dir -> ["200_001.gz", "200_002.gz"] end)
-      |> expect(:read, 2, fn _file_path -> {:ok, raw_gzipped_scrobbles()} end)
+      |> expect(:read, 2, fn _file_path -> {:ok, scrobbles} end)
 
       {:ok, %DataFrame{} = df} = FileArchive.read(metadata, day: date)
-      assert {105 * 2, @column_count} == df |> DataFrame.collect() |> DataFrame.shape()
+      assert {@num_of_plays * 2, @column_count} == df |> DataFrame.collect() |> DataFrame.shape()
     end
 
-    test "returns data frame for a month's scrobbles", %{metadata: metadata} do
+    test "returns data frame for a month's scrobbles", %{metadata: metadata, scrobbles_gzipped: scrobbles} do
       date = ~D[2023-06-01]
       user = "a_lastfm_user"
       user_dir = user_dir(user)
@@ -299,10 +292,10 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
       ]
 
       LastfmArchive.PathIOMock |> expect(:wildcard, fn ^wildcard_path, _options -> files end)
-      LastfmArchive.FileIOMock |> expect(:read, 3, fn _file_path -> {:ok, raw_gzipped_scrobbles()} end)
+      LastfmArchive.FileIOMock |> expect(:read, 3, fn _file_path -> {:ok, scrobbles} end)
 
       {:ok, %DataFrame{} = df} = FileArchive.read(metadata, month: date)
-      assert {105 * 3, @column_count} == df |> DataFrame.collect() |> DataFrame.shape()
+      assert {@num_of_plays * 3, @column_count} == df |> DataFrame.collect() |> DataFrame.shape()
     end
 
     test "when no day or month option given", %{metadata: metadata} do

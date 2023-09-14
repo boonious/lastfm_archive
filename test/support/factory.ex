@@ -1,6 +1,7 @@
 defmodule LastfmArchive.Factory do
   @moduledoc false
   use ExMachina
+  use LastfmArchive.Lastfm.Factory
 
   alias LastfmArchive.Archive.Metadata
   alias LastfmArchive.Archive.Scrobble
@@ -90,13 +91,7 @@ defmodule LastfmArchive.Factory do
 
   def scrobbles_factory(attrs) do
     ExMachina.Sequence.reset("")
-    Map.get(attrs, :rows, 10) |> build_list(:scrobble, attrs) |> Enum.sort_by(& &1.datetime)
-  end
-
-  # other public functions
-
-  def csv_gzip_data() do
-    [build(:scrobble)] |> dataframe() |> DataFrame.collect() |> DataFrame.dump_csv!(delimiter: "\t") |> :zlib.gzip()
+    Map.get(attrs, :num_of_plays, 10) |> build_list(:scrobble, attrs) |> Enum.sort_by(& &1.datetime)
   end
 
   def dataframe(scrobbles \\ build(:scrobbles)) do
@@ -106,5 +101,13 @@ defmodule LastfmArchive.Factory do
     |> DataFrame.rename(name: "track")
   end
 
-  def sample, do: @samples |> Enum.random()
+  def scrobbles_csv_gzipped() do
+    [build(:scrobble)] |> dataframe() |> DataFrame.collect() |> DataFrame.dump_csv!(delimiter: "\t") |> :zlib.gzip()
+  end
+
+  defp sample, do: @samples |> Enum.random()
+
+  def solr_add_docs(), do: File.read!("test/fixtures/solr_add_docs.json")
+  def solr_schema_response(), do: File.read!("test/fixtures/solr_schema_response.json")
+  def solr_missing_fields_response(), do: File.read!("test/fixtures/solr_missing_fields_response.json")
 end

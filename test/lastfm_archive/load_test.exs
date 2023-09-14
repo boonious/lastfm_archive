@@ -3,8 +3,9 @@ defmodule LastfmArchive.LoadTest do
 
   import ExUnit.CaptureIO
   import Mox
-  import LastfmArchive.Factory, only: [csv_gzip_data: 0]
-  import Fixtures.Archive, only: [solr_schema_response: 0, solr_missing_fields_response: 0]
+
+  import LastfmArchive.Factory,
+    only: [scrobbles_csv_gzipped: 0, solr_schema_response: 0, solr_missing_fields_response: 0]
 
   alias LastfmArchive.Utils
 
@@ -98,7 +99,7 @@ defmodule LastfmArchive.LoadTest do
     url = %Hui.URL{url: "#{bypass_url}", handler: "update", headers: headers}
 
     LastfmArchive.FileIOMock
-    |> expect(:read, fn ^csv_file -> {:ok, csv_gzip_data()} end)
+    |> expect(:read, fn ^csv_file -> {:ok, scrobbles_csv_gzipped()} end)
 
     Bypass.expect(bypass, fn conn ->
       {:ok, body, conn} = Plug.Conn.read_body(conn)
@@ -134,7 +135,7 @@ defmodule LastfmArchive.LoadTest do
     url = %Hui.URL{url: "#{bypass_url}", handler: "update", headers: headers}
 
     LastfmArchive.PathIOMock |> expect(:wildcard, fn ^tsv_wildcard_path, _options -> [csv_file] end)
-    LastfmArchive.FileIOMock |> expect(:read, fn ^csv_file -> {:ok, csv_gzip_data()} end)
+    LastfmArchive.FileIOMock |> expect(:read, fn ^csv_file -> {:ok, scrobbles_csv_gzipped()} end)
 
     Bypass.expect(bypass, fn conn ->
       case conn.method do
@@ -163,7 +164,7 @@ defmodule LastfmArchive.LoadTest do
     Application.put_env(:hui, :test_url, url: bypass_url, headers: headers, handler: "update")
 
     LastfmArchive.PathIOMock |> expect(:wildcard, fn ^tsv_wildcard_path, _options -> [csv_file] end)
-    LastfmArchive.FileIOMock |> expect(:read, fn ^csv_file -> {:ok, csv_gzip_data()} end)
+    LastfmArchive.FileIOMock |> expect(:read, fn ^csv_file -> {:ok, scrobbles_csv_gzipped()} end)
 
     Bypass.expect(bypass, fn conn ->
       if conn.method == "GET" do

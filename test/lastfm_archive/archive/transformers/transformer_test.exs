@@ -11,7 +11,7 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
   import ExUnit.CaptureLog
   import Hammox
 
-  import LastfmArchive.Factory, only: [build: 2, csv_gzip_data: 0, dataframe: 0]
+  import LastfmArchive.Factory, only: [build: 2, scrobbles_csv_gzipped: 0, dataframe: 0]
   import LastfmArchive.Utils, only: [user_dir: 1]
 
   require Explorer.DataFrame
@@ -118,7 +118,7 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
       |> expect(:read, 12, fn _, _ -> {:ok, context.dataframe |> DataFrame.mutate(year: 2022)} end)
       |> expect(:read, 4, fn _, _ -> {:ok, context.dataframe |> DataFrame.mutate(year: 2023)} end)
 
-      %{csv_data: csv_gzip_data()}
+      %{csv_data: scrobbles_csv_gzipped()}
     end
 
     test "into csv files", %{

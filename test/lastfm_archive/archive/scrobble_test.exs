@@ -1,32 +1,35 @@
 defmodule LastfmArchive.Archive.ScrobbleTest do
   use ExUnit.Case, async: true
-  import Fixtures.Lastfm, only: [recent_tracks: 0]
+  import LastfmArchive.Factory, only: [build: 2]
   alias LastfmArchive.Archive.Scrobble
 
   test "new/1 scrobble" do
-    scrobbles = recent_tracks() |> Jason.decode!()
-    scrobble = scrobbles["recenttracks"]["track"] |> hd
+    [track] = build(:recent_tracks, num_of_plays: 1)["recenttracks"]["track"]
 
-    assert %LastfmArchive.Archive.Scrobble{
-             album_mbid: "0c022aea-1ee8-4664-9287-4482fe345e18",
-             album: "Fading Like a Flower (Every Time You Leave)",
-             artist_url: "https://www.last.fm/music/Roxette",
-             artist_mbid: "d3b2711f-2baa-441a-be95-14945ca7e6ea",
-             artist: "Roxette",
-             url: "https://www.last.fm/music/Roxette/_/Physical+Fascination+(guitar+solo+version)",
-             datetime: ~N[2021-04-13 15:26:42],
-             datetime_unix: 1_618_327_602,
-             year: 2021,
-             mmdd: "0413",
-             date: ~D[2021-04-13],
-             name: "Physical Fascination (guitar solo version)",
-             mbid: "cd000775-0a7c-38ea-96ab-4dacfae789fe",
-             id: _uuid
-           } = Scrobble.new(scrobble)
+    assert %Scrobble{} = scrobble = Scrobble.new(track)
+    assert scrobble.album == track["album"]["#text"]
+    assert scrobble.album_mbid == track["album"]["mbid"]
+
+    assert scrobble.artist == track["artist"]["name"]
+    assert scrobble.artist_mbid == track["artist"]["mbid"]
+    assert scrobble.artist_url == track["artist"]["url"]
+
+    unix_time = track["date"]["uts"] |> String.to_integer()
+    datetime = DateTime.from_unix!(unix_time)
+
+    assert scrobble.datetime_unix == unix_time
+    assert scrobble.datetime == datetime |> DateTime.to_naive()
+    assert scrobble.year == datetime.year
+    assert scrobble.mmdd == datetime |> Calendar.strftime("%m%d")
+    assert scrobble.date == datetime |> DateTime.to_date()
+
+    assert scrobble.name == track["name"]
+    assert scrobble.mbid == track["mbid"]
+    assert scrobble.url == track["url"]
   end
 
   test "new/1 scrobbles" do
-    scrobbles = recent_tracks() |> Jason.decode!()
+    scrobbles = build(:recent_tracks, num_of_plays: 1)
     assert [%LastfmArchive.Archive.Scrobble{}] = Scrobble.new(scrobbles) |> Enum.to_list()
   end
 end
