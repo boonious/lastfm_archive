@@ -9,18 +9,18 @@ end
 defmodule LastfmArchive.Behaviour.ArchiveTest do
   use ExUnit.Case, async: true
 
-  import Fixtures.Archive
   import Hammox
+  import LastfmArchive.Factory, only: [build: 2]
   import LastfmArchive.Utils, only: [metadata_filepath: 2]
 
   alias LastfmArchive.Archive.Metadata
 
   setup :verify_on_exit!
 
-  setup do
+  setup_all do
     %{
       archive: LastfmArchive.TestArchive,
-      metadata: file_archive_metadata("a_user"),
+      metadata: build(:file_archive_metadata, creator: "a_user"),
       metadata_path: "test_data_dir/a_user/.metadata/scrobbles/json_archive",
       type: :scrobbles
     }
@@ -52,7 +52,7 @@ defmodule LastfmArchive.Behaviour.ArchiveTest do
 
     test "reset an existing archive metadata via 'reset' option", %{archive: archive} do
       earlier_created_datetime = DateTime.add(DateTime.utc_now(), -3600, :second)
-      metadata = file_archive_metadata("a_user", earlier_created_datetime)
+      metadata = build(:file_archive_metadata, creator: "a_user", created: earlier_created_datetime)
 
       LastfmArchive.FileIOMock
       |> expect(:mkdir_p, fn _dir -> :ok end)
@@ -97,7 +97,7 @@ defmodule LastfmArchive.Behaviour.ArchiveTest do
                  source: "http://ws.audioscrobbler.com/2.0",
                  title: "Lastfm archive of a_user",
                  type: ^type,
-                 extent: 400,
+                 extent: 388,
                  date: %{__struct__: Date},
                  temporal: {1_617_303_007, 1_617_475_807},
                  modified: "2023-06-09T14:36:16.952540Z"

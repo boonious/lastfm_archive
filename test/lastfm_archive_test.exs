@@ -1,7 +1,7 @@
 defmodule LastfmArchiveTest do
   use ExUnit.Case, async: true
 
-  import Fixtures.Archive
+  import LastfmArchive.Factory, only: [build: 2, dataframe: 0]
   import Hammox
 
   alias LastfmArchive.Archive.DerivedArchive
@@ -14,11 +14,21 @@ defmodule LastfmArchiveTest do
   setup_all do
     user = "a_lastfm_user"
 
+    first_time =
+      DateTime.from_iso8601("2022-01-01T18:50:07Z")
+      |> elem(1)
+      |> DateTime.to_unix()
+
+    latest =
+      DateTime.from_iso8601("2023-04-03T18:50:07Z")
+      |> elem(1)
+      |> DateTime.to_unix()
+
     file_archive_metadata =
-      new_archive_metadata(
-        user: user,
-        start: DateTime.from_iso8601("2023-01-01T18:50:07Z") |> elem(1) |> DateTime.to_unix(),
-        end: DateTime.from_iso8601("2023-04-03T18:50:07Z") |> elem(1) |> DateTime.to_unix()
+      build(:file_archive_metadata,
+        creator: user,
+        first_scrobble_time: first_time,
+        latest_scrobble_time: latest
       )
 
     %{user: user, file_archive_metadata: file_archive_metadata}
@@ -51,7 +61,7 @@ defmodule LastfmArchiveTest do
 
       FileArchiveMock
       |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-      |> expect(:read, fn ^metadata, ^option -> {:ok, data_frame()} end)
+      |> expect(:read, fn ^metadata, ^option -> {:ok, dataframe()} end)
 
       assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read(user, option)
     end
@@ -60,12 +70,15 @@ defmodule LastfmArchiveTest do
       test "#{format} derived #{facet} archive", %{user: user, file_archive_metadata: metadata} do
         facet = unquote(facet)
         format = unquote(format)
-        metadata = new_derived_archive_metadata(metadata, format: format, facet: facet)
+
+        metadata =
+          build(:derived_archive_metadata, file_archive_metadat: metadata, options: [format: format, facet: facet])
+
         options = [format: format, year: 2023]
 
         DerivedArchiveMock
         |> expect(:describe, fn ^user, ^options -> {:ok, metadata} end)
-        |> expect(:read, fn ^metadata, ^options -> {:ok, data_frame()} end)
+        |> expect(:read, fn ^metadata, ^options -> {:ok, dataframe()} end)
 
         assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read(user, options)
       end
@@ -73,14 +86,16 @@ defmodule LastfmArchiveTest do
       test "#{facet} #{format} archive with columns option", %{user: user, file_archive_metadata: metadata} do
         facet = unquote(facet)
         format = unquote(format)
-        metadata = new_derived_archive_metadata(metadata, format: format, facet: facet)
+
+        metadata =
+          build(:derived_archive_metadata, file_archive_metadat: metadata, options: [format: format, facet: facet])
 
         columns = [:artist, :album]
         options = [format: format, year: 2023, columns: columns]
 
         DerivedArchiveMock
         |> expect(:describe, fn ^user, ^options -> {:ok, metadata} end)
-        |> expect(:read, fn ^metadata, ^options -> {:ok, data_frame()} end)
+        |> expect(:read, fn ^metadata, ^options -> {:ok, dataframe()} end)
 
         assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read(user, options)
       end
@@ -92,14 +107,14 @@ defmodule LastfmArchiveTest do
       test "#{facet} into #{format} files", %{user: user, file_archive_metadata: file_archive_metadata} do
         facet = unquote(facet)
         format = unquote(format)
-        metadata = new_derived_archive_metadata(file_archive_metadata, format: format, facet: facet)
+        opts = [format: format, facet: facet]
+
+        metadata = build(:derived_archive_metadata, file_archive_metadat: file_archive_metadata, options: opts)
         transformer = TransformerSettings.facet_transformers_settings()[facet][:transformer]
 
         DerivedArchiveMock
         |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-        |> expect(:post_archive, fn ^metadata, ^transformer, [format: ^format, facet: ^facet] ->
-          {:ok, metadata}
-        end)
+        |> expect(:post_archive, fn ^metadata, ^transformer, ^opts -> {:ok, metadata} end)
         |> expect(:update_metadata, fn metadata, _options -> {:ok, metadata} end)
 
         LastfmArchive.transform(user, format: format, facet: facet)
@@ -107,15 +122,13 @@ defmodule LastfmArchiveTest do
     end
 
     test "scrobbles of default user with default (Arrow IPC stream) format", %{file_archive_metadata: metadata} do
-      metadata = new_derived_archive_metadata(metadata, format: :ipc_stream, facet: :scrobbles)
       user = Application.get_env(:lastfm_archive, :user)
       transformer = TransformerSettings.facet_transformers_settings()[:scrobbles][:transformer]
+      opts = [format: :ipc_stream, facet: :scrobbles]
 
       DerivedArchiveMock
       |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
-      |> expect(:post_archive, fn ^metadata, ^transformer, [format: :ipc_stream, facet: :scrobbles] ->
-        {:ok, metadata}
-      end)
+      |> expect(:post_archive, fn ^metadata, ^transformer, ^opts -> {:ok, metadata} end)
       |> expect(:update_metadata, fn metadata, _options -> {:ok, metadata} end)
 
       LastfmArchive.transform()

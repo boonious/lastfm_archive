@@ -89,7 +89,6 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
       _ -> []
     end)
     |> DataFrame.concat_rows()
-    |> DataFrame.rename(name: "track")
   end
 
   def data_frame_sink(df, user, year, opts) do

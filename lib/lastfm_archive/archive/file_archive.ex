@@ -123,6 +123,7 @@ defmodule LastfmArchive.Archive.FileArchive do
     |> Scrobble.new()
     |> Enum.map(&Map.from_struct/1)
     |> Explorer.DataFrame.new(lazy: true)
+    |> Explorer.DataFrame.rename(name: "track")
   end
 
   defp client_impl, do: LastfmClient.impl()
@@ -180,14 +181,14 @@ defmodule LastfmArchive.Archive.FileArchive do
       :timer.sleep(Keyword.fetch!(opts, :interval))
       per_page = Keyword.fetch!(opts, :per_page)
 
-      with {:ok, scrobbles} <- client_impl().scrobbles(user, {page - 1, per_page, from, to}, api),
+      with {:ok, scrobbles} <- client_impl().scrobbles(user, {page, per_page, from, to}, api),
            :ok <- write(metadata, scrobbles, filepath: page_path(from, page, per_page)) do
         Logger.info("✓ page #{page} written to #{user_dir(user, opts)}/#{page_path(from, page, per_page)}.gz")
         :ok
       else
         {:error, reason} ->
           Logger.error("❌ Lastfm API error while retrieving scrobbles #{date(from)}: #{reason}")
-          {:error, %{user: user, page: page - 1, from: from, to: to, per_page: per_page}}
+          {:error, %{user: user, page: page, from: from, to: to, per_page: per_page}}
       end
     end
   end
