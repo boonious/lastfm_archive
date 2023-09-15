@@ -1,4 +1,9 @@
 # Changelog
+## 1.1.1 (2023-09-15)
+
+* fix: Lastfm client bug that fetches page 1 instead of page 2 (for scrobbles > 200 per-day/on the day)
+* test: use `ExMachina` test data factories, update tests and replace static test fixtures
+
 ## 1.1.0 (2023-09-06)
 
 * `year`, `date`, `overwrite` options for `LastfmArchive.sync/2`

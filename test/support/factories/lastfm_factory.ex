@@ -79,7 +79,7 @@ defmodule LastfmArchive.Lastfm.Factory do
           "image" => build(:track_image, attrs),
           "loved" => "0",
           "mbid" => Map.get(attrs, :mbid),
-          "name" => Map.get(attrs, :name),
+          "name" => Map.get(attrs, :name) || Map.get(attrs, :track),
           "streamable" => "0",
           "url" => Map.get(attrs, :url)
         }

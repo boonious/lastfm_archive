@@ -11,38 +11,36 @@ defmodule LastfmArchive.LastfmClient.ImplTest do
   end
 
   describe "scrobbles/3" do
-    setup do
+    setup context do
       bypass = Bypass.open()
+      count = 100
+      tracks = build(:recent_tracks, user: context.user, total: count, num_of_plays: 3) |> Jason.encode!()
 
       %{
         bypass: bypass,
+        count: count,
         api: %LastfmApi{
           key: "12345",
           endpoint: "http://localhost:#{bypass.port}/",
           method: "user.getrecenttracks"
         },
-        params: {1, 1, 1_167_609_600, 1_199_145_599}
+        params: {1, 1, 1_167_609_600, 1_199_145_599},
+        tracks: tracks
       }
     end
 
     test "returns scrobbles of a user for given a time range", %{
-      bypass: bypass,
       api: api,
+      bypass: bypass,
+      count: count,
       params: params,
+      tracks: tracks,
       user: user
     } do
-      count = 100
-      tracks = build(:recent_tracks, user: user, total: count, num_of_plays: 1) |> Jason.encode!()
-
       Bypass.expect(bypass, fn conn ->
         params = Plug.Conn.fetch_query_params(conn) |> Map.fetch!(:query_params)
-        authorization_header = conn.req_headers |> Enum.find(&(elem(&1, 0) == "authorization")) |> elem(1)
-
-        assert "Bearer #{api.key}" == authorization_header
 
         assert %{
-                 "api_key" => "12345",
-                 "method" => "user.getrecenttracks",
                  "user" => ^user,
                  "from" => "1167609600",
                  "to" => "1199145599",
@@ -53,8 +51,50 @@ defmodule LastfmArchive.LastfmClient.ImplTest do
         Plug.Conn.resp(conn, 200, tracks)
       end)
 
-      assert {:ok, %{"recenttracks" => %{"@attr" => %{"user" => ^user, "total" => ^count}}}} =
-               LastfmClient.scrobbles(user, params, api)
+      assert {:ok, %{"recenttracks" => resp}} = LastfmClient.scrobbles(user, params, api)
+      assert %{"@attr" => attr, "track" => tracks} = resp
+
+      assert %{"user" => ^user, "total" => ^count} = attr
+      assert tracks |> length() == 3
+    end
+
+    test "authentication and endpoint params", %{
+      api: api,
+      bypass: bypass,
+      params: params,
+      tracks: tracks,
+      user: user
+    } do
+      Bypass.expect(bypass, fn conn ->
+        params = Plug.Conn.fetch_query_params(conn) |> Map.fetch!(:query_params)
+        authorization_header = conn.req_headers |> Enum.find(&(elem(&1, 0) == "authorization")) |> elem(1)
+        assert "Bearer #{api.key}" == authorization_header
+        assert %{"api_key" => "12345", "method" => "user.getrecenttracks"} = params
+
+        Plug.Conn.resp(conn, 200, tracks)
+      end)
+
+      assert {:ok, %{"recenttracks" => %{}}} = LastfmClient.scrobbles(user, params, api)
+    end
+
+    test "paging and limit params", %{
+      api: api,
+      bypass: bypass,
+      params: {_page, _limit, from, to},
+      tracks: tracks,
+      user: user
+    } do
+      page = 2
+      limit = 50
+      params = {page, limit, from, to}
+
+      Bypass.expect(bypass, fn conn ->
+        params = Plug.Conn.fetch_query_params(conn) |> Map.fetch!(:query_params)
+        assert %{"page" => "2", "limit" => "50"} = params
+        Plug.Conn.resp(conn, 200, tracks)
+      end)
+
+      assert {:ok, %{"recenttracks" => %{}}} = LastfmClient.scrobbles(user, params, api)
     end
 
     test "returns error tuple on API error response", %{bypass: bypass, api: api, params: params, user: user} do

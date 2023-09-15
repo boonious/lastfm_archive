@@ -11,7 +11,6 @@ defmodule LastfmArchive.Factory do
   # 200 test music track samples
   @samples_path "test/fixtures/lastfm_scrobble_samples.ipc_stream"
   @samples DataFrame.from_ipc_stream!(@samples_path)
-           |> DataFrame.rename(track: :name)
            |> DataFrame.to_rows()
            |> Jason.encode!()
            |> Jason.decode!(keys: :atoms)
@@ -81,7 +80,7 @@ defmodule LastfmArchive.Factory do
       datetime: date_time |> DateTime.to_naive(),
       datetime_unix: unix_time,
       url: Map.get(attrs, :url, sample[:url]),
-      name: Map.get(attrs, :name, sample[:name]),
+      name: Map.get(attrs, :track, sample[:track]),
       mbid: Map.get(attrs, :mbid, sample[:mbid])
     }
   end
