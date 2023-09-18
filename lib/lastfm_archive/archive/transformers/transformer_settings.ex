@@ -13,6 +13,7 @@ defmodule LastfmArchive.Archive.Transformers.TransformerSettings do
       end
 
       defdelegate facets, to: unquote(__MODULE__)
+      defdelegate facet_transformers_settings, to: unquote(__MODULE__)
       defdelegate formats, to: unquote(__MODULE__)
       def mimetype(format), do: format_settings()[format][:mimetype]
       def read_opts(format), do: format_settings()[format][:read_opts]
@@ -41,7 +42,14 @@ defmodule LastfmArchive.Archive.Transformers.TransformerSettings do
     }
   end
 
-  def facet_transformers_settings, do: %{scrobbles: %{transformer: Transformers.LocalFileArchiveTransformer}}
+  def facet_transformers_settings do
+    %{
+      scrobbles: %{transformer: Transformers.LocalFileArchiveTransformer},
+      artists: %{transformer: Transformers.FacetsTransformer, group: [:artist, :year, :mmdd]},
+      albums: %{transformer: Transformers.FacetsTransformer, group: [:album, :album_mbid, :artist, :year, :mmdd]},
+      tracks: %{transformer: Transformers.FacetsTransformer, group: [:track, :album, :artist, :mbid, :year, :mmdd]}
+    }
+  end
 
   def transformer(facet \\ :scrobbles, settings \\ facet_transformers_settings()), do: settings[facet][:transformer]
 end

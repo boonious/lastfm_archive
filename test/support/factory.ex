@@ -80,7 +80,7 @@ defmodule LastfmArchive.Factory do
       datetime: date_time |> DateTime.to_naive(),
       datetime_unix: unix_time,
       url: Map.get(attrs, :url, sample[:url]),
-      name: Map.get(attrs, :track, sample[:track]),
+      name: Map.get(attrs, :track) || Map.get(attrs, :name) || sample[:track],
       mbid: Map.get(attrs, :mbid, sample[:mbid])
     }
   end

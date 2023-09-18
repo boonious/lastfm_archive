@@ -59,7 +59,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         |> expect(:exists?, fn _dir -> true end)
         |> expect(:exists?, 2, fn _filepath -> false end)
 
-        if format = :csv do
+        if format == :csv do
           FileIOMock |> expect(:write, 2, fn _filepath, _data, [:compressed] -> :ok end)
           DataFrameMock |> expect(:"dump_#{format}!", 2, fn %DataFrame{}, _opts -> "" end)
         else
