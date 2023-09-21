@@ -148,7 +148,7 @@ to your list of dependencies in `mix.exs`:
 ```elixir
   def deps do
     [
-      {:lastfm_archive, "~> 1.1"}
+      {:lastfm_archive, "~> 1.2"}
     ]
   end
 ```

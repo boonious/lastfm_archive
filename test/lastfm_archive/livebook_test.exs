@@ -30,15 +30,7 @@ defmodule LastfmArchive.LivebookTest do
     assert %Kino.Markdown{} = LFM_LB.info()
   end
 
-  test "monthly_playcounts_heatmap/1" do
-    assert %VegaLite{} = LFM_LB.monthly_playcounts_heatmap(@cache)
-  end
-
-  test "yearly_playcounts_table/1" do
-    assert %Kino.JS.Live{module: Kino.Table} = LFM_LB.yearly_playcounts_table(@cache)
-  end
-
-  test "status/0" do
-    assert [%{count: 33, date: "2006-02-01"}] == LFM_LB.status(@cache)
+  test "render_playcounts_heatmaps/1" do
+    assert :ok = LFM_LB.render_playcounts_heatmaps("a_lastfm_user", [], @cache)
   end
 end

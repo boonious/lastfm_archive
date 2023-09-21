@@ -1,4 +1,11 @@
 # Changelog
+## 1.2.0 (2023-09-22)
+
+* new `FacetsTransformer` and `facet` (unique artists, albums, tracks) options to derive faceted archives
+* Livebook: 
+    * [`Creating a file archive`](https://hexdocs.pm/lastfm_archive/archiving.html): visualise all Lastfm scrobbles in annual heatmaps containing daily playcounts and stats
+    * new [`Facets archiving`](https://hexdocs.pm/lastfm_archive/facets.html) guide to show how facet archives can be created and use in `Explorer.DataFrame` for future analytics
+
 ## 1.1.1 (2023-09-15)
 
 * fix: Lastfm client bug that fetches page 1 instead of page 2 (for scrobbles > 200 per-day/on the day)

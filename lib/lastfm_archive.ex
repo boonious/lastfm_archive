@@ -140,6 +140,7 @@ defmodule LastfmArchive do
 
   Options:
   - `:format` (required) - derived archive format: `:csv`, `:parquet`, `:ipc`, `:ipc_stream`
+  - `:facet` - type of archive: `:scrobbles` (default), `:albums`, `:artists` or `:tracks`
   - `:year` - only read scrobbles for this particular year
   - `:columns` - an atom list for retrieving only a columns subset, available columns:
   #{%LastfmArchive.Archive.Scrobble{} |> Map.keys() |> List.delete(:__struct__) |> Enum.map_join(", ", &(("`:" <> Atom.to_string(&1)) <> "`"))}
@@ -172,6 +173,7 @@ defmodule LastfmArchive do
 
   Options:
   - `:format` - format into which file archive is transformed: `:csv`, `:parquet`, `:ipc`, `:ipc_stream` (default)
+  - `:facet` - type of archive: `:scrobbles` (default), `:albums`, `:artists` or `:tracks`
   - `:overwrite` existing data, default: false
   - `:year` - optionally transform data from this particular year
   """

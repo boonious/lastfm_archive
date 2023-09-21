@@ -1,0 +1,48 @@
+<!-- livebook:{"autosave_interval_s":600} -->
+
+# Setup, installation
+
+```elixir
+Mix.install(
+  [{:lastfm_archive, "~> 1.2"}],
+  config: [
+    lastfm_archive: [
+      data_dir: "./lastfm_data/",
+      user: ""
+    ]
+  ]
+)
+
+:ok
+```
+
+## Installation
+
+* [install](https://livebook.dev/#install) and start Livebook
+* run this Livebook guide
+* configure Livebook as instructued below, click on `Notebook dependencies and setup`, `Setup` (above)
+
+## Configuration
+
+Lastfm archive has been configured as a dependency in `Setup` above. You need to check and modify the following configs:
+
+1. **`user`**: specify a Lastfm username in this config or share it as `LFM_USER` secret (see [Secrets management](https://hackmd.io/@hugobarauna/By6ulTnMi#Secret-management))
+2. **`data_dir`** (optional): by default archive data is stored in `~/lastfm_data/` directory within your home directory. Modifiy this location if other directory is preferred
+
+<!-- livebook:{"break_markdown":true} -->
+
+### API key environment variable
+
+To access the API provided by Lastfm, you need to [apply for a 32-digit string key](https://www.last.fm/api/authentication). This key will be used when downloading data from the API.
+
+Add the key via a `LFM_API_KEY` secret and share it with this Livebook - see [Secrets management](https://hackmd.io/@hugobarauna/By6ulTnMi#Secret-management).
+
+## Test the setup
+
+Run the following code (click `Evaluate`) to send a test request to Lastfm. If you receive basic details from Lastfm, then you're all set.
+
+```elixir
+LastfmArchive.Livebook.info()
+```
+
+<!-- livebook:{"offset":1557,"stamp":{"token":"QTEyOEdDTQ.UKr6No05jQHxlM32QaUqAQHBXTeDGryTmJeThbrTv7P8etl1g0NFdSOGseI.7L8Hxj7O-p1LaeZT.VgyynwUXhPKEsIr_LENhw5CfpzFlUXR3wSLq6RWqVOVvAXnmcZ642qiT7TD9MEU20ziwu4btYAGVtqM.eodMMt2mhrXox0sdRDKJxg","version":1}} -->
