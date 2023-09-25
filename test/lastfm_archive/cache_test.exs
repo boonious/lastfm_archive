@@ -4,7 +4,7 @@ defmodule LastfmArchive.CacheTest do
   import Hammox
   alias LastfmArchive.Cache
   alias LastfmArchive.Cache.Server, as: CacheServer
-  alias LastfmArchive.Utils
+  import LastfmArchive.Utils.Archive, only: [user_dir: 1]
 
   @cache :test_cache
   @ticks_before_serialise 2
@@ -36,8 +36,8 @@ defmodule LastfmArchive.CacheTest do
   end
 
   test "load/3 cache from file for a user", %{user: user, cache: cache} do
-    cache_file = "#{Utils.user_dir(user)}/#{Cache.cache_dir()}/2006"
-    cache_file_regex = Path.join([Utils.user_dir(user), Cache.cache_dir(), Cache.cache_file_regex()])
+    cache_file = "#{user_dir(user)}/#{Cache.cache_dir()}/2006"
+    cache_file_regex = Path.join([user_dir(user), Cache.cache_dir(), Cache.cache_file_regex()])
 
     LastfmArchive.PathIOMock
     |> expect(:wildcard, fn ^cache_file_regex, [match_dot: true] -> [cache_file] end)
@@ -50,7 +50,7 @@ defmodule LastfmArchive.CacheTest do
 
   test "serialise/3 cache to a file", %{cache: cache} do
     :sys.replace_state(@cache, fn _state -> {60, cache} end)
-    cache_file = Path.join(Utils.user_dir("a_user"), "#{Cache.cache_dir()}/2006")
+    cache_file = Path.join(user_dir("a_user"), "#{Cache.cache_dir()}/2006")
     file_binary = cache[{"a_user", 2006}] |> :erlang.term_to_binary()
 
     LastfmArchive.FileIOMock |> expect(:write, fn ^cache_file, ^file_binary -> :ok end)

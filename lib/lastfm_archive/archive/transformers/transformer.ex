@@ -9,8 +9,9 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
   alias Explorer.DataFrame
   alias LastfmArchive.Behaviour.Archive
 
-  import LastfmArchive.Utils, only: [maybe_create_dir: 2, check_filepath: 2, write: 2, user_dir: 2]
+  import LastfmArchive.Utils.Archive, only: [derived_archive_dir: 1, user_dir: 2]
   import LastfmArchive.Utils.DateTime, only: [month_range: 2, year_range: 1]
+  import LastfmArchive.Utils.File, only: [check_filepath: 2, maybe_create_dir: 1, write: 2]
 
   require Explorer.DataFrame
   require Logger
@@ -51,7 +52,9 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
   end
 
   def apply(transformer, metadata, opts) do
-    maybe_create_archive_dir(metadata.creator, opts)
+    Path.join(user_dir(metadata.creator, opts), derived_archive_dir(opts |> validate_opts()))
+    |> maybe_create_dir()
+
     run_pipeline(transformer, metadata, opts, Keyword.get(opts, :year, year_range(metadata.temporal) |> Enum.to_list()))
     {:ok, %{metadata | modified: DateTime.utc_now()}}
   end
@@ -70,12 +73,6 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
 
   defp run_pipeline(transformer, metadata, opts) do
     transformer.source(metadata, opts) |> transformer.transform(opts) |> transformer.sink(metadata, opts)
-  end
-
-  defp maybe_create_archive_dir(user, opts) do
-    opts
-    |> validate_opts()
-    |> then(fn opts -> maybe_create_dir(user_dir(user, opts), sub_dir: derived_archive_dir(opts)) end)
   end
 
   def data_frame_source(metadata, year) do

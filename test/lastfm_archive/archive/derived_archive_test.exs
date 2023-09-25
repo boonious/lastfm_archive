@@ -6,7 +6,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
 
   import LastfmArchive.Archive.Transformers.TransformerSettings, only: [transformer: 1]
   import LastfmArchive.Factory, only: [build: 2, dataframe: 0]
-  import LastfmArchive.Utils, only: [user_dir: 1, metadata_filepath: 2]
+  import LastfmArchive.Utils.Archive, only: [derived_archive_dir: 1, user_dir: 1, metadata_filepath: 2]
 
   alias LastfmArchive.Archive.DerivedArchive
   alias LastfmArchive.Archive.FileArchiveMock
@@ -162,7 +162,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
 
         metadata = build(:derived_archive_metadata, file_archive_metadata: metadata, options: opts)
         read_opts = DerivedArchive.read_opts(format)
-        archive_dir = "#{DerivedArchive.derived_archive_dir(opts)}"
+        archive_dir = "#{derived_archive_dir(opts)}"
 
         filepath = Path.join([user_dir(user), archive_dir, "2023.#{format}"])
         filepath = if format == :csv, do: filepath <> ".gz", else: filepath
@@ -184,7 +184,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
 
         metadata = build(:derived_archive_metadata, file_archive_metadata: metadata, options: opts)
         read_opts = DerivedArchive.read_opts(format) |> Keyword.put(:columns, columns)
-        archive_dir = "#{DerivedArchive.derived_archive_dir(opts)}"
+        archive_dir = "#{derived_archive_dir(opts)}"
 
         filepath = Path.join([user_dir(user), archive_dir, "2023.#{format}"])
         filepath = if format == :csv, do: filepath <> ".gz", else: filepath

@@ -7,7 +7,7 @@ defmodule LastfmArchive.LoadTest do
   import LastfmArchive.Factory,
     only: [scrobbles_csv_gzipped: 0, solr_schema_response: 0, solr_missing_fields_response: 0]
 
-  alias LastfmArchive.Utils
+  import LastfmArchive.Utils.Archive, only: [user_dir: 1]
 
   @expected_solr_fields_path Path.join(["solr", "fields.json"])
 
@@ -92,7 +92,7 @@ defmodule LastfmArchive.LoadTest do
 
   test "load a CSV file from the archive into Solr for a given user", %{bypass: bypass} do
     test_user = "load_test_user"
-    csv_file = Path.join(Utils.user_dir("load_test_user"), "csv/2018.csv.gz")
+    csv_file = Path.join(user_dir("load_test_user"), "csv/2018.csv.gz")
 
     bypass_url = "http://localhost:#{bypass.port}/"
     headers = [{"Content-type", "application/json"}]
@@ -127,8 +127,8 @@ defmodule LastfmArchive.LoadTest do
 
   test "load_archive/2: load all TSV archive data into Solr via %Hui.URL{}", %{bypass: bypass} do
     test_user = "load_test_user"
-    tsv_wildcard_path = Path.join(Utils.user_dir("load_test_user"), "**/*.gz")
-    csv_file = Path.join([Utils.user_dir("load_test_user"), "csv", "2018.csv.gz"])
+    tsv_wildcard_path = Path.join(user_dir("load_test_user"), "**/*.gz")
+    csv_file = Path.join([user_dir("load_test_user"), "csv", "2018.csv.gz"])
 
     bypass_url = "http://localhost:#{bypass.port}/"
     headers = [{"Content-type", "application/json"}]
@@ -155,8 +155,8 @@ defmodule LastfmArchive.LoadTest do
 
   test "load_archive/2: load all TSV archive data into Solr via URL config key", %{bypass: bypass} do
     test_user = "load_test_user"
-    tsv_wildcard_path = Path.join(Utils.user_dir("load_test_user"), "**/*.gz")
-    csv_file = Path.join([Utils.user_dir("load_test_user"), "csv", "2018.csv.gz"])
+    tsv_wildcard_path = Path.join(user_dir("load_test_user"), "**/*.gz")
+    csv_file = Path.join([user_dir("load_test_user"), "csv", "2018.csv.gz"])
 
     bypass_url = "http://localhost:#{bypass.port}/"
     headers = [{"Content-type", "application/json"}]

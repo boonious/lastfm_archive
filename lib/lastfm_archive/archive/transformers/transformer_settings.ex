@@ -6,12 +6,6 @@ defmodule LastfmArchive.Archive.Transformers.TransformerSettings do
     quote do
       import unquote(__MODULE__)
 
-      def derived_archive_dir(opts \\ default_opts()) do
-        opts
-        |> validate_opts()
-        |> then(fn opts -> "derived/#{opts[:facet]}/#{opts[:format]}" end)
-      end
-
       defdelegate facets, to: unquote(__MODULE__)
       defdelegate facet_transformers_settings, to: unquote(__MODULE__)
       defdelegate formats, to: unquote(__MODULE__)

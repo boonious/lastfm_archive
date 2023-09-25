@@ -11,6 +11,7 @@ defmodule LastfmArchive.Archive.DerivedArchive do
 
   use LastfmArchive.Behaviour.DataFrameIo, formats: TransformerSettings.formats()
 
+  import LastfmArchive.Utils.Archive, only: [derived_archive_dir: 1, metadata_filepath: 2, user_dir: 2]
   import LastfmArchive.Utils.DateTime, only: [year_range: 1]
 
   @type read_options :: [year: integer(), columns: list(atom()), format: atom(), facet: atom()]
@@ -24,6 +25,7 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   def describe(user, options) do
     {:ok, metadata} = super(user, [])
 
+    # Fix this: use Utils.File read
     metadata_filepath(user, options)
     |> @file_io.read()
     |> case do
@@ -58,15 +60,18 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   defp fetch_years(%Metadata{} = metadata, nil), do: {:ok, year_range(metadata.temporal) |> Enum.to_list()}
   defp fetch_years(%Metadata{} = _metadata, year), do: {:ok, [year]}
 
-  defp filepath(dir, :csv, user_dir, year), do: Path.join(user_dir, "#{dir}/#{year}.csv.gz")
-  defp filepath(dir, format, user_dir, year), do: Path.join(user_dir, "#{dir}/#{year}.#{format}")
-
   defp create_lazy_dataframe(years, user, facet, format, opts) do
     for year <- years do
-      filepath(derived_archive_dir(format: format, facet: facet), format, user_dir(user, opts), year)
+      [format: format, facet: facet]
+      |> validate_opts()
+      |> derived_archive_dir()
+      |> filepath(format, user_dir(user, opts), year)
       |> load_data_frame(format, opts)
       |> Explorer.DataFrame.to_lazy()
     end
     |> Explorer.DataFrame.concat_rows()
   end
+
+  defp filepath(dir, :csv, user_dir, year), do: Path.join(user_dir, "#{dir}/#{year}.csv.gz")
+  defp filepath(dir, format, user_dir, year), do: Path.join(user_dir, "#{dir}/#{year}.#{format}")
 end

@@ -5,7 +5,7 @@ defmodule LastfmArchive.Archive.FileArchiveTest do
   import Hammox
 
   import LastfmArchive.Factory, only: [build: 2]
-  import LastfmArchive.Utils, only: [user_dir: 1]
+  import LastfmArchive.Utils.Archive, only: [user_dir: 1]
   import LastfmArchive.Utils.DateTime, only: [daily_time_ranges: 1]
 
   alias Explorer.DataFrame

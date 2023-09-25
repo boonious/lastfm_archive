@@ -5,7 +5,7 @@ defmodule LastfmArchive.Cache.Server do
 
   use GenServer
 
-  import LastfmArchive.Utils, only: [user_dir: 2]
+  import LastfmArchive.Utils.Archive, only: [user_dir: 2]
   import LastfmArchive.Utils.DateTime, only: [date: 1]
 
   require Logger

@@ -14,7 +14,6 @@ defmodule LastfmArchive do
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.LastfmClient.Impl, as: LastfmClient
   alias LastfmArchive.LastfmClient.LastfmApi
-  alias LastfmArchive.Utils
 
   import LastfmArchive.Archive.Transformers.TransformerSettings, only: [transformer: 1]
 
@@ -199,7 +198,8 @@ defmodule LastfmArchive do
 
   # return all archive file paths in a list
   defp ls_archive_files(user, options \\ []) do
-    Path.join(Utils.user_dir(user, options), "**/*.gz")
+    LastfmArchive.Utils.Archive.user_dir(user, options)
+    |> Path.join("**/*.gz")
     |> @path_io.wildcard([])
     |> Enum.map(&(String.split(&1 |> to_string, user <> "/") |> tl |> hd))
   end

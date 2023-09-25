@@ -1,63 +1,15 @@
-defmodule LastfmArchive.Utils do
+defmodule LastfmArchive.Utils.File do
   @moduledoc false
 
   alias Explorer.DataFrame
   alias LastfmArchive.Archive.Metadata
+
+  import LastfmArchive.Utils.Archive, only: [metadata_filepath: 2, user_dir: 1, user_dir: 2]
   require Logger
 
-  @metadata_dir ".metadata"
-  @data_dir Application.compile_env(:lastfm_archive, :data_dir, "./lastfm_data/")
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
   @reset Application.compile_env(:lastfm_archive, :reset, false)
-
-  def data_dir(), do: @data_dir
-  def data_dir(opts), do: Keyword.get(opts, :data_dir, data_dir())
-
-  def user_dir(user), do: Path.join([data_dir(), user])
-  def user_dir(user, opts), do: Path.join([data_dir(opts), user])
-
-  def metadata_filepath(user, opts \\ []) do
-    Path.join([
-      Keyword.get(opts, :data_dir) || data_dir(),
-      user,
-      "#{@metadata_dir}/#{Keyword.get(opts, :facet, "scrobbles")}/#{Keyword.get(opts, :format, "json")}_archive"
-    ])
-  end
-
-  def num_pages(playcount, per_page), do: (playcount / per_page) |> :math.ceil() |> round
-
-  # returns 2021/12/31/200_001 type paths
-  def page_path(datetime, page, per_page) do
-    page_num = page |> to_string() |> String.pad_leading(3, "0")
-
-    datetime
-    |> DateTime.from_unix!()
-    |> DateTime.to_date()
-    |> Date.to_string()
-    |> String.replace("-", "/")
-    |> Path.join("#{per_page}_#{page_num}")
-  end
-
-  @doc """
-  Read and unzip a file from the archive of a Lastfm user.
-  """
-  def read(filepath) do
-    case @file_io.read(filepath) do
-      {:ok, gzip_data} ->
-        {:ok, gzip_data |> :zlib.gunzip()}
-
-      error ->
-        Logger.warning("Error reading #{filepath}: #{inspect(error)} ")
-        error
-    end
-  end
-
-  def maybe_create_dir(user_dir, sub_dir: sub_dir) do
-    dir = Path.join(user_dir, sub_dir)
-    unless @file_io.exists?(dir), do: @file_io.mkdir_p(dir)
-    :ok
-  end
 
   def check_filepath(:csv, path), do: check_filepath(path <> ".gz")
   def check_filepath(_format, path), do: check_filepath(path)
@@ -88,6 +40,25 @@ defmodule LastfmArchive.Utils do
 
   # from "lastfm_data/user/2023/06/06/200_001.gz" -> "2023/06/06/200_001.gz"
   defp get_date_filepath(path, user), do: String.split(path, user <> "/") |> List.last()
+
+  def maybe_create_dir(dir) do
+    unless @file_io.exists?(dir), do: @file_io.mkdir_p(dir)
+    :ok
+  end
+
+  @doc """
+  Read and unzip a file from the archive of a Lastfm user.
+  """
+  def read(filepath) do
+    case @file_io.read(filepath) do
+      {:ok, gzip_data} ->
+        {:ok, gzip_data |> :zlib.gunzip()}
+
+      error ->
+        Logger.warning("Error reading #{filepath}: #{inspect(error)} ")
+        error
+    end
+  end
 
   @doc """
   Writes data frame or metadata to a file given a write function or options.

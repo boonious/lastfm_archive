@@ -11,7 +11,7 @@ defmodule LastfmArchive.Behaviour.ArchiveTest do
 
   import Hammox
   import LastfmArchive.Factory, only: [build: 2]
-  import LastfmArchive.Utils, only: [metadata_filepath: 2]
+  import LastfmArchive.Utils.Archive, only: [metadata_filepath: 2]
 
   alias LastfmArchive.Archive.Metadata
 

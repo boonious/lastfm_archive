@@ -11,8 +11,9 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
   import ExUnit.CaptureLog
   import Hammox
 
+  import LastfmArchive.Archive.Transformers.TransformerSettings, only: [validate_opts: 1]
   import LastfmArchive.Factory, only: [build: 2, scrobbles_csv_gzipped: 0, dataframe: 0]
-  import LastfmArchive.Utils, only: [user_dir: 1]
+  import LastfmArchive.Utils.Archive, only: [derived_archive_dir: 1, user_dir: 1]
 
   require Explorer.DataFrame
 
@@ -130,7 +131,7 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
       format = :csv
       options = [format: format]
       write_opts = Transformer.write_opts(format)
-      archive_dir = "#{Transformer.derived_archive_dir(options)}"
+      archive_dir = "#{options |> validate_opts() |> derived_archive_dir()}"
 
       filepath = Path.join([user_dir(user), archive_dir, "2022.#{format}.gz"])
 
@@ -172,7 +173,7 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
           format = unquote(format)
           options = [format: format]
           write_opts = Transformer.write_opts(format)
-          archive_dir = "#{Transformer.derived_archive_dir(options)}"
+          archive_dir = "#{options |> validate_opts() |> derived_archive_dir()}"
 
           filepath1 = Path.join([user_dir(user), archive_dir, "2022.#{format}"])
           filepath2 = Path.join([user_dir(user), archive_dir, "2023.#{format}"])
@@ -256,7 +257,7 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
   describe "apply/3" do
     test "transform all years", %{dataframe: df, metadata: metadata, transformer: transformer} do
       options = [format: :ipc_stream]
-      archive_dir = "#{Transformer.derived_archive_dir(options)}"
+      archive_dir = "#{options |> validate_opts() |> derived_archive_dir()}"
       dir = Path.join(user_dir(metadata.creator), archive_dir)
 
       FileIOMock
@@ -276,12 +277,13 @@ defmodule LastfmArchive.Archive.Transformers.TransformerTest do
 
     test "transform a given year", %{dataframe: df, metadata: metadata, transformer: transformer} do
       options = [format: :ipc_stream, year: 2022]
-      archive_dir = "#{Transformer.derived_archive_dir(options)}"
+      archive_dir = "#{options |> validate_opts() |> derived_archive_dir()}"
       dir = Path.join(user_dir(metadata.creator), archive_dir)
+      filepath = "#{dir}/2022.ipc_stream"
 
       FileIOMock
       |> expect(:exists?, fn ^dir -> true end)
-      |> expect(:exists?, fn _filepath -> false end)
+      |> expect(:exists?, fn ^filepath -> false end)
 
       # source 1-year, 12 months scrobbles data
       FileArchiveMock |> expect(:read, 12, fn ^metadata, _options -> {:ok, df} end)
