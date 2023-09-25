@@ -3,8 +3,8 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
   Base transformer with default implementations.
   """
 
-  use LastfmArchive.Archive.Transformers.TransformerSettings
-  use LastfmArchive.Behaviour.DataFrameIo, formats: LastfmArchive.Archive.Transformers.TransformerSettings.formats()
+  use LastfmArchive.Archive.Transformers.TransformerConfigs
+  use LastfmArchive.Behaviour.DataFrameIo
 
   alias Explorer.DataFrame
   alias LastfmArchive.Behaviour.Archive
@@ -19,7 +19,7 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
 
   defmacro __using__(_opts) do
-    quote do
+    quote location: :keep do
       @behaviour LastfmArchive.Behaviour.Transformer
       import LastfmArchive.Archive.Transformers.Transformer
       import LastfmArchive.Utils.DateTime, only: [year_range: 1]
@@ -50,6 +50,8 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
       defoverridable source: 2, sink: 3, transform: 2
     end
   end
+
+  def transformer(facet \\ :scrobbles), do: facet_transformer_config(facet)[:transformer]
 
   def apply(transformer, metadata, opts) do
     Path.join(user_dir(metadata.creator, opts), derived_archive_dir(opts |> validate_opts()))
@@ -114,7 +116,7 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
     fn df ->
       df
       |> DataFrame.collect()
-      |> dump_data_frame(:csv, write_opts(:csv))
+      |> then(fn df -> Kernel.apply(__MODULE__, :dump_csv!, [df, write_opts(:csv)]) end)
       |> then(fn data -> @file_io.write(filepath, data, [:compressed]) end)
     end
   end
@@ -123,7 +125,7 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
     fn df ->
       df
       |> DataFrame.collect()
-      |> to_data_frame(filepath, format, write_opts(format))
+      |> then(fn df -> Kernel.apply(__MODULE__, :"to_#{format}!", [df, filepath, write_opts(format)]) end)
     end
   end
 end

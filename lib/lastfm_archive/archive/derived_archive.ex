@@ -3,13 +3,9 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   An archive derived from local data extracted from Lastfm.
   """
   use LastfmArchive.Behaviour.Archive
-  use LastfmArchive.Archive.Transformers.TransformerSettings
 
   alias LastfmArchive.Archive.Metadata
   alias LastfmArchive.Archive.Transformers.Transformer
-  alias LastfmArchive.Archive.Transformers.TransformerSettings
-
-  use LastfmArchive.Behaviour.DataFrameIo, formats: TransformerSettings.formats()
 
   import LastfmArchive.Utils.Archive, only: [derived_archive_dir: 1, metadata_filepath: 2, user_dir: 2]
   import LastfmArchive.Utils.DateTime, only: [year_range: 1]
@@ -45,7 +41,7 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   @impl true
   @spec read(Archive.metadata(), read_options()) :: {:ok, Explorer.DataFrame.t()} | {:error, term()}
   def read(%Metadata{creator: user, format: mimetype, type: facet} = metadata, options) do
-    with {format, %{read_opts: config_opts}} <- setting(mimetype),
+    with {format, %{read_opts: config_opts}} <- Transformer.format_config(mimetype),
          {:ok, years} <- fetch_years(metadata, Keyword.get(options, :year)),
          {:ok, read_opts} <- fetch_read_opts(config_opts, Keyword.get(options, :columns)) do
       years
@@ -63,10 +59,10 @@ defmodule LastfmArchive.Archive.DerivedArchive do
   defp create_lazy_dataframe(years, user, facet, format, opts) do
     for year <- years do
       [format: format, facet: facet]
-      |> validate_opts()
+      |> Transformer.validate_opts()
       |> derived_archive_dir()
       |> filepath(format, user_dir(user, opts), year)
-      |> load_data_frame(format, opts)
+      |> then(fn fp -> apply(Transformer, :"from_#{format}!", [fp, opts]) end)
       |> Explorer.DataFrame.to_lazy()
     end
     |> Explorer.DataFrame.concat_rows()

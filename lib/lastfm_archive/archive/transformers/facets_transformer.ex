@@ -12,7 +12,7 @@ defmodule LastfmArchive.Archive.Transformers.FacetsTransformer do
 
   @impl true
   def transform(df, opts) do
-    %{group: group} = facet_transformers_settings()[Keyword.fetch!(opts, :facet)]
+    %{group: group} = facet_transformer_config(Keyword.fetch!(opts, :facet))
 
     df
     |> DataFrame.select(group ++ [:datetime])

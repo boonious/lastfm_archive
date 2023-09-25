@@ -4,17 +4,17 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
   import ExUnit.CaptureLog
   import Hammox
 
-  import LastfmArchive.Archive.Transformers.TransformerSettings, only: [transformer: 1]
   import LastfmArchive.Factory, only: [build: 2, dataframe: 0]
   import LastfmArchive.Utils.Archive, only: [derived_archive_dir: 1, user_dir: 1, metadata_filepath: 2]
 
-  alias LastfmArchive.Archive.DerivedArchive
-  alias LastfmArchive.Archive.FileArchiveMock
-  alias LastfmArchive.Archive.Metadata
-  alias LastfmArchive.FileIOMock
-
   alias Explorer.DataFrame
+  alias LastfmArchive.Archive.DerivedArchive
+  alias LastfmArchive.Archive.Metadata
+  alias LastfmArchive.Archive.Transformers.Transformer
+
   alias Explorer.DataFrameMock
+  alias LastfmArchive.Archive.FileArchiveMock
+  alias LastfmArchive.FileIOMock
 
   setup :verify_on_exit!
 
@@ -44,7 +44,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
   end
 
   describe "post_archive/3 transform" do
-    for format <- DerivedArchive.formats(), facet <- DerivedArchive.facets() do
+    for format <- Transformer.formats(), facet <- Transformer.facets() do
       test "#{facet} into #{format} file", %{dataframe: df, file_archive_metadata: metadata} do
         facet = unquote(facet)
         format = unquote(format)
@@ -68,14 +68,14 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
 
         capture_log(fn ->
           assert {:ok, _metadata} =
-                   DerivedArchive.post_archive(metadata, transformer(facet), format: format, facet: facet)
+                   DerivedArchive.post_archive(metadata, Transformer.transformer(facet), format: format, facet: facet)
         end)
       end
     end
   end
 
   describe "describe/2" do
-    for format <- DerivedArchive.formats(), facet <- DerivedArchive.facets() do
+    for format <- Transformer.formats(), facet <- Transformer.facets() do
       test "existing #{format} derived #{facet} archive", %{user: user, file_archive_metadata: metadata} do
         facet = unquote(facet)
         format = unquote(format)
@@ -84,7 +84,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         derived_archive_metadata = build(:derived_archive_metadata, file_archive_metadata: metadata, options: opts)
         derived_archive_metadata_filepath = metadata_filepath(user, format: format)
         file_archive_metadata_filepath = metadata_filepath(user, [])
-        mimetype = DerivedArchive.mimetype(format)
+        mimetype = Transformer.mimetype(format)
 
         FileIOMock
         |> expect(:read, fn ^file_archive_metadata_filepath -> {:ok, metadata |> Jason.encode!()} end)
@@ -120,7 +120,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
 
         file_archive_metadata_filepath = metadata_filepath(user, [])
         derived_archive_metadata_filepath = metadata_filepath(user, format: format, facet: facet)
-        mimetype = DerivedArchive.mimetype(format)
+        mimetype = Transformer.mimetype(format)
 
         FileIOMock
         |> expect(:read, fn ^file_archive_metadata_filepath -> {:ok, metadata |> Jason.encode!()} end)
@@ -150,7 +150,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
   end
 
   describe "read/2" do
-    for format <- DerivedArchive.formats(), facet <- DerivedArchive.facets() do
+    for format <- Transformer.formats(), facet <- Transformer.facets() do
       test "data frame with a year option for #{facet} archive in #{format}", %{
         dataframe: df,
         user: user,
@@ -161,7 +161,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         opts = [format: format, facet: facet]
 
         metadata = build(:derived_archive_metadata, file_archive_metadata: metadata, options: opts)
-        read_opts = DerivedArchive.read_opts(format)
+        read_opts = Transformer.read_opts(format)
         archive_dir = "#{derived_archive_dir(opts)}"
 
         filepath = Path.join([user_dir(user), archive_dir, "2023.#{format}"])
@@ -183,7 +183,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         opts = [format: format, facet: facet]
 
         metadata = build(:derived_archive_metadata, file_archive_metadata: metadata, options: opts)
-        read_opts = DerivedArchive.read_opts(format) |> Keyword.put(:columns, columns)
+        read_opts = Transformer.read_opts(format) |> Keyword.put(:columns, columns)
         archive_dir = "#{derived_archive_dir(opts)}"
 
         filepath = Path.join([user_dir(user), archive_dir, "2023.#{format}"])

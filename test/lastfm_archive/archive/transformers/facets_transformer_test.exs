@@ -24,11 +24,11 @@ defmodule LastfmArchive.Archive.Transformers.FacetsTransformerTest do
 
   describe "transform/2" do
     for facet <- Transformer.facets(), facet != :scrobbles do
-      @facet_settings Transformer.facet_transformers_settings()
+      @transformer_config Transformer.facet_transformer_config(facet)
 
       test "scrobbles into #{facet} facets", %{dataframe: df, tracks: tracks} do
         facet = unquote(facet)
-        group = @facet_settings[facet][:group]
+        group = @transformer_config[:group]
         assert %DataFrame{} = facets = FacetsTransformer.transform(df, facet: facet)
 
         facets = facets |> DataFrame.collect()

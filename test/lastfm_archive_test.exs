@@ -4,10 +4,9 @@ defmodule LastfmArchiveTest do
   import LastfmArchive.Factory, only: [build: 2, dataframe: 0]
   import Hammox
 
-  alias LastfmArchive.Archive.DerivedArchive
   alias LastfmArchive.Archive.DerivedArchiveMock
   alias LastfmArchive.Archive.FileArchiveMock
-  alias LastfmArchive.Archive.Transformers.TransformerSettings
+  alias LastfmArchive.Archive.Transformers.Transformer
 
   setup :verify_on_exit!
 
@@ -66,7 +65,7 @@ defmodule LastfmArchiveTest do
       assert {:ok, %Explorer.DataFrame{}} = LastfmArchive.read(user, option)
     end
 
-    for format <- DerivedArchive.formats(), facet <- DerivedArchive.facets() do
+    for format <- Transformer.formats(), facet <- Transformer.facets() do
       test "#{format} derived #{facet} archive", %{user: user, file_archive_metadata: metadata} do
         facet = unquote(facet)
         format = unquote(format)
@@ -103,14 +102,14 @@ defmodule LastfmArchiveTest do
   end
 
   describe "transform/2" do
-    for format <- DerivedArchive.formats(), facet <- DerivedArchive.facets() do
+    for format <- Transformer.formats(), facet <- Transformer.facets() do
       test "#{facet} into #{format} files", %{user: user, file_archive_metadata: file_archive_metadata} do
         facet = unquote(facet)
         format = unquote(format)
         opts = [format: format, facet: facet]
 
         metadata = build(:derived_archive_metadata, file_archive_metadat: file_archive_metadata, options: opts)
-        transformer = TransformerSettings.facet_transformers_settings()[facet][:transformer]
+        transformer = Transformer.facet_transformer_config(facet)[:transformer]
 
         DerivedArchiveMock
         |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
@@ -123,7 +122,7 @@ defmodule LastfmArchiveTest do
 
     test "scrobbles of default user with default (Arrow IPC stream) format", %{file_archive_metadata: metadata} do
       user = Application.get_env(:lastfm_archive, :user)
-      transformer = TransformerSettings.facet_transformers_settings()[:scrobbles][:transformer]
+      transformer = Transformer.facet_transformer_config(:scrobbles)[:transformer]
       opts = [format: :ipc_stream, facet: :scrobbles]
 
       DerivedArchiveMock

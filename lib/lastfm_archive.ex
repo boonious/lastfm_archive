@@ -15,7 +15,7 @@ defmodule LastfmArchive do
   alias LastfmArchive.LastfmClient.Impl, as: LastfmClient
   alias LastfmArchive.LastfmClient.LastfmApi
 
-  import LastfmArchive.Archive.Transformers.TransformerSettings, only: [transformer: 1]
+  import LastfmArchive.Archive.Transformers.Transformer, only: [transformer: 1]
 
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
 

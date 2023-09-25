@@ -1,4 +1,4 @@
-defmodule LastfmArchive.Archive.Transformers.TransformerSettings do
+defmodule LastfmArchive.Archive.Transformers.TransformerConfigs do
   @moduledoc false
   alias LastfmArchive.Archive.Transformers
 
@@ -7,27 +7,31 @@ defmodule LastfmArchive.Archive.Transformers.TransformerSettings do
       import unquote(__MODULE__)
 
       defdelegate facets, to: unquote(__MODULE__)
-      defdelegate facet_transformers_settings, to: unquote(__MODULE__)
       defdelegate formats, to: unquote(__MODULE__)
-      def mimetype(format), do: format_settings()[format][:mimetype]
-      def read_opts(format), do: format_settings()[format][:read_opts]
-      def write_opts(format), do: format_settings()[format][:write_opts]
-      def setting(mimetype), do: format_settings() |> Enum.find(fn {_format, %{mimetype: type}} -> type == mimetype end)
+
+      def facet_transformer_config(facet), do: facet_transformers_configs()[facet]
+
+      def format_config(mimetype) do
+        format_configs() |> Enum.find(fn {_format, %{mimetype: type}} -> type == mimetype end)
+      end
+
+      def validate_opts(opts) do
+        opts
+        |> Enum.filter(fn {k, _} -> k in (default_opts() |> Keyword.keys()) end)
+        |> Keyword.validate!(default_opts())
+      end
+
+      def mimetype(format), do: format_configs()[format][:mimetype]
+      def read_opts(format), do: format_configs()[format][:read_opts]
+      def write_opts(format), do: format_configs()[format][:write_opts]
     end
   end
 
   def default_opts, do: [format: :ipc_stream, facet: :scrobbles, overwrite: false]
+  def facets, do: facet_transformers_configs() |> Map.keys()
+  def formats, do: format_configs() |> Map.keys()
 
-  def validate_opts(opts) do
-    opts
-    |> Enum.filter(fn {k, _} -> k in (default_opts() |> Keyword.keys()) end)
-    |> Keyword.validate!(default_opts())
-  end
-
-  def facets, do: facet_transformers_settings() |> Map.keys()
-  def formats, do: format_settings() |> Map.keys()
-
-  def format_settings do
+  def format_configs do
     %{
       csv: %{mimetype: "text/tab-separated-values", read_opts: [delimiter: "\t"], write_opts: [delimiter: "\t"]},
       parquet: %{mimetype: "application/vnd.apache.parquet", read_opts: [], write_opts: [compression: {:gzip, 9}]},
@@ -36,7 +40,7 @@ defmodule LastfmArchive.Archive.Transformers.TransformerSettings do
     }
   end
 
-  def facet_transformers_settings do
+  def facet_transformers_configs do
     %{
       scrobbles: %{transformer: Transformers.LocalFileArchiveTransformer},
       artists: %{transformer: Transformers.FacetsTransformer, group: [:artist, :year, :mmdd]},
@@ -44,6 +48,4 @@ defmodule LastfmArchive.Archive.Transformers.TransformerSettings do
       tracks: %{transformer: Transformers.FacetsTransformer, group: [:track, :album, :artist, :mbid, :year, :mmdd]}
     }
   end
-
-  def transformer(facet \\ :scrobbles, settings \\ facet_transformers_settings()), do: settings[facet][:transformer]
 end
