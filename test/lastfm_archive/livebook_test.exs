@@ -8,6 +8,7 @@ defmodule LastfmArchive.LivebookTest do
   alias LastfmArchive.Cache.Server, as: CacheServer
   alias LastfmArchive.Livebook, as: LFM_LB
 
+  import LastfmArchive.Factory, only: [dataframe: 1]
   import LastfmArchive.Utils.Archive, only: [user_dir: 1]
 
   @cache :livebooktest_cache
@@ -33,5 +34,9 @@ defmodule LastfmArchive.LivebookTest do
 
   test "render_playcounts_heatmaps/1" do
     assert :ok = LFM_LB.render_playcounts_heatmaps("a_lastfm_user", [], @cache)
+  end
+
+  test "render_first_play_bubble_plot/1" do
+    assert %VegaLite{} = LFM_LB.render_first_play_bubble_plot(dataframe(:artists) |> Explorer.DataFrame.collect())
   end
 end

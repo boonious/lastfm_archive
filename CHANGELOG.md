@@ -1,10 +1,11 @@
 # Changelog
-## 1.2.0 (2023-09-22)
+## 1.2.0 (2023-09-27)
 
-* new `FacetsTransformer` and `facet` (unique artists, albums, tracks) options to derive faceted archives
+* `FacetsTransformer` and `facet` (unique artists, albums, tracks) option in `transform/2` for facets archiving
+* refactor: utils modules, dataframe and transformer config macros
 * Livebook: 
-    * [`Creating a file archive`](https://hexdocs.pm/lastfm_archive/archiving.html): visualise all Lastfm scrobbles in annual heatmaps containing daily playcounts and stats
-    * new [`Facets archiving`](https://hexdocs.pm/lastfm_archive/facets.html) guide to show how facet archives can be created and use in `Explorer.DataFrame` for future analytics
+    * [`Creating a file archive`](https://hexdocs.pm/lastfm_archive/archiving.html): heatmaps visualisation containing daily playcounts, tooltips and stats
+    * [`Facets archiving`](https://hexdocs.pm/lastfm_archive/facets.html) new guide about facets archiving with usage demo for `Explorer.DataFrame` analytics and [Vega-Lite](https://vega.github.io/vega-lite/) visualisation
 
 ## 1.1.1 (2023-09-15)
 

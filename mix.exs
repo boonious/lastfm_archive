@@ -29,7 +29,8 @@ defmodule LastfmArchive.MixProject do
           "CHANGELOG.md",
           "livebook/setup.livemd": [title: "Setup, installation"],
           "livebook/archiving.livemd": [title: "Creating a file archive"],
-          "livebook/transforming.livemd": [title: "Columnar data transforms"]
+          "livebook/transforming.livemd": [title: "Columnar data transforms"],
+          "livebook/facets.livemd": [title: "Facets archiving"]
         ],
         groups_for_extras: [
           Guides: Path.wildcard("livebook/*.livemd")

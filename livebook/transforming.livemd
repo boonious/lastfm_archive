@@ -68,8 +68,7 @@ LastfmArchive.transform(user, format: :parquet, overwrite: true)
 Run the following code to create an Apache Arrow archive according its IPC streaming format:
 
 ```elixir
-LastfmArchive.default_user()
-|> LastfmArchive.transform(format: :ipc_stream)
+LastfmArchive.default_user() |> LastfmArchive.transform(format: :ipc_stream)
 ```
 
 The same `overwrite` and `year` options are applicable (see [Apache Parquet archive](#apache-parquet-archive)) for regenerating / transforming all or single-year data.
@@ -107,4 +106,4 @@ To compute all unique tracks by artists:
 df_all |> Explorer.DataFrame.collect() |> Explorer.DataFrame.frequencies([:track, :artist])
 ```
 
-<!-- livebook:{"offset":4608,"stamp":{"token":"QTEyOEdDTQ.tZ1eCikFnDIzag1_4NP1fr1dYxmgkLaUwYGQcUgwdpxG7vzdRt2IVTo4-Ls.x_tqFsujIxcJn3IR.Rq7I2kcWRdUphhGq6c-RW8pduqKm6tT-qkk3DnlbRdTWUeUmHHi1ri3NHg.1TdujHecUgn4plfI7L503w","version":1}} -->
+<!-- livebook:{"offset":4608,"stamp":{"token":"QTEyOEdDTQ.IUfRS4VBUUeIMnu2G9F2ghUa1X41pIHWzlJ0Mx4gaLjm1at_uBkvHZm9aPA.FNBtCk7il4yb4zf6.YFJsmOLeUx51JvccN9THEyWOFyN9URCOz5zXChmPD5Mzb3N0Jxm6Ad1DXg.Qy1CKfx6Oqk5YpcmaeZstQ","version":1}} -->

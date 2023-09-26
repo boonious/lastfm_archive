@@ -44,5 +44,3 @@ Run the following code (click `Evaluate`) to send a test request to Lastfm. If y
 ```elixir
 LastfmArchive.Livebook.info()
 ```
-
-<!-- livebook:{"offset":1557,"stamp":{"token":"QTEyOEdDTQ.UKr6No05jQHxlM32QaUqAQHBXTeDGryTmJeThbrTv7P8etl1g0NFdSOGseI.7L8Hxj7O-p1LaeZT.VgyynwUXhPKEsIr_LENhw5CfpzFlUXR3wSLq6RWqVOVvAXnmcZ642qiT7TD9MEU20ziwu4btYAGVtqM.eodMMt2mhrXox0sdRDKJxg","version":1}} -->

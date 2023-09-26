@@ -51,6 +51,8 @@ LastfmArchive.sync()
 
 Run the following to visualise the archiving process and progress. The code displays daily and annual playcounts stats. It also provides heatmaps visualisation. Rerun the code to get the latest status.
 
+See a [sample output](https://hexdocs.pm/lastfm_archive/assets/img/livebook_heatmap.png).
+
 ```elixir
 LastfmArchive.default_user() |> LFM_LB.render_playcounts_heatmaps()
 ```
@@ -87,4 +89,4 @@ LastfmArchive.default_user() |> LastfmArchive.sync(date: ~D[2023-09-03])
 LastfmArchive.default_user() |> LastfmArchive.sync(date: ~D[2023-09-03], overwrite: true)
 ```
 
-<!-- livebook:{"offset":2714,"stamp":{"token":"QTEyOEdDTQ.K7v0HPazpU6DaUDu7u5u_WB0Tp2m1SD3e-qYnlAsDPxc8lpkF4X6qUte5lc.m2-liEJJx2umRZFt.1gj_RV1LZgncZStFlRSA2fvtUTzoHt8Degkd3hQnqtGaGMCHyGuAhuuR3TnZVtWozOadv00UDrdGCsY.2Nq_B1oiDl4Zt-rbbxyAwA","version":1}} -->
+<!-- livebook:{"offset":2805,"stamp":{"token":"QTEyOEdDTQ.-3jE5jxgmd1Yv8n89YD_oVWgy_VkffTIRZycMnEd_zrHVPb7cEkWq3O2s7c.EFU3eK5cSZEziLvD.jSUKVHpMDW2IbumjYNypIVl7XQZN742--J831ZPBgk_eJZetTsdMSoAqIZ_bxlgJ6LEFnGhkTx24gF0.X_dbFYSxs-YXUn3Cm4HkFQ","version":1}} -->

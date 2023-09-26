@@ -7,6 +7,8 @@ defmodule LastfmArchive.Livebook do
   alias VegaLite, as: Vl
 
   alias Explorer.DataFrame
+  alias Explorer.Series
+
   require Explorer.DataFrame
 
   @cache LastfmArchive.Cache.Server
@@ -158,4 +160,63 @@ defmodule LastfmArchive.Livebook do
   end
 
   defp get_date(datetime), do: datetime |> DateTime.from_unix!() |> DateTime.to_date()
+
+  @doc """
+  Display faceted dataframe in VegaLite bubble plot showing first play and counts (size, colour).
+  """
+  @spec render_first_play_bubble_plot(DataFrame.t()) :: VegaLite.t()
+  def render_first_play_bubble_plot(facet_dataframe) do
+    {min_year, max_year} = find_first_play_min_max_years(facet_dataframe)
+
+    data =
+      facet_dataframe
+      |> DataFrame.put(:first_play, Series.cast(facet_dataframe[:first_play], :date) |> Series.cast(:string))
+      |> DataFrame.to_rows()
+
+    Vl.new(title: nil, width: 800, height: 400)
+    |> Vl.transform(calculate: "random()", as: "jitter")
+    |> Vl.transform(filter: "datum.counts > 0")
+    |> Vl.data_from_values(data)
+    |> Vl.mark(:circle, tooltip: true)
+    |> Vl.encode_field(:x, "first_play",
+      time_unit: :yearmonth,
+      type: :temporal,
+      title: nil,
+      axis: [format: "%Y"],
+      scale: [domain: [[year: min_year, month: "jan", date: 1], [year: max_year, month: "dec", date: 31]]]
+    )
+    |> Vl.encode_field(:x_offset, "jitter", type: :quantitative)
+    |> Vl.encode_field(:y_offset, "jitter", type: :quantitative)
+    |> Vl.encode_field(:y, "first_play",
+      time_unit: :date,
+      type: :temporal,
+      title: nil,
+      axis: [format: "%d"]
+      # sort: "ascending"
+    )
+    |> Vl.encode_field(:size, "counts",
+      type: :quantitative,
+      scale: [type: "linear", range_max: 1000, range_min: 2],
+      legend: false
+    )
+    |> Vl.encode_field(:color, "counts",
+      type: :nominal,
+      opacity: 0.5,
+      scale: [scheme: "turbo"],
+      legend: false
+    )
+    |> Vl.encode(:tooltip, [
+      [field: "artist", type: :nominal],
+      [field: "counts", type: :quantitative],
+      [field: "first_play", type: :temporal]
+    ])
+  end
+
+  defp find_first_play_min_max_years(df) do
+    df = df |> DataFrame.summarise(min: min(first_play), max: max(first_play)) |> DataFrame.to_rows() |> hd
+    %{year: min_year} = df["min"]
+    %{year: max_year} = df["max"]
+
+    {min_year, max_year}
+  end
 end

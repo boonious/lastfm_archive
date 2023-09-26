@@ -67,7 +67,7 @@ defmodule LastfmArchive.Behaviour.Archive do
       @impl true
       def describe(user, options \\ []) do
         case @file_io.read(metadata_filepath(user, options)) do
-          {:ok, metadata} -> {:ok, Jason.decode!(metadata, keys: :atoms!) |> Metadata.new()}
+          {:ok, metadata} -> {:ok, Jason.decode!(metadata, keys: :atoms) |> Metadata.new()}
           {:error, :enoent} -> {:ok, Metadata.new(user, options)}
         end
       end
