@@ -4,7 +4,7 @@
 
 ```elixir
 Mix.install(
-  [{:lastfm_archive, "~> 1.1"}, {:kino_explorer, "~> 0.1.8"}],
+  [{:lastfm_archive, "~> 1.2"}, {:kino_explorer, "~> 0.1.8"}],
   config: [
     lastfm_archive: [
       data_dir: "./lastfm_data/",
@@ -19,29 +19,16 @@ Mix.install(
 ## Introduction
 
 This guide uses [lastfm_archive](https://github.com/boonious/lastfm_archive)
-to create columnar data archives, enabling an entire dataset of scrobbles for a Lastfm user
-to be read into a data frame for analytics purposes.
+to create various columnar data archives, enabling an entire dataset of scrobbles for a Lastfm user to be read into a data frame for analytics purposes.
 
 ### Prerequisite
 
-* [Creating a file archive](archiving.html) containing scrobbles in raw JSON format fetched from Lastfm API
-
-### Requirement
-
-* [install](https://livebook.dev/#install) and start Livebook
-* run this Livebook guide
-* configure this guide as instructued below, click on `Notebook dependencies and setup`, `Setup` (above)
-
-## Configuration
-
-`lastfm_archive` has been configured as a dependency in `Setup` above. You need to check and modify the following configs:
-
-1. **`user`**: specify a Lastfm username in this config or share it via a `LFM_USER` secret (see [Secrets management](https://hackmd.io/@hugobarauna/By6ulTnMi#Secret-management))
-2. **`data_dir`** (optional): by default scrobbles data is stored in `~/lastfm_data/` directory within your home directory. Modifiy this location if other directory is preferred
+* [Setup, installation](https://hexdocs.pm/lastfm_archive/setup.html)
+* [Creating a file archive](https://hexdocs.pm/lastfm_archive/archiving.html) containing scrobbles in raw JSON format fetched from Lastfm API
 
 ## Transform to columnar formats
 
-The default file archive consists of data downloaded from Lastfm that is stored in per-day raw data format (a JSON file per day). It is not optimised for analytics and computational purposes. For example, all the raw data files must be read, parsed, analysed and consolidated, even for a simple metric such as counting the total number of albums scrobbled.
+The default file archive consists of data downloaded from Lastfm that is stored in per-day raw data format (a JSON file per day). It is not optimised for analytics and computational purposes. For example, all the raw data files must be read, parsed, analysed and consolidated, even for a simple metric such as counting the total number of albums scrobbled. For example, if you have 16 years of scrobbles, there are a lot of files to read just to get a simple count!
 
 Columnar based storage is [better for analytics](https://thenewstack.io/what-is-a-column-database-and-when-should-you-use-one/#:~:text=The%20main%20advantage%20of%20a,than%20traditional%20row%2Dbased%20databases.), [OLAP](https://www.influxdata.com/glossary/olap/?utm_source=vendor&utm_medium=referral&utm_campaign=2022-12_spnsr-ctn_column-database_tns&utm_content=inline-mention) workloads and for historical archive. [lastfm_archive](https://github.com/boonious/lastfm_archive) provides capability to transform the raw JSON archive into the following storage formats:
 
@@ -49,7 +36,7 @@ Columnar based storage is [better for analytics](https://thenewstack.io/what-is-
 * [Apache Parquet](https://parquet.apache.org) columnar format
 * also CSV (tab-delimited)
 
-<!-- livebook:{"branch_parent_index":2} -->
+<!-- livebook:{"branch_parent_index":1} -->
 
 ## Apache Parquet archive
 
@@ -72,7 +59,7 @@ To simply transform / regenerate the entire archive, overwriting all previous da
 LastfmArchive.transform(user, format: :parquet, overwrite: true)
 ```
 
-<!-- livebook:{"branch_parent_index":2} -->
+<!-- livebook:{"branch_parent_index":1} -->
 
 ## Apache Arrow archive
 
@@ -81,8 +68,7 @@ LastfmArchive.transform(user, format: :parquet, overwrite: true)
 Run the following code to create an Apache Arrow archive according its IPC streaming format:
 
 ```elixir
-LastfmArchive.default_user()
-|> LastfmArchive.transform(format: :ipc_stream)
+LastfmArchive.default_user() |> LastfmArchive.transform(format: :ipc_stream)
 ```
 
 The same `overwrite` and `year` options are applicable (see [Apache Parquet archive](#apache-parquet-archive)) for regenerating / transforming all or single-year data.
@@ -93,7 +79,7 @@ Columnar data can be read into an [Explorer data frame](https://hexdocs.pm/explo
 
 ```elixir
 user = LastfmArchive.default_user()
-{:ok, df} = LastfmArchive.read(user, format: :ipc_stream, year: 2023, columns: [:album])
+{:ok, df} = LastfmArchive.read(user, format: :ipc_stream, year: 2023)
 ```
 
 The data frame can now be used for various analytics workloads. For example, compute all unique albums scrobbled in year 2023 and list them in descending order (most scrobbled albums):
@@ -120,4 +106,4 @@ To compute all unique tracks by artists:
 df_all |> Explorer.DataFrame.collect() |> Explorer.DataFrame.frequencies([:track, :artist])
 ```
 
-<!-- livebook:{"offset":5117,"stamp":{"token":"QTEyOEdDTQ.JLJYfOTg9hxBYen7I450mxplgreCjyszxYxtYPHn71rLMtWaqOqPbTn2i_Y.-7J7TfiYakuAAEXT.nxPtKzUhoklNH-42cwW68KIIwi_xMro-aO7mckj_9dmTFh0qBJoSVPLuqA.ys8KH58zKBN7jiFyvgjVrw","version":1}} -->
+<!-- livebook:{"offset":4608,"stamp":{"token":"QTEyOEdDTQ.IUfRS4VBUUeIMnu2G9F2ghUa1X41pIHWzlJ0Mx4gaLjm1at_uBkvHZm9aPA.FNBtCk7il4yb4zf6.YFJsmOLeUx51JvccN9THEyWOFyN9URCOz5zXChmPD5Mzb3N0Jxm6Ad1DXg.Qy1CKfx6Oqk5YpcmaeZstQ","version":1}} -->

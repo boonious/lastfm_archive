@@ -4,7 +4,7 @@
 
 ```elixir
 Mix.install(
-  [{:lastfm_archive, "~> 1.1"}],
+  [{:lastfm_archive, "~> 1.2"}],
   config: [
     lastfm_archive: [
       data_dir: "./lastfm_data/",
@@ -19,30 +19,13 @@ alias LastfmArchive.Livebook, as: LFM_LB
 
 ## Introduction
 
-This guide uses the [lastfm_archive](https://github.com/boonious/lastfm_archive) library
-to create an archive containing [scrobbles](https://www.last.fm/about/trackmymusic): 
-music tracks that Lastfm users have been listening to. It downloads scrobbles via the Lastfm API and stores them as raw JSON data in a local file location.
+This is a step-by-step guide to creating a local file archive containing [Last.fm scrobbles](https://www.last.fm/about/trackmymusic), i.e. music tracks that you have been listening to. This uses the [lastfm_archive](https://github.com/boonious/lastfm_archive) tool that facilicates scrobbles downloading from the Last.fm API and stores them in raw JSON files.
 
-### Requirement
+**Why?** This grounds your data, backs up your music listening history, keeping it safe. You can also use the archive personally in many ways, in other applications. For example, [transforming the data](https://hexdocs.pm/lastfm_archive/transforming.html) into suitable formats for interesting analytics and visualisation.
 
-* [install](https://livebook.dev/#install) and start Livebook
-* run this Livebook guide
-* configure Livebook as instructued below, click on `Notebook dependencies and setup`, `Setup` (above)
+### Prerequisite
 
-## Configuration
-
-Lastfm archive has been configured as a dependency in `Setup` above. You need to check and modify the following configs:
-
-1. **`user`**: specify a Lastfm username in this config or share it via a `LFM_USER` secret (see [Secrets management](https://hackmd.io/@hugobarauna/By6ulTnMi#Secret-management))
-2. **`data_dir`** (optional): by default scrobbles data is stored in `~/lastfm_data/` directory within your home directory. Modifiy this location if other directory is preferred
-
-<!-- livebook:{"break_markdown":true} -->
-
-### API key environment variable
-
-To access the API provided by Lastfm, you need to [apply for a 32-digit string key](https://www.last.fm/api/authentication). This key will be used when downloading data via Lastfm API.
-
-Once you have obtained this key, add it as `LFM_API_KEY` secret and share it with this Livebook - see [Secrets management](https://hackmd.io/@hugobarauna/By6ulTnMi#Secret-management) for further details.
+* [Setup, installation](https://hexdocs.pm/lastfm_archive/setup.html) Livebook
 
 ## Scope
 
@@ -52,17 +35,29 @@ Run the following code (click `Evaluate` below) to find out what are you about t
 LFM_LB.info()
 ```
 
-<!-- livebook:{"branch_parent_index":2} -->
+<!-- livebook:{"branch_parent_index":1} -->
 
 ## Archiving
 
-Run the follow to begin archiving. This will initate a process that fetches scrobbles on a daily basis, at around every 1s (within permissable Lastfm API request rate). The process is memoised or cached. It can be halted (click `Stop`) and restarted without data being re-fetched and the API being unnecessarily called again.
+Run the follow to begin archiving. This will initate a process that fetches daily scrobbles at around every 1s (within permissable Lastfm API request rate). The process is memoised or cached. It can be halted (click `Stop`) and resumed without data being re-fetched. This prevents unnecessarily calls being made to the API.
 
 ```elixir
 LastfmArchive.sync()
 ```
 
-<!-- livebook:{"branch_parent_index":2} -->
+<!-- livebook:{"branch_parent_index":1} -->
+
+## Status: daily playcounts
+
+Run the following to visualise the archiving process and progress. The code displays daily and annual playcounts stats. It also provides heatmaps visualisation. Rerun the code to get the latest status.
+
+See a [sample output](https://hexdocs.pm/lastfm_archive/assets/img/livebook_heatmap.png).
+
+```elixir
+LastfmArchive.default_user() |> LFM_LB.render_playcounts_heatmaps()
+```
+
+<!-- livebook:{"branch_parent_index":1} -->
 
 ## Year option
 
@@ -73,7 +68,7 @@ LastfmArchive.sync()
 LastfmArchive.default_user() |> LastfmArchive.sync(year: 2023)
 ```
 
-<!-- livebook:{"branch_parent_index":2} -->
+<!-- livebook:{"branch_parent_index":1} -->
 
 ## Date option
 
@@ -84,7 +79,7 @@ LastfmArchive.default_user() |> LastfmArchive.sync(year: 2023)
 LastfmArchive.default_user() |> LastfmArchive.sync(date: ~D[2023-09-03])
 ```
 
-<!-- livebook:{"branch_parent_index":2} -->
+<!-- livebook:{"branch_parent_index":1} -->
 
 ## Overwrite option
 
@@ -94,15 +89,4 @@ LastfmArchive.default_user() |> LastfmArchive.sync(date: ~D[2023-09-03])
 LastfmArchive.default_user() |> LastfmArchive.sync(date: ~D[2023-09-03], overwrite: true)
 ```
 
-<!-- livebook:{"branch_parent_index":2} -->
-
-## Status
-
-Run the following for a heatmap and counts, checking the archiving progress. Rerun the code to get the latest status.
-
-```elixir
-[LFM_LB.monthly_playcounts_heatmap(), LFM_LB.yearly_playcounts_table()]
-|> Kino.Layout.grid(columns: 2)
-```
-
-<!-- livebook:{"offset":3374,"stamp":{"token":"QTEyOEdDTQ.l19yCxas8G1C7rJjoJdhjZTywq4sDPMUv0HAAdClMQQKnZ9Dq64Pdt5nu8c.LRwDCjtbckn5i_61.4_6i45Fc02lZ1vVECPx8FNuG_Ugl6uj4EPeALcX8MSaRotLccyOc1fxgMZvkizhPsjM8vOBHsfwBCuM.ynfEbr5T6eKphZprcIMQ5w","version":1}} -->
+<!-- livebook:{"offset":2805,"stamp":{"token":"QTEyOEdDTQ.-3jE5jxgmd1Yv8n89YD_oVWgy_VkffTIRZycMnEd_zrHVPb7cEkWq3O2s7c.EFU3eK5cSZEziLvD.jSUKVHpMDW2IbumjYNypIVl7XQZN742--J831ZPBgk_eJZetTsdMSoAqIZ_bxlgJ6LEFnGhkTx24gF0.X_dbFYSxs-YXUn3Cm4HkFQ","version":1}} -->

@@ -47,11 +47,12 @@ defmodule LastfmArchive.Behaviour.Archive do
   @optional_callbacks archive: 3, post_archive: 3
 
   defmacro __using__(_opts) do
-    quote do
+    quote location: :keep do
       @behaviour LastfmArchive.Behaviour.Archive
 
       import LastfmArchive.Behaviour.Archive
-      import LastfmArchive.Utils
+      import LastfmArchive.Utils.Archive, only: [metadata_filepath: 2, user_dir: 2]
+      import LastfmArchive.Utils.File, only: [write: 2]
 
       alias LastfmArchive.Archive.Metadata
 
@@ -66,7 +67,7 @@ defmodule LastfmArchive.Behaviour.Archive do
       @impl true
       def describe(user, options \\ []) do
         case @file_io.read(metadata_filepath(user, options)) do
-          {:ok, metadata} -> {:ok, Jason.decode!(metadata, keys: :atoms!) |> Metadata.new()}
+          {:ok, metadata} -> {:ok, Jason.decode!(metadata, keys: :atoms) |> Metadata.new()}
           {:error, :enoent} -> {:ok, Metadata.new(user, options)}
         end
       end

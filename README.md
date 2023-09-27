@@ -2,10 +2,10 @@
 
 A tool for extracting and archiving Last.fm music listening data - [scrobbles](https://www.last.fm/about/trackmymusic).
 
-**Note**: previous analytics features have been migrated to [coda](https://github.com/boonious/coda).
-This includes the [on this day Livebook](https://github.com/boonious/coda#livebook).
-Please check out [coda](https://github.com/boonious/coda) for more Last.fm listening data analytics
-in the future.
+**Note**: 
+- check out: the new [Facets archiving](#facets-archiving) Livebook
+- previous analytics features have been migrated to [coda](https://github.com/boonious/coda), including [on this day](https://github.com/boonious/coda#livebook) Livebook.
+Visit [coda](https://github.com/boonious/coda) for future Lastfm analytics.
 
 ## Usage
 
@@ -22,8 +22,8 @@ by invoking `iex -S mix` command line action while in software home directory.
   LastfmArchive.sync("a_lastfm_user")
 ```
 
-You can also deploy and use the tool in [Livebook](https://livebook.dev), check out:
-- [Guides for archiving and data transforms](#livebook-guides) 
+You can also deploy and use the tool in [Livebook](https://livebook.dev),
+as shown in various [Livebook guides](#livebook-guides).
 
 Scrobbles are downloaded via the Last.fm API and stored in the file archive on demand
 and on a daily basis. The software has a built-in cache to remember 
@@ -35,8 +35,7 @@ chunked into 200-track (max) `gzip` compressed pages and stored within directori
 corresponding to the days when tracks were scrobbled. The file archive in a main 
 directory specified in configuration - see below.
 
-See [`sync/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#sync/2) for
-various archiving options such `overwrite`, `year`, `date`.
+See [Creating a file archive](#creating-a-file-archive) guide and [`sync/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#sync/2) for various archiving options such `overwrite`, `year`, `date`.
 
 ### Transform into columnar storage formats
 You can transform the file archive into other common storage formats such as CSV and 
@@ -60,7 +59,19 @@ Available formats:
 - [Apache Arrow](https://arrow.apache.org) columnar format
 - [Apache Parquet](https://parquet.apache.org) columnar format
 
-See [`transform/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#transform/2).
+See [Columnar data transforms](#columnar-data-transforms) guide and 
+[`transform/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#transform/2).
+
+### Transform into faceted columnar datasets
+You can also transform the file archive into faceted (`artists`, `albums`, `tracks`)
+datasets.
+
+```elixir
+LastfmArchive.transform("a_lastfm_user", format: :ipc_stream, facet: :artists)
+```
+
+See [Facets archiving](#facets-archiving) guide and 
+[`transform/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#transform/2).
 
 ### Read archive
 
@@ -86,9 +97,8 @@ LastfmArchive.read("a_lastfm_user",  month: ~D[2022-12-01])
 
 #### From columnar archive for analytics
 
-More data can be loaded from existing columnar archive.
-[`read/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#read/2) can be used to
-return a single-year or all scrobbles, i.e. **the entire dataset**.
+[`read/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#read/2) can
+return a single-year or all scrobbles, i.e. **the entire dataset** from a columnar archive.
 A `columns` option is available to retrieve only a column subset.
 
 ```elixir
@@ -102,22 +112,44 @@ LastfmArchive.read("a_lastfm_user", format: :ipc_stream)
 LastfmArchive.read("a_lastfm_user", format: :parquet, columns: [:id, :artist, :album])
 ```
 
-See [`read/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#read/2).
+#### From faceted datasets for analytics
+[`read/2`](https://hexdocs.pm/lastfm_archive/LastfmArchive.html#read/2) can also
+return the faceted datasets, e.g. **all artists** from a columnar archive.
+
+```elixir
+LastfmArchive.read("a_lastfm_user", format: :ipc_stream, facet: :artists)
+```
 
 ## Livebook guides
 
-`LastfmArchive` also provides the following [Livebook](https://livebook.dev) interactive and step-by-step guides: 
-  - [Creating a file archive](https://hexdocs.pm/lastfm_archive/archiving.html) guide for creating a local file archive consisting data fetched from the Last.fm API. It provides a heatmap and count visualisation for checking ongoing archiving status.
+`LastfmArchive` also provides the following [Livebook](https://livebook.dev) interactive and step-by-step guides.
 
-    [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fboonious%2Flastfm_archive%2Fmaster%2Flivebook%2Farchiving.livemd)
+### Creating a file archive
+[![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fboonious%2Flastfm_archive%2Fmaster%2Flivebook%2Farchiving.livemd)
 
-    ![archiving progress visualisation](assets/img/livebook_heatmap.png)
-  - [Columnar data transforms](https://hexdocs.pm/lastfm_archive/transforming.html) guide for transforming the local file archive to columnar data formats (Arrow, Parquet). It demonstrates how `read/2` can be used to load single-year single-column data, as well as an entire dataset into data frame for various analytics. 
+[Creating a file archive](https://hexdocs.pm/lastfm_archive/archiving.html) guide for creating a local file archive consisting data fetched from the Last.fm API. It provides a heatmap and count visualisation for checking ongoing archiving status.
 
-    [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fboonious%2Flastfm_archive%2Fmaster%2Flivebook%2Ftransforming.livemd)
+![archiving progress visualisation](assets/img/livebook_heatmap.png)
 
-    ![unique tracks by artists analytics](assets/img/livebook_unique_tracks_analytics.png)   
- 
+### Columnar data transforms
+[![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fboonious%2Flastfm_archive%2Fmaster%2Flivebook%2Ftransforming.livemd)
+
+[Columnar data transforms](https://hexdocs.pm/lastfm_archive/transforming.html) guide for transforming the local file archive to columnar data formats (Arrow, Parquet). It demonstrates how `read/2` can be used to load single-year single-column data, as well as an entire dataset into data frame for various analytics.
+
+See a [sample output](https://hexdocs.pm/lastfm_archive/assets/img/livebook_unique_tracks_analytics.png) of this guide,
+showing top tracks analytics.
+
+### Facets archiving
+[![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Fboonious%2Flastfm_archive%2Fmaster%2Flivebook%2Ffacets.livemd)
+
+[Facets archiving](https://hexdocs.pm/lastfm_archive/facets.html) guide shows how the local file archive can generate faceted `artists`, `albums`, `tracks` columnar datasets. It also demos how the datasets may be used. For example finding the new artists discovered on a particular date,
+
+![new artists discovered on this day](assets/img/livebook_new_artists_on_this_day.png)
+
+and visualising all artists, when their were first listened to and overall popularity.
+
+![all artists first played and popularity](assets/img/livebook_firstplay_bubble_plot.png)
+
 ## Other usage
 To load all transformed CSV data from the archive into Solr:
 
@@ -148,7 +180,7 @@ to your list of dependencies in `mix.exs`:
 ```elixir
   def deps do
     [
-      {:lastfm_archive, "~> 1.1"}
+      {:lastfm_archive, "~> 1.2"}
     ]
   end
 ```

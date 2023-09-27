@@ -14,9 +14,8 @@ defmodule LastfmArchive do
   alias LastfmArchive.Behaviour.Archive
   alias LastfmArchive.LastfmClient.Impl, as: LastfmClient
   alias LastfmArchive.LastfmClient.LastfmApi
-  alias LastfmArchive.Utils
 
-  import LastfmArchive.Archive.Transformers.TransformerSettings, only: [transformer: 1]
+  import LastfmArchive.Archive.Transformers.Transformer, only: [transformer: 1]
 
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
 
@@ -140,6 +139,7 @@ defmodule LastfmArchive do
 
   Options:
   - `:format` (required) - derived archive format: `:csv`, `:parquet`, `:ipc`, `:ipc_stream`
+  - `:facet` - type of archive: `:scrobbles` (default), `:albums`, `:artists` or `:tracks`
   - `:year` - only read scrobbles for this particular year
   - `:columns` - an atom list for retrieving only a columns subset, available columns:
   #{%LastfmArchive.Archive.Scrobble{} |> Map.keys() |> List.delete(:__struct__) |> Enum.map_join(", ", &(("`:" <> Atom.to_string(&1)) <> "`"))}
@@ -172,6 +172,7 @@ defmodule LastfmArchive do
 
   Options:
   - `:format` - format into which file archive is transformed: `:csv`, `:parquet`, `:ipc`, `:ipc_stream` (default)
+  - `:facet` - type of archive: `:scrobbles` (default), `:albums`, `:artists` or `:tracks`
   - `:overwrite` existing data, default: false
   - `:year` - optionally transform data from this particular year
   """
@@ -197,7 +198,8 @@ defmodule LastfmArchive do
 
   # return all archive file paths in a list
   defp ls_archive_files(user, options \\ []) do
-    Path.join(Utils.user_dir(user, options), "**/*.gz")
+    LastfmArchive.Utils.Archive.user_dir(user, options)
+    |> Path.join("**/*.gz")
     |> @path_io.wildcard([])
     |> Enum.map(&(String.split(&1 |> to_string, user <> "/") |> tl |> hd))
   end

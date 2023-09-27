@@ -3,8 +3,6 @@ defmodule LastfmArchive.Archive.Metadata do
   Struct representing Lastfm archive metadata.
   """
   use TypedStruct
-  alias LastfmArchive.Archive.DerivedArchive
-
   @type facet_type :: :scrobbles | :albums | :artists | :tracks
 
   @typedoc "Metadata descriping a Lastfm archive based on
@@ -61,7 +59,7 @@ defmodule LastfmArchive.Archive.Metadata do
     %{
       metadata
       | description: "Lastfm #{facet} archive of #{metadata.creator} in #{format} format",
-        format: DerivedArchive.mimetype(format),
+        format: LastfmArchive.Archive.Transformers.Transformer.mimetype(format),
         source: "local file archive",
         type: facet
     }

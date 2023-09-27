@@ -124,7 +124,10 @@ defmodule LastfmArchive.Load do
   """
   @spec load_solr(Hui.URL.t(), binary, binary) :: {:ok, Hui.Http.t()} | {:error, :enoent}
   def load_solr(url, user, filename) do
-    case Utils.read(Path.join(Utils.user_dir(user), filename)) do
+    Utils.Archive.user_dir(user)
+    |> Path.join(filename)
+    |> Utils.File.read()
+    |> case do
       {:ok, resp} ->
         [header | scrobbles] = resp |> String.split("\n")
 

@@ -14,8 +14,9 @@ defmodule LastfmArchive.Archive.FileArchive do
   alias LastfmArchive.Cache.Server, as: CacheServer
   alias LastfmArchive.LastfmClient.LastfmApi
 
-  import LastfmArchive.Utils
+  import LastfmArchive.Utils.Archive, only: [num_pages: 2, page_path: 3, user_dir: 2]
   import LastfmArchive.Utils.DateTime, except: [month_range: 2]
+  import LastfmArchive.Utils.File, only: [ls_archive_files: 2, maybe_create_dir: 1, read: 1, write: 3]
 
   require Logger
 
@@ -39,7 +40,7 @@ defmodule LastfmArchive.Archive.FileArchive do
   end
 
   defp setup(user, opts) do
-    maybe_create_dir(user_dir(user, opts), sub_dir: Cache.cache_dir())
+    Path.join(user_dir(user, opts), Cache.cache_dir()) |> maybe_create_dir()
 
     # migrate previous cache files to .cache dir
     # to be removed in a future version
@@ -118,7 +119,7 @@ defmodule LastfmArchive.Archive.FileArchive do
   end
 
   defp create_lazy_data_frame(filepath) do
-    LastfmArchive.Utils.read(filepath)
+    read(filepath)
     |> then(fn {:ok, scrobbles} -> scrobbles |> Jason.decode!() end)
     |> Scrobble.new()
     |> Enum.map(&Map.from_struct/1)

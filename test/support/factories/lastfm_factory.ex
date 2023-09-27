@@ -3,7 +3,7 @@ defmodule LastfmArchive.Lastfm.Factory do
 
   # factory for generating Lastfm API responses test data
   defmacro __using__(_opts) do
-    quote do
+    quote location: :keep do
       def album_factory(attrs), do: %{"#text" => Map.get(attrs, :album), "mbid" => Map.get(attrs, :album_mbid)}
 
       def artist_factory(attrs) do

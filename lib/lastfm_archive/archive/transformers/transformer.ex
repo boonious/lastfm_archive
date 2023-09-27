@@ -3,14 +3,15 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
   Base transformer with default implementations.
   """
 
-  use LastfmArchive.Archive.Transformers.TransformerSettings
-  use LastfmArchive.Behaviour.DataFrameIo, formats: LastfmArchive.Archive.Transformers.TransformerSettings.formats()
+  use LastfmArchive.Archive.Transformers.TransformerConfigs
+  use LastfmArchive.Behaviour.DataFrameIo
 
   alias Explorer.DataFrame
   alias LastfmArchive.Behaviour.Archive
 
-  import LastfmArchive.Utils, only: [maybe_create_dir: 2, check_filepath: 2, write: 2, user_dir: 2]
+  import LastfmArchive.Utils.Archive, only: [derived_archive_dir: 1, user_dir: 2]
   import LastfmArchive.Utils.DateTime, only: [month_range: 2, year_range: 1]
+  import LastfmArchive.Utils.File, only: [check_filepath: 2, maybe_create_dir: 1, write: 2]
 
   require Explorer.DataFrame
   require Logger
@@ -18,7 +19,7 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
   @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
 
   defmacro __using__(_opts) do
-    quote do
+    quote location: :keep do
       @behaviour LastfmArchive.Behaviour.Transformer
       import LastfmArchive.Archive.Transformers.Transformer
       import LastfmArchive.Utils.DateTime, only: [year_range: 1]
@@ -50,8 +51,12 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
     end
   end
 
+  def transformer(facet \\ :scrobbles), do: facet_transformer_config(facet)[:transformer]
+
   def apply(transformer, metadata, opts) do
-    maybe_create_archive_dir(metadata.creator, opts)
+    Path.join(user_dir(metadata.creator, opts), derived_archive_dir(opts |> validate_opts()))
+    |> maybe_create_dir()
+
     run_pipeline(transformer, metadata, opts, Keyword.get(opts, :year, year_range(metadata.temporal) |> Enum.to_list()))
     {:ok, %{metadata | modified: DateTime.utc_now()}}
   end
@@ -70,12 +75,6 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
 
   defp run_pipeline(transformer, metadata, opts) do
     transformer.source(metadata, opts) |> transformer.transform(opts) |> transformer.sink(metadata, opts)
-  end
-
-  defp maybe_create_archive_dir(user, opts) do
-    opts
-    |> validate_opts()
-    |> then(fn opts -> maybe_create_dir(user_dir(user, opts), sub_dir: derived_archive_dir(opts)) end)
   end
 
   def data_frame_source(metadata, year) do
@@ -117,7 +116,7 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
     fn df ->
       df
       |> DataFrame.collect()
-      |> dump_data_frame(:csv, write_opts(:csv))
+      |> then(fn df -> Kernel.apply(__MODULE__, :dump_csv!, [df, write_opts(:csv)]) end)
       |> then(fn data -> @file_io.write(filepath, data, [:compressed]) end)
     end
   end
@@ -126,7 +125,7 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
     fn df ->
       df
       |> DataFrame.collect()
-      |> to_data_frame(filepath, format, write_opts(format))
+      |> then(fn df -> Kernel.apply(__MODULE__, :"to_#{format}!", [df, filepath, write_opts(format)]) end)
     end
   end
 end

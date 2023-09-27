@@ -4,17 +4,17 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
   import ExUnit.CaptureLog
   import Hammox
 
-  import LastfmArchive.Archive.Transformers.TransformerSettings, only: [transformer: 1]
-  import LastfmArchive.Factory, only: [build: 2, dataframe: 0]
-  import LastfmArchive.Utils, only: [user_dir: 1, metadata_filepath: 2]
-
-  alias LastfmArchive.Archive.DerivedArchive
-  alias LastfmArchive.Archive.FileArchiveMock
-  alias LastfmArchive.Archive.Metadata
-  alias LastfmArchive.FileIOMock
+  import LastfmArchive.Factory, only: [build: 2, dataframe: 0, dataframe: 1]
+  import LastfmArchive.Utils.Archive, only: [derived_archive_dir: 1, user_dir: 1, metadata_filepath: 2]
 
   alias Explorer.DataFrame
+  alias LastfmArchive.Archive.DerivedArchive
+  alias LastfmArchive.Archive.Metadata
+  alias LastfmArchive.Archive.Transformers.Transformer
+
   alias Explorer.DataFrameMock
+  alias LastfmArchive.Archive.FileArchiveMock
+  alias LastfmArchive.FileIOMock
 
   setup :verify_on_exit!
 
@@ -40,11 +40,16 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         modified: DateTime.utc_now()
       )
 
-    %{dataframe: dataframe(), file_archive_metadata: metadata, user: user}
+    %{
+      facet_dataframes: Transformer.facets() |> Enum.into(%{}, &{&1, dataframe(&1)}),
+      dataframe: dataframe(),
+      file_archive_metadata: metadata,
+      user: user
+    }
   end
 
   describe "post_archive/3 transform" do
-    for format <- DerivedArchive.formats(), facet <- DerivedArchive.facets() do
+    for format <- Transformer.formats(), facet <- Transformer.facets() do
       test "#{facet} into #{format} file", %{dataframe: df, file_archive_metadata: metadata} do
         facet = unquote(facet)
         format = unquote(format)
@@ -59,7 +64,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         |> expect(:exists?, fn _dir -> true end)
         |> expect(:exists?, 2, fn _filepath -> false end)
 
-        if format = :csv do
+        if format == :csv do
           FileIOMock |> expect(:write, 2, fn _filepath, _data, [:compressed] -> :ok end)
           DataFrameMock |> expect(:"dump_#{format}!", 2, fn %DataFrame{}, _opts -> "" end)
         else
@@ -68,14 +73,14 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
 
         capture_log(fn ->
           assert {:ok, _metadata} =
-                   DerivedArchive.post_archive(metadata, transformer(facet), format: format, facet: facet)
+                   DerivedArchive.post_archive(metadata, Transformer.transformer(facet), format: format, facet: facet)
         end)
       end
     end
   end
 
   describe "describe/2" do
-    for format <- DerivedArchive.formats(), facet <- DerivedArchive.facets() do
+    for format <- Transformer.formats(), facet <- Transformer.facets() do
       test "existing #{format} derived #{facet} archive", %{user: user, file_archive_metadata: metadata} do
         facet = unquote(facet)
         format = unquote(format)
@@ -84,7 +89,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         derived_archive_metadata = build(:derived_archive_metadata, file_archive_metadata: metadata, options: opts)
         derived_archive_metadata_filepath = metadata_filepath(user, format: format)
         file_archive_metadata_filepath = metadata_filepath(user, [])
-        mimetype = DerivedArchive.mimetype(format)
+        mimetype = Transformer.mimetype(format)
 
         FileIOMock
         |> expect(:read, fn ^file_archive_metadata_filepath -> {:ok, metadata |> Jason.encode!()} end)
@@ -120,7 +125,7 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
 
         file_archive_metadata_filepath = metadata_filepath(user, [])
         derived_archive_metadata_filepath = metadata_filepath(user, format: format, facet: facet)
-        mimetype = DerivedArchive.mimetype(format)
+        mimetype = Transformer.mimetype(format)
 
         FileIOMock
         |> expect(:read, fn ^file_archive_metadata_filepath -> {:ok, metadata |> Jason.encode!()} end)
@@ -150,9 +155,9 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
   end
 
   describe "read/2" do
-    for format <- DerivedArchive.formats(), facet <- DerivedArchive.facets() do
+    for format <- Transformer.formats(), facet <- Transformer.facets() do
       test "data frame with a year option for #{facet} archive in #{format}", %{
-        dataframe: df,
+        facet_dataframes: dfs,
         user: user,
         file_archive_metadata: metadata
       } do
@@ -161,19 +166,19 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         opts = [format: format, facet: facet]
 
         metadata = build(:derived_archive_metadata, file_archive_metadata: metadata, options: opts)
-        read_opts = DerivedArchive.read_opts(format)
-        archive_dir = "#{DerivedArchive.derived_archive_dir(opts)}"
+        read_opts = Transformer.read_opts(format)
+        archive_dir = "#{derived_archive_dir(opts)}"
 
         filepath = Path.join([user_dir(user), archive_dir, "2023.#{format}"])
         filepath = if format == :csv, do: filepath <> ".gz", else: filepath
 
-        DataFrameMock |> expect(:"from_#{format}!", fn ^filepath, ^read_opts -> df end)
+        DataFrameMock |> expect(:"from_#{format}!", fn ^filepath, ^read_opts -> dfs[facet] end)
 
         assert {:ok, %DataFrame{}} = DerivedArchive.read(metadata, year: 2023, facet: facet)
       end
 
       test "#{facet} archive in #{format} with columns options", %{
-        dataframe: df,
+        facet_dataframes: dfs,
         user: user,
         file_archive_metadata: metadata
       } do
@@ -183,26 +188,39 @@ defmodule LastfmArchive.Archive.DerivedArchiveTest do
         opts = [format: format, facet: facet]
 
         metadata = build(:derived_archive_metadata, file_archive_metadata: metadata, options: opts)
-        read_opts = DerivedArchive.read_opts(format) |> Keyword.put(:columns, columns)
-        archive_dir = "#{DerivedArchive.derived_archive_dir(opts)}"
+        read_opts = Transformer.read_opts(format) |> Keyword.put(:columns, columns)
+        archive_dir = "#{derived_archive_dir(opts)}"
 
         filepath = Path.join([user_dir(user), archive_dir, "2023.#{format}"])
         filepath = if format == :csv, do: filepath <> ".gz", else: filepath
 
-        DataFrameMock |> expect(:"from_#{format}!", fn ^filepath, ^read_opts -> df end)
+        DataFrameMock |> expect(:"from_#{format}!", fn ^filepath, ^read_opts -> dfs[facet] end)
 
-        assert {:ok, %DataFrame{}} = DerivedArchive.read(metadata, year: 2023, columns: columns, facet: facet)
+        assert {:ok, %DataFrame{} = df} = DerivedArchive.read(metadata, year: 2023, columns: columns, facet: facet)
+
+        if facet == :scrobbles do
+          for col <- columns, do: assert("#{col}" in df.names)
+        end
       end
 
-      test "entire #{facet} archive in #{format} without year option", %{dataframe: df, file_archive_metadata: metadata} do
+      test "entire #{facet} archive in #{format} without year option", %{
+        facet_dataframes: dfs,
+        file_archive_metadata: metadata
+      } do
         facet = unquote(facet)
         format = unquote(format)
         opts = [format: format, facet: facet]
         metadata = build(:derived_archive_metadata, file_archive_metadata: metadata, options: opts)
 
         # read all (2) years from files
-        DataFrameMock |> expect(:"from_#{format}!", 2, fn _filepath, _opts -> df end)
-        assert {:ok, %DataFrame{}} = DerivedArchive.read(metadata, format: format, facet: facet)
+        DataFrameMock |> expect(:"from_#{format}!", 2, fn _filepath, _opts -> dfs[facet] end)
+        assert {:ok, %DataFrame{} = df} = DerivedArchive.read(metadata, format: format, facet: facet)
+
+        unless facet == :scrobbles do
+          assert "first_play" in df.names
+          assert "last_play" in df.names
+          assert "counts" in df.names
+        end
       end
     end
   end
