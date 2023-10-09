@@ -1,4 +1,8 @@
 # Changelog
+## 1.2.1 (2023-10-23)
+
+* use Last.fm https (ssl) API endpoint to download scrobbles
+
 ## 1.2.0 (2023-09-27)
 
 * `FacetsTransformer` and `facet` (unique artists, albums, tracks) option in `transform/2` for facets archiving

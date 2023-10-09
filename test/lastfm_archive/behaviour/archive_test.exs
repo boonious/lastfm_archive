@@ -43,7 +43,7 @@ defmodule LastfmArchive.Behaviour.ArchiveTest do
                  description: "Lastfm archive of a_user, extracted from Lastfm API",
                  format: "application/json",
                  identifier: "a_user",
-                 source: "http://ws.audioscrobbler.com/2.0",
+                 source: "https://ws.audioscrobbler.com/2.0",
                  title: "Lastfm archive of a_user",
                  type: ^type
                }
@@ -66,7 +66,7 @@ defmodule LastfmArchive.Behaviour.ArchiveTest do
                  description: "Lastfm archive of a_user, extracted from Lastfm API",
                  format: "application/json",
                  identifier: "a_user",
-                 source: "http://ws.audioscrobbler.com/2.0",
+                 source: "https://ws.audioscrobbler.com/2.0",
                  title: "Lastfm archive of a_user",
                  modified: nil,
                  date: nil
@@ -94,7 +94,7 @@ defmodule LastfmArchive.Behaviour.ArchiveTest do
                  description: "Lastfm archive of a_user, extracted from Lastfm API",
                  format: "application/json",
                  identifier: "a_user",
-                 source: "http://ws.audioscrobbler.com/2.0",
+                 source: "https://ws.audioscrobbler.com/2.0",
                  title: "Lastfm archive of a_user",
                  type: ^type,
                  extent: 388,
@@ -116,7 +116,7 @@ defmodule LastfmArchive.Behaviour.ArchiveTest do
                  description: "Lastfm archive of new_user, extracted from Lastfm API",
                  format: "application/json",
                  identifier: "new_user",
-                 source: "http://ws.audioscrobbler.com/2.0",
+                 source: "https://ws.audioscrobbler.com/2.0",
                  title: "Lastfm archive of new_user",
                  type: ^type,
                  date: nil,

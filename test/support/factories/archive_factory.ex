@@ -21,7 +21,7 @@ defmodule LastfmArchive.Archive.Factory do
           format: "application/json",
           identifier: user,
           modified: Map.get(attrs, :modified, DateTime.from_iso8601("2023-06-09T14:36:16.952540Z") |> elem(1)),
-          source: "http://ws.audioscrobbler.com/2.0",
+          source: "https://ws.audioscrobbler.com/2.0",
           temporal: {first_scrobble_time, latest_scrobble_time},
           title: "Lastfm archive of #{user}",
           type: Map.get(attrs, :type, :scrobbles)

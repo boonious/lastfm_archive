@@ -81,7 +81,7 @@ defmodule LastfmArchive.LastfmClient.Impl do
   defp format(nil), do: nil
 
   defp get(url, key) do
-    :httpc.request(:get, {to_charlist(url), [{'Authorization', to_charlist("Bearer #{key}")}]}, [], [])
+    :httpc.request(:get, {to_charlist(url), [{'Authorization', to_charlist("Bearer #{key}")}]}, [ssl: ssl_opts()], [])
     |> case do
       {:ok, {{_scheme, _status, _}, _headers, body}} -> body |> Jason.decode!()
       {:error, error} -> {:error, error}
@@ -91,4 +91,16 @@ defmodule LastfmArchive.LastfmClient.Impl do
   defp encode({_k, 0}), do: ""
   defp encode({k, v}), do: "&#{k}=#{v}"
   defp encode(args), do: for({k, v} <- args, v != nil, do: encode({k, v}))
+
+  defp ssl_opts do
+    [
+      verify: :verify_peer,
+      cacertfile: '#{CAStore.file_path()}',
+      customize_hostname_check: [
+        match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
+      ],
+      versions: [:"tlsv1.2"],
+      depth: 4
+    ]
+  end
 end

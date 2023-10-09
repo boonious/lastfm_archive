@@ -8,7 +8,7 @@ defmodule LastfmArchive.MixProject do
   def project do
     [
       app: :lastfm_archive,
-      version: "1.2.0",
+      version: "1.2.1",
       elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -53,11 +53,12 @@ defmodule LastfmArchive.MixProject do
 
   defp deps do
     [
+      {:castore, "~> 1.0"},
       {:elixir_uuid, "~> 1.2"},
       {:explorer, "~> 0.7"},
       {:hui, "0.10.4"},
       {:jason, "~> 1.4"},
-      {:kino, "~> 0.10"},
+      {:kino, "~> 0.10.0"},
       {:kino_vega_lite, "~> 0.1.9"},
       {:typed_struct, "~> 0.3.0"},
       {:vega_lite, "~> 0.1.7"},
