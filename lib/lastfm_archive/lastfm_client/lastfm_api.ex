@@ -5,7 +5,7 @@ defmodule LastfmArchive.LastfmClient.LastfmApi do
 
   use TypedStruct
 
-  @endpoint "http://ws.audioscrobbler.com/"
+  @endpoint "https://ws.audioscrobbler.com/"
   @method "user.getrecenttracks"
 
   @lastfm_api_key Application.compile_env(:lastfm_archive, :lastfm_api_key, "")

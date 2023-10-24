@@ -11,7 +11,7 @@ defmodule LastfmArchive.Archive.MetadataTest do
                description: "Lastfm archive of a_lastfm_user, extracted from Lastfm API",
                format: "application/json",
                identifier: "a_lastfm_user",
-               source: "http://ws.audioscrobbler.com/2.0",
+               source: "https://ws.audioscrobbler.com/2.0",
                title: "Lastfm archive of a_lastfm_user"
              } = Metadata.new("a_lastfm_user")
     end
@@ -28,7 +28,7 @@ defmodule LastfmArchive.Archive.MetadataTest do
                format: "application/json",
                identifier: "a_lastfm_user",
                modified: "2023-06-09T14:36:16.952540Z",
-               source: "http://ws.audioscrobbler.com/2.0",
+               source: "https://ws.audioscrobbler.com/2.0",
                temporal: {1_617_303_007, 1_617_475_807},
                title: "Lastfm archive of a_lastfm_user",
                type: :scrobbles

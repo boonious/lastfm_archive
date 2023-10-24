@@ -46,7 +46,7 @@ defmodule LastfmArchive.Archive.Metadata do
       description: "Lastfm archive of #{user}, extracted from Lastfm API",
       format: "application/json",
       identifier: user,
-      source: "http://ws.audioscrobbler.com/2.0",
+      source: "https://ws.audioscrobbler.com/2.0",
       title: "Lastfm archive of #{user}"
     }
   end
