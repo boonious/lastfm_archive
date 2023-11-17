@@ -5,6 +5,7 @@ defmodule LastfmArchive.Utils.Archive do
 
   @metadata_dir ".metadata"
   @data_dir Application.compile_env(:lastfm_archive, :data_dir, "./lastfm_data/")
+  @file_io Application.compile_env(:lastfm_archive, :file_io, Elixir.File)
 
   def metadata_filepath(user, opts \\ []) do
     Path.join([
@@ -12,6 +13,13 @@ defmodule LastfmArchive.Utils.Archive do
       user,
       "#{@metadata_dir}/#{Keyword.get(opts, :facet, "scrobbles")}/#{Keyword.get(opts, :format, "json")}_archive"
     ])
+  end
+
+  def check_existing_archive(user, options) do
+    case metadata_filepath(user, options) |> @file_io.exists?() do
+      true -> {:ok, metadata_filepath(user, options)}
+      false -> {:error, :archive_not_found}
+    end
   end
 
   def num_pages(playcount, per_page), do: (playcount / per_page) |> :math.ceil() |> round
