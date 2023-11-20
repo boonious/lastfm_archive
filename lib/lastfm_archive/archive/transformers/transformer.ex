@@ -57,8 +57,12 @@ defmodule LastfmArchive.Archive.Transformers.Transformer do
     Path.join(user_dir(metadata.creator, opts), derived_archive_dir(opts |> validate_opts()))
     |> maybe_create_dir()
 
-    run_pipeline(transformer, metadata, opts, Keyword.get(opts, :year, year_range(metadata.temporal) |> Enum.to_list()))
+    run_pipeline(transformer, metadata, opts, Keyword.get(opts, :year))
     {:ok, %{metadata | modified: DateTime.utc_now()}}
+  end
+
+  defp run_pipeline(transformer, metadata, opts, year) when is_nil(year) do
+    run_pipeline(transformer, metadata, opts, year_range(metadata.temporal) |> Enum.to_list())
   end
 
   defp run_pipeline(transformer, metadata, opts, year) when is_integer(year) do

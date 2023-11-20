@@ -27,7 +27,7 @@ defmodule LastfmArchive.Archive.Transformers.TransformerConfigs do
     end
   end
 
-  def default_opts, do: [format: :ipc_stream, facet: :scrobbles, overwrite: false]
+  def default_opts, do: [facet: :scrobbles, format: :ipc_stream, overwrite: false, year: nil]
   def facets, do: facet_transformers_configs() |> Map.keys()
   def formats, do: format_configs() |> Map.keys()
 

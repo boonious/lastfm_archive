@@ -16,7 +16,10 @@ defmodule LastfmArchive do
   alias LastfmArchive.LastfmClient.LastfmApi
 
   import LastfmArchive.Archive.Transformers.Transformer, only: [transformer: 1]
+  import LastfmArchive.Archive.Transformers.TransformerConfigs, only: [default_opts: 0]
+  import LastfmArchive.Utils.Archive, only: [check_existing_archive: 2]
 
+  @facets LastfmArchive.Archive.Transformers.TransformerConfigs.facets()
   @path_io Application.compile_env(:lastfm_archive, :path_io, Elixir.Path)
 
   @type metadata :: Metadata.t()
@@ -97,12 +100,48 @@ defmodule LastfmArchive do
   ```
 
   """
-  @spec sync(binary, keyword) :: {:ok, metadata()} | {:error, :file.posix()}
+  @spec sync(binary(), keyword()) :: {:ok, metadata()} | {:error, :file.posix()}
   def sync(user \\ default_user(), options \\ []) do
     user
     |> impl().describe(options)
     |> then(fn {:ok, metadata} -> impl().archive(metadata, options, LastfmApi.new()) end)
   end
+
+  @doc """
+  Convenient update function to sync the latest scrobbles and transforms them into existing faceted archives.
+
+  Options:
+  - `:year` - limit sync to this particular year, default: the current year
+  - `:format` - transform archive format: `:csv`, `:parquet`, `:ipc`, `:ipc_stream` (default)
+  """
+  @spec update_latest(binary(), keyword()) :: list({:ok, metadata()} | {:error, :archive_not_found})
+  def update_latest(user \\ default_user(), options \\ []) do
+    year = Keyword.get(options, :year, this_year())
+    overwrite = Keyword.get(options, :overwrite, true)
+
+    options =
+      Keyword.validate!(options, default_opts())
+      |> Keyword.put(:year, year)
+      |> Keyword.put(:overwrite, overwrite)
+
+    sync_resp =
+      with {:ok, _} <- check_existing_archive(user, Keyword.delete(options, :format)) do
+        sync(user, year: year)
+      end
+
+    transform_resp =
+      for facet <- @facets do
+        options = Keyword.put(options, :facet, facet)
+
+        with {:ok, _} <- check_existing_archive(user, options) do
+          transform(user, options)
+        end
+      end
+
+    [sync_resp] ++ transform_resp
+  end
+
+  defp this_year(), do: Date.utc_today().year
 
   @doc """
   Read from an archive of a Lastfm user.
@@ -138,13 +177,13 @@ defmodule LastfmArchive do
   ```
 
   Options:
-  - `:format` (required) - derived archive format: `:csv`, `:parquet`, `:ipc`, `:ipc_stream`
+  - `:format` - derived archive format: `:csv`, `:parquet`, `:ipc`, `:ipc_stream` (default)
   - `:facet` - type of archive: `:scrobbles` (default), `:albums`, `:artists` or `:tracks`
-  - `:year` - only read scrobbles for this particular year
+  - `:year` - only read scrobbles for this particular year (default - all years)
   - `:columns` - an atom list for retrieving only a columns subset, available columns:
   #{%LastfmArchive.Archive.Scrobble{} |> Map.keys() |> List.delete(:__struct__) |> Enum.map_join(", ", &(("`:" <> Atom.to_string(&1)) <> "`"))}
   """
-  @spec read(binary, keyword()) :: {:ok, Explorer.DataFrame} | {:error, term()}
+  @spec read(binary(), keyword()) :: {:ok, Explorer.DataFrame} | {:error, term()}
   def read(user \\ default_user(), options) do
     user
     |> impl(options).describe(options)
@@ -174,19 +213,20 @@ defmodule LastfmArchive do
   - `:format` - format into which file archive is transformed: `:csv`, `:parquet`, `:ipc`, `:ipc_stream` (default)
   - `:facet` - type of archive: `:scrobbles` (default), `:albums`, `:artists` or `:tracks`
   - `:overwrite` existing data, default: false
-  - `:year` - optionally transform data from this particular year
+  - `:year` - transform data from this particular year
   """
-  @spec transform(binary, options) :: any
-  def transform(user \\ default_user(), options \\ [format: :ipc_stream])
+  @spec transform(binary(), options) :: any
+  def transform(user \\ default_user(), options \\ [])
 
   def transform(user, options) when is_binary(user) do
-    facet = Keyword.get(options, :facet, :scrobbles)
-    options = options |> Keyword.merge(facet: facet)
+    options = Keyword.validate!(options, default_opts()) |> Enum.sort()
+    facet = Keyword.get(options, :facet)
 
-    user
-    |> impl(options).describe(options)
-    |> then(fn {:ok, metadata} -> impl(options).post_archive(metadata, transformer(facet), options) end)
-    |> then(fn {:ok, metadata} -> impl(options).update_metadata(metadata, options) end)
+    with {:ok, facet} <- validate_facet(facet),
+         {:ok, metadata} <- impl(options).describe(user, options),
+         {:ok, metadata} <- impl(options).post_archive(metadata, transformer(facet), options) do
+      impl(options).update_metadata(metadata, options)
+    end
   end
 
   defp impl(options \\ []) do
@@ -195,6 +235,9 @@ defmodule LastfmArchive do
       false -> Archive.impl(:file_archive)
     end
   end
+
+  defp validate_facet(facet) when facet in @facets, do: {:ok, facet}
+  defp validate_facet(_), do: {:error, :invalid_facet}
 
   # return all archive file paths in a list
   defp ls_archive_files(user, options \\ []) do

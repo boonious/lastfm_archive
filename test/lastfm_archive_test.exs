@@ -7,6 +7,8 @@ defmodule LastfmArchiveTest do
   alias LastfmArchive.Archive.DerivedArchiveMock
   alias LastfmArchive.Archive.FileArchiveMock
   alias LastfmArchive.Archive.Transformers.Transformer
+  alias LastfmArchive.Archive.Transformers.TransformerConfigs
+  alias LastfmArchive.FileIOMock
 
   setup :verify_on_exit!
 
@@ -50,6 +52,64 @@ defmodule LastfmArchiveTest do
       |> expect(:archive, fn ^metadata, _options, _api_client -> {:ok, metadata} end)
 
       LastfmArchive.sync(user)
+    end
+  end
+
+  describe "update_latest/2" do
+    setup context do
+      metadata =
+        build(:derived_archive_metadata,
+          file_archive_metadat: context.file_archive_metadata,
+          options: TransformerConfigs.default_opts()
+        )
+
+      DerivedArchiveMock
+      |> stub(:describe, fn _user, _opts -> {:ok, metadata} end)
+      |> stub(:post_archive, fn _metadata, _transformer, _opts -> {:ok, metadata} end)
+      |> stub(:update_metadata, fn _metadata, _opts -> {:ok, metadata} end)
+
+      :ok
+    end
+
+    test "sync and transform scrobbles in default format", %{user: user, file_archive_metadata: metadata} do
+      FileIOMock |> stub(:exists?, fn _path -> true end)
+
+      FileArchiveMock
+      |> expect(:describe, fn _user, _opts -> {:ok, metadata} end)
+      |> expect(:archive, fn _metadata, _opts, _api_client -> {:ok, metadata} end)
+
+      LastfmArchive.update_latest(user, year: 2023, format: :ipc_stream)
+    end
+
+    test "when file archive not available", %{user: user, file_archive_metadata: metadata} do
+      FileIOMock
+      |> expect(:exists?, fn _path -> false end)
+      |> stub(:exists?, fn _path -> true end)
+
+      FileArchiveMock
+      |> expect(:describe, 0, fn _user, _opts -> {:ok, metadata} end)
+      |> expect(:archive, 0, fn _metadata, _opts, _api_client -> {:ok, metadata} end)
+
+      [sync_resp | _transform_resp] = LastfmArchive.update_latest(user)
+
+      assert sync_resp == {:error, :archive_not_found}
+    end
+
+    test "when facet archives not available", %{user: user, file_archive_metadata: metadata} do
+      FileIOMock |> stub(:exists?, fn _path -> false end)
+
+      FileArchiveMock
+      |> expect(:describe, 0, fn _user, _opts -> {:ok, metadata} end)
+      |> expect(:archive, 0, fn _metadata, _opts, _api_client -> {:ok, metadata} end)
+
+      DerivedArchiveMock
+      |> expect(:describe, 0, fn _user, _opts -> {:ok, metadata} end)
+      |> expect(:post_archive, 0, fn _metadata, _transformer, _opts -> {:ok, metadata} end)
+      |> expect(:update_metadata, 0, fn _metadata, _opts -> {:ok, metadata} end)
+
+      resp = LastfmArchive.update_latest(user)
+
+      assert Enum.all?(resp, &(&1 == {:error, :archive_not_found}))
     end
   end
 
@@ -106,7 +166,7 @@ defmodule LastfmArchiveTest do
       test "#{facet} into #{format} files", %{user: user, file_archive_metadata: file_archive_metadata} do
         facet = unquote(facet)
         format = unquote(format)
-        opts = [format: format, facet: facet]
+        opts = [facet: facet, format: format] |> Keyword.validate!(TransformerConfigs.default_opts()) |> Enum.sort()
 
         metadata = build(:derived_archive_metadata, file_archive_metadat: file_archive_metadata, options: opts)
         transformer = Transformer.facet_transformer_config(facet)[:transformer]
@@ -123,7 +183,7 @@ defmodule LastfmArchiveTest do
     test "scrobbles of default user with default (Arrow IPC stream) format", %{file_archive_metadata: metadata} do
       user = Application.get_env(:lastfm_archive, :user)
       transformer = Transformer.facet_transformer_config(:scrobbles)[:transformer]
-      opts = [format: :ipc_stream, facet: :scrobbles]
+      opts = [] |> Keyword.validate!(TransformerConfigs.default_opts()) |> Enum.sort()
 
       DerivedArchiveMock
       |> expect(:describe, fn ^user, _options -> {:ok, metadata} end)
