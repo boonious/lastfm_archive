@@ -4,24 +4,17 @@ defmodule LastfmArchive.LastfmClient.LastfmApi do
   """
 
   use TypedStruct
-
-  @endpoint "https://ws.audioscrobbler.com/"
-  @method "user.getrecenttracks"
-
-  @lastfm_api_key Application.compile_env(:lastfm_archive, :lastfm_api_key, "")
+  import LastfmArchive.Configs, only: [lastfm_api_endpoint: 0, lastfm_api_key: 0, lastfm_api_method: 0, lastfm_user: 0]
 
   @typedoc "Lastfm API"
   typedstruct enforce: true do
     field(:key, String.t())
-    field(:endpoint, String.t(), default: @endpoint)
-    field(:method, String.t(), default: @method)
+    field(:endpoint, String.t(), default: lastfm_api_endpoint())
+    field(:method, String.t(), default: lastfm_api_method())
+    field(:user, String.t(), default: lastfm_user())
   end
 
-  def new(method \\ @method) do
-    %__MODULE__{
-      key: System.get_env("LB_LFM_API_KEY") || @lastfm_api_key || "",
-      endpoint: System.get_env("LB_LFM_API_ENDPOINT") || @endpoint || "",
-      method: method
-    }
+  def new(method \\ lastfm_api_method()) do
+    %__MODULE__{endpoint: lastfm_api_endpoint(), key: lastfm_api_key(), method: method}
   end
 end

@@ -60,6 +60,7 @@ defmodule LastfmArchive.MixProject do
       {:jason, "~> 1.4"},
       {:kino, "~> 0.10.0"},
       {:kino_vega_lite, "~> 0.1.9"},
+      {:stow, path: "../stow"},
       {:typed_struct, "~> 0.3.0"},
       {:vega_lite, "~> 0.1.7"},
 

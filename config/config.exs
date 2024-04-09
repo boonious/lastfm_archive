@@ -4,11 +4,16 @@ import Config
 config :lastfm_archive,
   data_dir: "./lastfm_data/",
   interval: 1000,
-  lastfm_api_key: "",
   lastfm_client: LastfmArchive.LastfmClient.Impl,
   per_page: 200,
-  file_archive: LastfmArchive.Archive.FileArchive,
-  user: ""
+  file_archive: LastfmArchive.Archive.FileArchive
+
+
+config :lastfm_archive,
+  user: "",
+  lastfm_api: %{
+    key: ""
+  }
 
 config :lastfm_archive,
   file_archive: LastfmArchive.Archive.FileArchive,

@@ -7,9 +7,7 @@ defmodule LastfmArchive.LastfmClient.Impl do
 
   alias LastfmArchive.LastfmClient.LastfmApi
 
-  @config_user Application.compile_env(:lastfm_archive, :user)
-
-  def default_user, do: System.get_env("LB_LFM_USER") || @config_user
+  def default_user, do: LastfmArchive.Configs.lastfm_user()
 
   @doc """
   Returns the total playcount and earliest scrobble date for a user.
