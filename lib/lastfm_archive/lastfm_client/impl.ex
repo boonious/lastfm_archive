@@ -12,9 +12,11 @@ defmodule LastfmArchive.LastfmClient.Impl do
   @doc """
   Returns the total playcount and earliest scrobble date for a user.
   """
+  # TODO: remove user param
   @impl true
-  def info(user \\ default_user(), api \\ LastfmApi.new("user.getinfo")) do
-    "#{api.endpoint}2.0/?method=#{api.method}&user=#{user}&api_key=#{api.key}&format=json"
+  def info(_user \\ default_user(), api \\ LastfmApi.new("user.getinfo")) do
+    api
+    |> to_string()
     |> get(api.key)
     |> handle_response(:info)
   end
@@ -29,7 +31,7 @@ defmodule LastfmArchive.LastfmClient.Impl do
     # can incorporate these into the Api struct
     extra_query = [limit: limit, page: page, from: from, to: to, extended: 1] |> encode() |> Enum.join()
 
-    "#{api.endpoint}2.0/?method=#{api.method}&user=#{user}&api_key=#{api.key}&format=json#{extra_query}"
+    "#{api.endpoint}?method=#{api.method}&user=#{user}&api_key=#{api.key}&format=json#{extra_query}"
     |> get(api.key)
     |> handle_response(:scrobbles)
   end
@@ -41,7 +43,7 @@ defmodule LastfmArchive.LastfmClient.Impl do
   def playcount(user \\ default_user(), {from, to} \\ {nil, nil}, api \\ LastfmApi.new()) do
     extra_query = [limit: 1, page: 1, from: from, to: to] |> encode() |> Enum.join()
 
-    "#{api.endpoint}2.0/?method=#{api.method}&user=#{user}&api_key=#{api.key}&format=json#{extra_query}"
+    "#{api.endpoint}?method=#{api.method}&user=#{user}&api_key=#{api.key}&format=json#{extra_query}"
     |> get(api.key)
     |> handle_response(:playcount)
   end

@@ -114,12 +114,17 @@ defmodule LastfmArchive.LastfmClient.ImplTest do
   end
 
   describe "info/2" do
-    setup do
+    setup context do
       bypass = Bypass.open()
 
       %{
         bypass: bypass,
-        api: %LastfmApi{key: "12345", endpoint: "http://localhost:#{bypass.port}/", method: "user.getinfo"}
+        api: %LastfmApi{
+          user: context.user,
+          key: "12345",
+          endpoint: "http://localhost:#{bypass.port}/",
+          method: "user.getinfo"
+        }
       }
     end
 

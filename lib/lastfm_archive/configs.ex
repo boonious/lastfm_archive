@@ -3,7 +3,7 @@ defmodule LastfmArchive.Configs do
 
   def lastfm_api, do: Application.get_env(:lastfm_archive, :lastfm_api, %{})
 
-  def lastfm_api_endpoint, do: System.get_env("LB_LFM_API_ENDPOINT") || "https://ws.audioscrobbler.com/"
+  def lastfm_api_endpoint, do: System.get_env("LB_LFM_API_ENDPOINT") || "https://ws.audioscrobbler.com/2.0/"
   def lastfm_api_method, do: "user.getrecenttracks"
   def lastfm_api_key, do: System.get_env("LB_LFM_API_KEY") || lastfm_api()[:key] || ""
 

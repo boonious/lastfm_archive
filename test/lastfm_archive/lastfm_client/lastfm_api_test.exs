@@ -5,7 +5,7 @@ defmodule LastfmArchive.LastfmClient.LastfmApiTest do
   test "new/0" do
     assert %LastfmApi{
              method: "user.getrecenttracks",
-             endpoint: "https://ws.audioscrobbler.com/",
+             endpoint: "https://ws.audioscrobbler.com/2.0/",
              key: ""
            } = LastfmApi.new()
   end
@@ -15,7 +15,7 @@ defmodule LastfmArchive.LastfmClient.LastfmApiTest do
 
     assert %LastfmApi{
              method: ^api_method,
-             endpoint: "https://ws.audioscrobbler.com/",
+             endpoint: "https://ws.audioscrobbler.com/2.0/",
              key: ""
            } = LastfmApi.new(api_method)
   end

@@ -8,7 +8,6 @@ config :lastfm_archive,
   per_page: 200,
   file_archive: LastfmArchive.Archive.FileArchive
 
-
 config :lastfm_archive,
   user: "",
   lastfm_api: %{
